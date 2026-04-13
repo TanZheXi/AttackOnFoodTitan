@@ -1,8 +1,7 @@
 import pygame as pg
 
-# 【重要】在最开始就初始化字体系统
 pg.init()
-pg.font.init()  # 确保字体系统已初始化
+pg.font.init()  
 
 ''' Tan Zhe Xi '''
 ## TZX_1. MINIGAME SYSTEM
@@ -62,7 +61,7 @@ class Button:
         self.color = color
         self.hover_color = hover_color
         self.callback = callback
-        self.font = pg.font.SysFont(None, 36)  # 缩小字体以适应小按钮
+        self.font = pg.font.SysFont(None, 36)
         self.is_hovered = False
 
     def handle_event(self, event):
@@ -85,28 +84,28 @@ class Button:
         text_rect = text_surf.get_rect(center=self.rect.center)
         screen.blit(text_surf, text_rect)
 
-# ----- 添加5个按钮（放在窗口上方）-----
-# 按钮回调函数
+# ----- (add 5 button)-----
+
 def button1_callback():
-    print("按钮1被点击")
+    print("1")
 
 def button2_callback():
-    print("按钮2被点击")
+    print("2")
 
 def button3_callback():
-    print("按钮3被点击")
+    print("3")
 
 def button4_callback():
-    print("按钮4被点击")
+    print("4")
 
 def button5_callback():
-    print("按钮5被点击")
+    print("5")
 
-# 创建5个小按钮，放在窗口上方（y=20，每个按钮宽80，间距10）
+# middle
 button_width = 80
 button_height = 40
 spacing = 10
-start_x = (800 - (button_width * 5 + spacing * 4)) // 2  # 居中计算
+start_x = (800 - (button_width * 5 + spacing * 4)) // 2 
 
 buttons = [
     Button(start_x + 0 * (button_width + spacing), 20, button_width, button_height, "Btn1", (100, 100, 100), (150, 150, 150), button1_callback),
@@ -132,7 +131,7 @@ buttons = [
 ''' Chen Lik Shen '''
 ## CLS_1. GAME UI & SOUND EFFECT
 
-# Setup for CLS_1 (字体已经在上方初始化过了，这里不需要重复)
+# Setup for CLS_1
 ui_font = pg.font.SysFont(None, 48)
 
 ## CLS_2. GAIN & LOST OF GEAR & CURRENCY SYSTEM
@@ -162,7 +161,7 @@ def draw_ui(window):
 
 
 '''General'''
-# 注意：pg.init() 和 pg.font.init() 已经在文件开头执行过了
+
 window = pg.display.set_mode((800,600)) # Adjust the window size from here by editing (x,y) value
 pg.display.set_caption("Attack On Food Titan") # Rename the window by editing ("Name")
 IsRunning = True
@@ -178,11 +177,9 @@ while IsRunning:
                     update_economy(current_monster)
                     current_monster = Monster("Baguette Monster", 100, (0,0,255)) # Spawn new monster with higher HP
         
-        # 让所有按钮处理事件
         for button in buttons:
             button.handle_event(event)
 
-    # 更新所有按钮的悬停状态
     for button in buttons:
         button.update()
 
@@ -190,7 +187,6 @@ while IsRunning:
     current_monster.draw(window)
     draw_ui(window)
     
-    # 绘制所有按钮
     for button in buttons:
         button.draw(window)
     
