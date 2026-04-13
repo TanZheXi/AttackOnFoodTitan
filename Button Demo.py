@@ -193,3 +193,25 @@ while IsRunning:
     pg.display.update()
 
 pg.quit()
+
+
+
+
+
+'''
+References list
+
+#1. ABILITY TO CLICK TO DEAL DAMAGE (line 17 - line 47)
+Source code: Copilot
+Link: None
+
+#2. Button system (line 57 - line 116)
+Source code: Deepseek
+Link: None
+
+Example:
+# [Name of the code] (From line x to line x)
+#Source code: (Creater of the sources - Platform)
+#Link: the link to your reference sources
+
+'''
