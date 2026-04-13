@@ -52,7 +52,35 @@ damage_per_click = 10
 ''' Eng Kai Hin '''
 ## EKH_1. BUTTON INTERACTION SYSTEM
 
+class Button:
+    def __init__(self, x, y, width, height, text, color, hover_color, callback=None):
+        self.rect = pg.Rect(x, y, width, height)
+        self.text = text
+        self.color = color
+        self.hover_color = hover_color
+        self.callback = callback
+        self.font = pg.font.SysFont(None, 48)
+        self.is_hovered = False
 
+    def handle_event(self, event):
+        if event.type == pg.MOUSEBUTTONDOWN and event.button == 1:
+            if self.rect.collidepoint(event.pos):
+                if self.callback:
+                    self.callback()
+                return True
+        return False
+
+    def update(self):
+        self.is_hovered = self.rect.collidepoint(pg.mouse.get_pos())
+
+    def draw(self, screen):
+        color = self.hover_color if self.is_hovered else self.color
+        pg.draw.rect(screen, color, self.rect)
+        pg.draw.rect(screen, (200, 200, 200), self.rect, 2)
+        
+        text_surf = self.font.render(self.text, True, (255, 255, 255))
+        text_rect = text_surf.get_rect(center=self.rect.center)
+        screen.blit(text_surf, text_rect)
 
 ## EKH_2. AFK SYSTEM
 
