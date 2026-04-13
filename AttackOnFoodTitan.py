@@ -1,9 +1,11 @@
 import pygame as pg
+import sys
 
 '''General'''
 
 pg.init()
 window = pg.display.set_mode((800,600)) # Adjust the window size from here by editing (x,y) value
+pg.display.set_caption("Attack On Food Titan") # Rename the title of window by editing ("Name")
 IsRunning = True
 while IsRunning:
     for event in pg.event.get():
