@@ -1,15 +1,18 @@
 import pygame as pg
 
-'''General'''
 
-pg.init()
-window = pg.display.set_mode((800,600)) # Adjust the window size from here by editing (x,y) value
-IsRunning = True
+''' Tan Zhe Xi '''
+## TZX_1. MINIGAME SYSTEM
+
+
+
+## TZX_2. GEAR & DATA DESIGN
+
+
 
 ## TZX_3. ABILITY TO CLICK TO DEAL DAMAGE
-# Source: Using Copilot as reference #
-# Monster class
-class Monster:
+
+class Monster: # Monster class
     def __init__(self, name, max_hp, color):
         self.name = name
         self.max_hp = max_hp
@@ -40,33 +43,6 @@ current_monster = Monster("Bread Monster", 50, (0,255,0))
 
 # Damage per click
 damage_per_click = 10
-while IsRunning:
-    for event in pg.event.get():
-        if event.type == pg. QUIT:
-            IsRunning = False
-            break
-        elif event.type == pg.MOUSEBUTTONDOWN:
-            if current_monster.rect.collidepoint(event.pos):
-                current_monster.take_damage(damage_per_click)
-                if current_monster.is_defeated():
-                    # Spawn new monster with higher HP
-                    current_monster = Monster("Baguette Monster", 100, (0,0,255))
-
-    window.fill((227,227,227)) # Adjust the window color from here by editing its RGB code
-    current_monster.draw(window)
-    pg.display.update()
-pg.quit()
-
-
-''' Tan Zhe Xi '''
-## TZX_1. MINIGAME SYSTEM
-
-'''write your code here, which is inside the grey title, use TZX_1 for quick search for the code during interview'''
-
-## TZX_2. GEAR & DATA DESIGN
-
-
-
 
 ## TZX_4. ADJUSTING STATS ACCORDING TO PRESTIGE LEVELS
 
@@ -76,7 +52,7 @@ pg.quit()
 ''' Eng Kai Hin '''
 ## EKH_1. BUTTON INTERACTION SYSTEM
 
-'''write your code here, which is inside the grey title, use EKH_1 for quick search for the code during interview'''
+
 
 ## EKH_2. AFK SYSTEM
 
@@ -92,13 +68,28 @@ pg.quit()
 
 
 ''' Chen Lik Shen '''
-## CLS_1. GAIN & LOST OF GEAR & CURRENCY SYSTEM
+## CLS_1. GAME UI & SOUND EFFECT
 
-'''write your code here, which is inside the grey title, use CLS_1 for quick search for the code during interview'''
+# Setup for CLS_1
+pg.font.init()
+ui_font = pg.font.SysFont(None, 48)
 
-## CLS_2. GAME UI & SOUND EFFECT
+## CLS_2. GAIN & LOST OF GEAR & CURRENCY SYSTEM
 
+# Variables for CLS_2
+pocket_money = 0
 
+def update_economy(monster):
+    global pocket_money
+    if monster.is_defeated():
+        pocket_money += 50
+        return True # Signal that titan died
+    return False
+
+def draw_ui(window):
+    """Logic for drawing the money on screen"""
+    money_text = ui_font.render(f"Pocket Money: ${pocket_money}", True, (34, 139, 34))
+    window.blit(money_text, (10, 550))
 
 ## CLS_3. CRAFTING SYSTEM
 
@@ -109,16 +100,46 @@ pg.quit()
 
 
 
+'''General'''
+pg.init()
+window = pg.display.set_mode((800,600)) # Adjust the window size from here by editing (x,y) value
+pg.display.set_caption("Attack On Food Titan") # Rename the window by editing ("Name")
+IsRunning = True
+while IsRunning:
+    for event in pg.event.get():
+        if event.type == pg. QUIT:
+            IsRunning = False
+            break
+        elif event.type == pg.MOUSEBUTTONDOWN:
+            if current_monster.rect.collidepoint(event.pos):
+                current_monster.take_damage(damage_per_click)
+                if current_monster.is_defeated():
+                    update_economy(current_monster)
+                    current_monster = Monster("Baguette Monster", 100, (0,0,255)) # Spawn new monster with higher HP
+
+
+    window.fill((227,227,227)) # Adjust the window color from here by editing its RGB code
+    current_monster.draw(window)
+    draw_ui(window)
+    pg.display.update()
+pg.quit()
+
+
+
+
+
 '''
 References list
 
+#1. ABILITY TO CLICK TO DEAL DAMAGE (line 16 - line 40)
+Source code: Copilot
+Link: None
+
+
+
+Example:
 # [Name of the code] (From line x to line x)
 #Source code: (Creater of the sources - Platform)
 #Link: the link to your reference sources
-
-***Example***
-# Game menu and screen (line 1 - line 9)
-#Source code: Baober - YouTube
-#Link: https://youtu.be/xHPmXArK6Tg?si=6RO2iZDTE0iYFLBu
 
 '''
