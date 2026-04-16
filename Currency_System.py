@@ -47,19 +47,3 @@ def draw_ui(window):
     money_text = ui_font.render(f"Pocket Money: ${pocket_money}", True, (34, 139, 34))
     window.blit(money_text, (10, 550))
 
-
-# ==========================================
-#               TEST SECTION
-# ==========================================
-if __name__ == "__main__":
-    print("--- RUNNING BOSS ECONOMY TESTS ---")
-    
-    # 1. Test a normal Stage 10 Titan
-    pocket_money = 0 
-    update_economy(0, 10) # is_boss defaults to False
-    print(f"Total Money after Normal Kill: ${pocket_money}\n")
-    
-    # 2. Test a Stage 10 BOSS
-    pocket_money = 0 
-    update_economy(0, 10, is_boss=True) # Explicitly trigger the boss jackpot!
-    print(f"Total Money after BOSS Kill: ${pocket_money}\n")
