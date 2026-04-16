@@ -1,5 +1,6 @@
 import pygame as pg
 import Currency_System
+import Gear_System
 
 ''' Tan Zhe Xi '''
 ## TZX_1. MINIGAME SYSTEM
@@ -84,25 +85,45 @@ damage_per_click = 10
 
 '''General'''
 pg.init()
-window = pg.display.set_mode((800,600)) # Adjust the window size from here by editing (x,y) value
-pg.display.set_caption("Attack On Food Titan") # Rename the window by editing ("Name")
+window = pg.display.set_mode((800,600)) 
+pg.display.set_caption("Attack On Food Titan") 
 IsRunning = True
+
 while IsRunning:
     for event in pg.event.get():
         if event.type == pg.QUIT:
             IsRunning = False
             break
+            
+        # --- PRESS 'G' TO TEST GAINING GEAR ---
+        elif event.type == pg.KEYDOWN:
+            if event.key == pg.K_g:
+                Gear_System.gain_gear("Golden Whisk")
+            
+        # ---> THIS LINE WAS MISSING! <---
         elif event.type == pg.MOUSEBUTTONDOWN:
             if current_monster.rect.collidepoint(event.pos):
-                current_monster.take_damage(damage_per_click)
                 
+                # 1. base damage
+                base_damage = damage_per_click 
+                
+                # 2. active gear buffs
+                gear_bonus = Gear_System.total_bonus_damage 
+                
+                # 3. Combine them for the final strike!
+                final_damage = base_damage + gear_bonus 
+                
+                # 4. Deal the damage to the monster
+                current_monster.take_damage(final_damage)
+                
+                # Print to terminal so you can prove it works!
+                print(f"SLASH! Dealt {final_damage} damage (Base {base_damage} + Gear {gear_bonus})")
                 if current_monster.is_defeated():
-                    # 1. Trigger your separate economy file!
-                    # Passing the monster's HP (which is 0) to your function
+                    # Trigger your economy system!
                     Currency_System.update_economy(current_monster.hp) 
                     
                     # Spawn next monster
-                    current_monster = Monster("Baguette Monster", 100, (0,0,255)) 
+                    current_monster = Monster("Baguette Monster", 100, (0,0,255))
 
     window.fill((227,227,227)) 
     current_monster.draw(window)
@@ -111,8 +132,8 @@ while IsRunning:
     Currency_System.draw_ui(window)
     
     pg.display.update()
-pg.quit()
 
+pg.quit()
 
 
 

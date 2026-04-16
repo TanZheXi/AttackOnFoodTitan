@@ -1,0 +1,6 @@
+{
+    "Rusty Spatula": {"owned": false, "damage": 5,   "cost": 100},
+    "Golden Whisk":  {"owned": false, "damage": 20,  "cost": 500},
+    "Chef Hat":      {"owned": false, "damage": 50,  "cost": 2000},
+    "Mythic Pan":    {"owned": false, "damage": 200, "cost": 10000}
+}
