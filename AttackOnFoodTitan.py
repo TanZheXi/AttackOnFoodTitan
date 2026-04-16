@@ -1,5 +1,5 @@
 import pygame as pg
-
+import Currency_System
 
 ''' Tan Zhe Xi '''
 ## TZX_1. MINIGAME SYSTEM
@@ -69,28 +69,10 @@ damage_per_click = 10
 
 ''' Chen Lik Shen '''
 ## CLS_1. GAME UI & SOUND EFFECT
-
-# Setup for CLS_1
-pg.font.init()
-ui_font = pg.font.SysFont(None, 48)
+# (Handled by Currency_System.py)
 
 ## CLS_2. GAIN & LOST OF GEAR & CURRENCY SYSTEM
-
-# Variables for CLS_2
-pocket_money = 0
-
-def update_economy(monster):
-    global pocket_money
-    if monster.is_defeated():
-        pocket_money += 50
-        return True # Signal that titan died
-    return False
-
-def draw_ui(window):
-    """Logic for drawing the money on screen"""
-    money_text = ui_font.render(f"Pocket Money: ${pocket_money}", True, (34, 139, 34))
-    window.blit(money_text, (10, 550))
-
+# (Handled by Currency_System.py)
 ## CLS_3. CRAFTING SYSTEM
 
 
@@ -107,23 +89,29 @@ pg.display.set_caption("Attack On Food Titan") # Rename the window by editing ("
 IsRunning = True
 while IsRunning:
     for event in pg.event.get():
-        if event.type == pg. QUIT:
+        if event.type == pg.QUIT:
             IsRunning = False
             break
         elif event.type == pg.MOUSEBUTTONDOWN:
             if current_monster.rect.collidepoint(event.pos):
                 current_monster.take_damage(damage_per_click)
+                
                 if current_monster.is_defeated():
-                    update_economy(current_monster)
-                    current_monster = Monster("Baguette Monster", 100, (0,0,255)) # Spawn new monster with higher HP
+                    # 1. Trigger your separate economy file!
+                    # Passing the monster's HP (which is 0) to your function
+                    Currency_System.update_economy(current_monster.hp) 
+                    
+                    # Spawn next monster
+                    current_monster = Monster("Baguette Monster", 100, (0,0,255)) 
 
-
-    window.fill((227,227,227)) # Adjust the window color from here by editing its RGB code
+    window.fill((227,227,227)) 
     current_monster.draw(window)
-    draw_ui(window)
+    
+    # 2. Trigger your separate UI file!
+    Currency_System.draw_ui(window)
+    
     pg.display.update()
 pg.quit()
-
 
 
 
