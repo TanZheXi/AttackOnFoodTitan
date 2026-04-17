@@ -1,6 +1,21 @@
 {
-    "Rusty Spatula": {"owned": false, "damage": 5,   "cost": 100},
-    "Golden Whisk":  {"owned": false, "damage": 20,  "cost": 500},
-    "Chef Hat":      {"owned": false, "damage": 50,  "cost": 2000},
-    "Mythic Pan":    {"owned": false, "damage": 200, "cost": 10000}
+    "Rusty Spatula": {"owned": false, "damage": 5, "cost": 100, "scrap_value": 10, "rarity": "Common", "slot": "weapon"},
+    "Golden Spatula": {"owned": false, "damage": 20, "cost": 500, "scrap_value": 50, "rarity": "Rare", "slot": "weapon"},
+    "Chef's Wok": {"owned": false, "damage": 50, "cost": 2000, "scrap_value": 200, "rarity": "Epic", "slot": "weapon"},
+    "Mythic Pan": {"owned": false, "damage": 200, "cost": 10000, "scrap_value": 1000, "rarity": "Mythic", "slot": "weapon"},
+    
+
+
+
+    "Master Chef Hat": {"owned": false, "damage": 30, "cost": 1500, "scrap_value": 150, "rarity": "Rare", "slot": "hat"},
+
+
+
+
+    "Titanium Apron": {"owned": false, "damage": 100, "cost": 4000, "scrap_value": 400, "rarity": "Epic", "slot": "armor"},
+
+
+
+    
+    "Roasted Garlic Aroma": {"owned": false, "damage": 75, "cost": 5000, "scrap_value": 500, "rarity": "Epic", "slot": "aroma"}
 }

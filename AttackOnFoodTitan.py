@@ -94,13 +94,16 @@ while IsRunning:
         if event.type == pg.QUIT:
             IsRunning = False
             break
-            
-        # --- PRESS 'G' TO TEST GAINING GEAR ---
         elif event.type == pg.KEYDOWN:
+            # Press 'G' to get the item (Goes to backpack)
             if event.key == pg.K_g:
-                Gear_System.gain_gear("Golden Whisk")
-            
-        # ---> THIS LINE WAS MISSING! <---
+                Gear_System.gain_gear("Golden Spatula") 
+            # Press 'E' to wear the item 
+            elif event.key == pg.K_e:
+                Gear_System.equip_gear("Golden Spatula")
+            # Press 'U' to unequip weapon
+            elif event.key == pg.K_u:
+                Gear_System.unequip_gear("weapon")
         elif event.type == pg.MOUSEBUTTONDOWN:
             if current_monster.rect.collidepoint(event.pos):
                 
@@ -110,16 +113,16 @@ while IsRunning:
                 # 2. active gear buffs
                 gear_bonus = Gear_System.total_bonus_damage 
                 
-                # 3. Combine them for the final strike!
+                # 3. Final Damage Calculation
                 final_damage = base_damage + gear_bonus 
                 
                 # 4. Deal the damage to the monster
                 current_monster.take_damage(final_damage)
                 
-                # Print to terminal so you can prove it works!
-                print(f"SLASH! Dealt {final_damage} damage (Base {base_damage} + Gear {gear_bonus})")
+                # Print to terminal so you can prove it works
+                print(f"Dealt {final_damage} damage (Base {base_damage} + Gear {gear_bonus})")
                 if current_monster.is_defeated():
-                    # Trigger your economy system!
+                    # Trigger your economy system
                     Currency_System.update_economy(current_monster.hp) 
                     
                     # Spawn next monster

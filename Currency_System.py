@@ -24,9 +24,9 @@ def update_economy(enemy_hp, current_stage=1, is_boss=False):
         scaled_min_drop = int(min_pocket_drop * (multiplier ** current_stage))
         scaled_max_drop = int(max_pocket_drop * (multiplier ** current_stage))
 
-        # --- THE BOSS JACKPOT ---
+        # Boss Drop Multiplier
         if is_boss:
-            boss_multiplier = 5  # Bosses drop 5x more money!
+            boss_multiplier = 5
             scaled_min_drop *= boss_multiplier
             scaled_max_drop *= boss_multiplier
 
