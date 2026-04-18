@@ -102,17 +102,18 @@ def button5_callback():
     print("5")
 
 # middle
-button_width = 80
+button_width = 130
 button_height = 40
 spacing = 10
-start_x = (800 - (button_width * 5 + spacing * 4)) // 2 
+start_x = (800 - (button_width * 5 + spacing * 4)) // 2
+button_y = 550 
 
 buttons = [
-    Button(start_x + 0 * (button_width + spacing), 20, button_width, button_height, "Btn1", (100, 100, 100), (150, 150, 150), button1_callback),
-    Button(start_x + 1 * (button_width + spacing), 20, button_width, button_height, "Btn2", (100, 100, 100), (150, 150, 150), button2_callback),
-    Button(start_x + 2 * (button_width + spacing), 20, button_width, button_height, "Btn3", (100, 100, 100), (150, 150, 150), button3_callback),
-    Button(start_x + 3 * (button_width + spacing), 20, button_width, button_height, "Btn4", (100, 100, 100), (150, 150, 150), button4_callback),
-    Button(start_x + 4 * (button_width + spacing), 20, button_width, button_height, "Btn5", (100, 100, 100), (150, 150, 150), button5_callback),
+    Button(start_x + 0 * (button_width + spacing), button_y, button_width, button_height, "Btn1", (100, 100, 100), (150, 150, 150), button1_callback),
+    Button(start_x + 1 * (button_width + spacing), button_y, button_width, button_height, "Btn2", (100, 100, 100), (150, 150, 150), button2_callback),
+    Button(start_x + 2 * (button_width + spacing), button_y, button_width, button_height, "Btn3", (100, 100, 100), (150, 150, 150), button3_callback),
+    Button(start_x + 3 * (button_width + spacing), button_y, button_width, button_height, "Btn4", (100, 100, 100), (150, 150, 150), button4_callback),
+    Button(start_x + 4 * (button_width + spacing), button_y, button_width, button_height, "Btn5", (100, 100, 100), (150, 150, 150), button5_callback),
 ]
 
 ## EKH_2. AFK SYSTEM
@@ -149,7 +150,7 @@ def update_economy(monster):
 def draw_ui(window):
     """Logic for drawing the money on screen"""
     money_text = ui_font.render(f"Pocket Money: ${pocket_money}", True, (34, 139, 34))
-    window.blit(money_text, (10, 550))
+    window.blit(money_text, (10, 10))
 
 ## CLS_3. CRAFTING SYSTEM
 
