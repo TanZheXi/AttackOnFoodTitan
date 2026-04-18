@@ -109,11 +109,11 @@ start_x = (800 - (button_width * 5 + spacing * 4)) // 2
 button_y = 550 
 
 buttons = [
-    Button(start_x + 0 * (button_width + spacing), button_y, button_width, button_height, "Btn1", (100, 100, 100), (150, 150, 150), button1_callback),
-    Button(start_x + 1 * (button_width + spacing), button_y, button_width, button_height, "Btn2", (100, 100, 100), (150, 150, 150), button2_callback),
-    Button(start_x + 2 * (button_width + spacing), button_y, button_width, button_height, "Btn3", (100, 100, 100), (150, 150, 150), button3_callback),
-    Button(start_x + 3 * (button_width + spacing), button_y, button_width, button_height, "Btn4", (100, 100, 100), (150, 150, 150), button4_callback),
-    Button(start_x + 4 * (button_width + spacing), button_y, button_width, button_height, "Btn5", (100, 100, 100), (150, 150, 150), button5_callback),
+    Button(start_x + 0 * (button_width + spacing), button_y, button_width, button_height, "Upgrade", (100, 100, 100), (150, 150, 150), button1_callback),
+    Button(start_x + 1 * (button_width + spacing), button_y, button_width, button_height, "Crafting", (100, 100, 100), (150, 150, 150), button2_callback),
+    Button(start_x + 2 * (button_width + spacing), button_y, button_width, button_height, "Raids", (100, 100, 100), (150, 150, 150), button3_callback),
+    Button(start_x + 3 * (button_width + spacing), button_y, button_width, button_height, "Shop", (100, 100, 100), (150, 150, 150), button4_callback),
+    Button(start_x + 4 * (button_width + spacing), button_y, button_width, button_height, "Prestige", (100, 100, 100), (150, 150, 150), button5_callback),
 ]
 
 ## EKH_2. AFK SYSTEM
