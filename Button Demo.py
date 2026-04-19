@@ -214,6 +214,9 @@ while IsRunning:
     
     for button in buttons:
         button.draw(window)
+
+    #Draw button if actived
+    panel_manager.draw(window)
     
     pg.display.update()
 

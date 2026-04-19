@@ -115,7 +115,7 @@ while IsRunning:
     for button in buttons:
         button.draw(window)
     
-    # 绘制面板（如果激活的话）
+    # Draw button if actived
     panel_manager.draw(window)
     
     pg.display.update()
