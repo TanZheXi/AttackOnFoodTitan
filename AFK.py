@@ -172,13 +172,14 @@ class AFKSystem:
     def load_and_calculate_afk_rewards(self):
         """Load saved data and calculate AFK rewards"""
         if not os.path.exists(self.save_file):
-            return 0, None
+            return 0, None, 0 #Return the value of (AFK currency, monster stats, saved currency)
         
         try:
             with open(self.save_file, 'r') as f:
                 save_data = json.load(f)
             
             last_time = save_data.get("last_time", time.time())
+            saved_money = save_data.get("pocket_money", 0)
             current_time = time.time()
             time_diff = current_time - last_time
             
@@ -189,11 +190,11 @@ class AFKSystem:
             # Get and load monster status
             monster_data = save_data.get("monster", None)
             
-            return afk_earnings, monster_data
+            return afk_earnings, monster_data, saved_money
             
         except Exception as e:
             print(f"Loading failed, please try again: {e}")
-            return 0, None
+            return 0, None, 0
     
     def update_save_time(self):
         """Update last save time"""
@@ -209,7 +210,7 @@ def draw_ui(window):
     
     # Show AFk stats
     small_font = pg.font.SysFont(None, 24)
-    afk_text = small_font.render("Your mom paid you $1/sec", True, (100, 100, 100))
+    afk_text = small_font.render("Your mom paid you $1 every second since you didn't destroy her taste buds", True, (100, 100, 100))
     window.blit(afk_text, (10, 50))
 
 def show_afk_rewards(window, afk_earnings):
@@ -292,8 +293,12 @@ def update_economy(monster):
 window = pg.display.set_mode((800,600)) # Adjust the window size from here by editing (x,y) value
 pg.display.set_caption("Attack On Food Titan") # Rename the window by editing ("Name")
 
-# 加载AFK奖励和保存的进度
-afk_earnings, saved_monster_data = afk_system.load_and_calculate_afk_rewards()
+# Load AFK rewards and saved game data
+afk_earnings, saved_monster_data, saved_money = afk_system.load_and_calculate_afk_rewards()
+
+#Reload saved money, then sum up with AFK rewards
+if saved_money > 0:
+    pocket_money = saved_money
 
 # Load AFK rewards screen
 if afk_earnings > 0:
