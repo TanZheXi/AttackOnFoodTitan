@@ -66,21 +66,25 @@ afk_earnings, saved_monster_data, saved_money = AFK_System.afk_system.load_and_c
 
 #Reload saved money, then sum up with AFK rewards
 if saved_money > 0:
-    pocket_money = saved_money
+    Currency_System.pocket_money = saved_money
 
 # Load AFK rewards screen
 if afk_earnings > 0:
-    pocket_money += afk_earnings
+    Currency_System.pocket_money += afk_earnings
     AFK_System.show_afk_rewards(window, afk_earnings)
     
-    # if status of monster was saved, then load it
-    if saved_monster_data:
-        current_monster = Click_Damage_Feature.Monster(
-            saved_monster_data["name"],
-            saved_monster_data["max_hp"],
-            tuple(saved_monster_data["color"])
-        )
-        current_monster.hp = saved_monster_data["hp"]
+current_monster = None
+
+# if status of monster was saved, then load it
+if saved_monster_data:
+    current_monster = Click_Damage_Feature.Monster(
+        saved_monster_data["name"],
+        saved_monster_data["max_hp"],
+        tuple(saved_monster_data["color"])
+    )
+    current_monster.hp = saved_monster_data["hp"]
+else:
+    current_monster = Click_Damage_Feature.Monster("Bread Monster", 50, (139,69,19))
 
 IsRunning = True
 # Timer for AFK system
@@ -132,10 +136,10 @@ while IsRunning:
                 print(f"Dealt {final_damage} damage (Base {base_damage} + Gear {gear_bonus})")
                 if current_monster.is_defeated():
                     # Trigger your economy system
-                    Currency_System.update_economy(Click_Damage_Feature.monster_manager.current_monster.hp) 
+                    Currency_System.update_economy(current_monster.hp, monster_manager.progression_index) 
                     
                     # Spawn next monster
-                    Click_Damage_Feature.monster_manager.next_monster()
+                    monster_manager.next_monster()
 
         for button in Button_System.buttons:
             button.handle_event(event)

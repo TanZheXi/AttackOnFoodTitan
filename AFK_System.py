@@ -16,15 +16,14 @@ class AFKSystem:
         
         
     def save_game_data(self, pocket_money, monster_hp, monster_max_hp, monster_name, monster_color):
-        """Save game date to json file"""
         save_data = {
             "pocket_money": pocket_money,
             "last_time": self.last_save_time,
             "monster": {
-                "name": Click_Damage_Feature.monster_name,
-                "hp": Click_Damage_Feature.monster_hp,
-                "max_hp": Click_Damage_Feature.monster_max_hp,
-                "color": Click_Damage_Feature.monster_color
+                "name": monster_name,
+                "hp": monster_hp,
+                "max_hp": monster_max_hp,
+                "color": monster_color
             }
         }
         try:
@@ -93,14 +92,12 @@ def show_afk_rewards(window, afk_earnings):
         reward_text = font_small.render(f"You earned ${afk_earnings} while away!", True, (0, 255, 0))
 
         if afk_earnings >= 100:
-            limit_text = font_small.render("You've reached the $100 AFK limit"), True, (255,255,0)
+            limit_text = font_small.render("You've reached the $100 AFK limit", True, (255,255,0))
             limit_rect = limit_text.get_rect(center=(400, 320))
             window.blit(limit_text, limit_rect)
-            continue_text = font_small.render("Click anywhere to continue", True, (255,255,255))
-            continue_rect = continue_text.get_rect(center=(400, 360))
-        else:
-            continue_text = font_small.render("Click anywhere to continue", True, (255,255,255))
-            continue_rect = continue_text.get_rect(center=(400, 360))
+
+        continue_text = font_small.render("Click anywhere to continue", True, (255,255,255))
+        continue_rect = continue_text.get_rect(center=(400, 360))
         
         title_rect = title_text.get_rect(center=(400, 200))
         reward_rect = reward_text.get_rect(center=(400, 280))
