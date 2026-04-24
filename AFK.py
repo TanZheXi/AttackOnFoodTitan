@@ -332,6 +332,7 @@ IsRunning = True
 last_auto_save = time.time()
 auto_save_interval = 5  # Save the game every 5 second
 
+
 while IsRunning:
     for event in pg.event.get():
         if event.type == pg.QUIT:

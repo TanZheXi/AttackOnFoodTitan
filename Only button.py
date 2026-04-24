@@ -94,30 +94,33 @@ buttons = [
 
 '''General'''
 
-window = pg.display.set_mode((800,600))
-pg.display.set_caption("Attack On Food Titan")
-IsRunning = True
+def Start_game():
+    window = pg.display.set_mode((800,600))
+    pg.display.set_caption("Attack On Food Titan")
+    IsRunning = True
 
-while IsRunning:
-    for event in pg.event.get():
-        if event.type == pg.QUIT:
-            IsRunning = False
-            break
+    while IsRunning:
+        for event in pg.event.get():
+            if event.type == pg.QUIT:
+                IsRunning = False
+                break
+            
+            for button in buttons:
+                button.handle_event(event)
+
+        for button in buttons:
+            button.update()
+
+        window.fill((227,227,227))
         
         for button in buttons:
-            button.handle_event(event)
+            button.draw(window)
+        
+        # Draw button if actived
+        panel_manager.draw(window)
+        
+        pg.display.update()
 
-    for button in buttons:
-        button.update()
+    pg.quit()
 
-    window.fill((227,227,227))
-    
-    for button in buttons:
-        button.draw(window)
-    
-    # Draw button if actived
-    panel_manager.draw(window)
-    
-    pg.display.update()
-
-pg.quit()
+#Start_game()
