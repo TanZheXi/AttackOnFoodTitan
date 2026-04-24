@@ -123,7 +123,7 @@ while IsRunning:
         if event.type == pg.QUIT:
             # Save game data before exit it
             AFK_System.afk_system.save_game_data(
-                pocket_money,
+                Currency_System.pocket_money,
                 current_monster.hp,
                 current_monster.max_hp,
                 current_monster.name,
@@ -165,12 +165,14 @@ while IsRunning:
                     # Spawn next monster
                     current_monster = Monster("Baguette Monster", 100, (0,0,255))
 
+        for button in Button_System.buttons:
+            button.handle_event(event)
 
 # Auto save system for AFK
     current_time = time.time()
     if current_time - last_auto_save >= auto_save_interval:
         AFK_System.afk_system.save_game_data(
-            pocket_money,
+            Currency_System.pocket_money,
             current_monster.hp,
             current_monster.max_hp,
             current_monster.name,
@@ -179,11 +181,19 @@ while IsRunning:
         AFK_System.afk_system.update_save_time()
         last_auto_save = current_time
 
-    window.fill((227,227,227)) 
+    for button in Button_System.buttons:
+        button.update()
+
+    window.fill((227,227,227)) # Adjust the window color from here by editing its RGB code
     current_monster.draw(window)
-    
-    # 2. Trigger your separate UI file!
     Currency_System.draw_ui(window)
+    AFK_System.draw_AFK_ui(window)
+
+    for button in Button_System.buttons:
+        button.draw(window)     # CLS_2. Trigger your separate UI file!
+
+    #Draw button if actived
+    Button_System.panel_manager.draw(window)
     
     pg.display.update()
 

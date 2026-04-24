@@ -67,17 +67,13 @@ class AFKSystem:
 # Initial AFK system
 afk_system = AFKSystem()
 
-def draw_ui(window):
-    """Logic for drawing the money on screen"""
-    money_text = ui_font.render(f"Pocket Money: ${pocket_money}", True, (34, 139, 34))
-    window.blit(money_text, (10, 10))
-    
+def draw_AFK_ui(window):
     # Show AFk stats
     small_font = pg.font.SysFont(None, 24)
-    afk_text_line_1 = small_font.render("*Your mom paid you $1 every hour since you didn't destroy her taste buds,", True, (100, 100, 100))
-    afk_text_line_2 = small_font.render(" but she will won't paid you when you reached $100 since you are lazy.", True, (100, 100, 100))
-    window.blit(afk_text_line_1, (10, 50))
-    window.blit(afk_text_line_2, (10, 75))
+    afk_text_line_1 = small_font.render("*Your mom paid you $1/h since you didn't destroy her taste buds,", True, (100, 100, 100))
+    afk_text_line_2 = small_font.render(" but she won't paid you when you reached $100 since you are lazy.", True, (100, 100, 100))
+    window.blit(afk_text_line_1, (10, 5))
+    window.blit(afk_text_line_2, (10, 25))
 
 def show_afk_rewards(window, afk_earnings):
     """AFK rewards screen"""
