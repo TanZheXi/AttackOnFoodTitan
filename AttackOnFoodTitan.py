@@ -1,5 +1,6 @@
 import pygame as pg
 import time
+import Click-Damage-Feature
 import Button_System
 import AFK_System
 import Currency_System
@@ -16,38 +17,7 @@ import Gear_System
 
 
 ## TZX_3. ABILITY TO CLICK TO DEAL DAMAGE
-
-class Monster: # Monster class
-    def __init__(self, name, max_hp, color):
-        self.name = name
-        self.max_hp = max_hp
-        self.hp = max_hp
-        self.color = color
-        self.rect = pg.Rect(300, 200, 200, 200)  # Monster position and size
-
-    def take_damage(self, dmg):
-        self.hp -= dmg
-        if self.hp < 0:
-            self.hp = 0
-
-    def is_defeated(self):
-        return self.hp <= 0
-
-    def draw(self, surface):
-        pg.draw.rect(surface, self.color, self.rect)
-        # Draw HP bar
-        hp_bar_width = int((self.hp / self.max_hp) * self.rect.width)
-        pg.draw.rect(surface, (255,0,0), (self.rect.x, self.rect.y - 20, hp_bar_width, 10))
-        # Draw monster name
-        font = pg.font.SysFont(None, 30)
-        text = font.render(f"{self.name} HP: {self.hp}/{self.max_hp}", True, (0,0,0))
-        surface.blit(text, (self.rect.x, self.rect.y - 50))
-
-# Initialize first monster
-current_monster = Monster("Bread Monster", 50, (0,255,0))
-
-# Damage per click
-damage_per_click = 10
+#(Handled by Click-Damage-Feature.py)
 
 ## TZX_4. ADJUSTING STATS ACCORDING TO PRESTIGE LEVELS
 
@@ -117,6 +87,9 @@ IsRunning = True
 last_auto_save = time.time()
 auto_save_interval = 5  # Save the game every 5 second
 
+# Initialize Monster Manager
+monster_manager = Click-Damage-Feature.MonsterManager()
+
 while IsRunning:
     for event in pg.event.get():
         if event.type == pg.QUIT:
@@ -159,10 +132,10 @@ while IsRunning:
                 print(f"Dealt {final_damage} damage (Base {base_damage} + Gear {gear_bonus})")
                 if current_monster.is_defeated():
                     # Trigger your economy system
-                    Currency_System.update_economy(current_monster.hp) 
+                    Currency_System.update_economy(Click-Damage-Feature.monster_manager.current_monster.hp) 
                     
                     # Spawn next monster
-                    current_monster = Monster("Baguette Monster", 100, (0,0,255))
+                    Click-Damage-Feature.monster_manager.next_monster()
 
         for button in Button_System.buttons:
             button.handle_event(event)
@@ -184,7 +157,8 @@ while IsRunning:
         button.update()
 
     window.fill((227,227,227)) # Adjust the window color from here by editing its RGB code
-    current_monster.draw(window)
+    Click-Damage-Feature.monster_manager.current_monster.draw(window)
+    Click-Damage-Feature.monster_manager.draw_counter(window)  # Draw monster counter
     Currency_System.draw_ui(window) # CLS_2. Trigger your separate UI file!
     AFK_System.draw_AFK_ui(window)
 
