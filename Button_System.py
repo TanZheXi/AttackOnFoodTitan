@@ -1,5 +1,4 @@
 import pygame as pg
-
 pg.init()
 pg.font.init()  
 
@@ -91,36 +90,3 @@ buttons = [
     Main_button(start_x + 3 * (button_width + spacing), button_y, button_width, button_height, "Shop", (100, 100, 100), (150, 150, 150), create_button_callback("Shop")),
     Main_button(start_x + 4 * (button_width + spacing), button_y, button_width, button_height, "Prestige", (100, 100, 100), (150, 150, 150), create_button_callback("Prestige")),
 ]
-
-'''General'''
-
-def Start_game():
-    window = pg.display.set_mode((800,600))
-    pg.display.set_caption("Attack On Food Titan")
-    IsRunning = True
-
-    while IsRunning:
-        for event in pg.event.get():
-            if event.type == pg.QUIT:
-                IsRunning = False
-                break
-            
-            for button in buttons:
-                button.handle_event(event)
-
-        for button in buttons:
-            button.update()
-
-        window.fill((227,227,227))
-        
-        for button in buttons:
-            button.draw(window)
-        
-        # Draw button if actived
-        panel_manager.draw(window)
-        
-        pg.display.update()
-
-    pg.quit()
-
-#Start_game()

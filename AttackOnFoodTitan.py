@@ -2,6 +2,7 @@ import pygame as pg
 import json
 import os
 import time
+import Button_System
 import Currency_System
 import Gear_System
 
@@ -92,6 +93,9 @@ pg.init()
 window = pg.display.set_mode((800,600)) 
 pg.display.set_caption("Attack On Food Titan") 
 IsRunning = True
+# Timer for AFK system
+last_auto_save = time.time()
+auto_save_interval = 5  # Save the game every 5 second
 
 while IsRunning:
     for event in pg.event.get():
