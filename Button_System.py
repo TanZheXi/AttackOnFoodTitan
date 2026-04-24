@@ -2,8 +2,6 @@ import pygame as pg
 pg.init()
 pg.font.init()  
 
-''' Eng Kai Hin '''
-## EKH_1. BUTTON INTERACTION SYSTEM
 class Main_button:
     def __init__(self, x, y, width, height, text, color, hover_color, callback=None):
         self.rect = pg.Rect(x, y, width, height)

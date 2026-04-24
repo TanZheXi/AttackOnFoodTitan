@@ -93,6 +93,7 @@ auto_save_interval = 5  # Save the game every 5 second
 
 # Initialize Monster Manager
 monster_manager = Click_Damage_Feature.MonsterManager()
+current_monster = monster_manager.current_monster
 
 while IsRunning:
     for event in pg.event.get():
@@ -133,13 +134,15 @@ while IsRunning:
                 current_monster.take_damage(final_damage)
                 
                 # Print to terminal so you can prove it works
-                print(f"Dealt {final_damage} damage (Base {base_damage} + Gear {gear_bonus})")
+                #print(f"Dealt {final_damage} damage (Base {base_damage} + Gear {gear_bonus})")
                 if current_monster.is_defeated():
                     # Trigger your economy system
                     Currency_System.update_economy(current_monster.hp, monster_manager.progression_index) 
                     
                     # Spawn next monster
                     monster_manager.next_monster()
+
+                    current_monster = monster_manager.current_monster
 
         for button in Button_System.buttons:
             button.handle_event(event)
@@ -161,7 +164,7 @@ while IsRunning:
         button.update()
 
     window.fill((227,227,227)) # Adjust the window color from here by editing its RGB code
-    monster_manager.current_monster.draw(window)
+    current_monster.draw(window)
     monster_manager.draw_counter(window)  # Draw monster counter
     Currency_System.draw_ui(window) # CLS_2. Trigger your separate UI file!
     AFK_System.draw_AFK_ui(window)
