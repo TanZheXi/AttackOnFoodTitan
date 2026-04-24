@@ -1,4 +1,5 @@
 import pygame as pg
+import Click_Damage_Feature
 import json
 import os
 import time
@@ -20,10 +21,10 @@ class AFKSystem:
             "pocket_money": pocket_money,
             "last_time": self.last_save_time,
             "monster": {
-                "name": monster_name,
-                "hp": monster_hp,
-                "max_hp": monster_max_hp,
-                "color": monster_color
+                "name": Click_Damage_Feature.monster_name,
+                "hp": Click_Damage_Feature.monster_hp,
+                "max_hp": Click_Damage_Feature.monster_max_hp,
+                "color": Click_Damage_Feature.monster_color
             }
         }
         try:
