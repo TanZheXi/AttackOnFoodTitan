@@ -56,12 +56,10 @@ damage_per_click = 10
 
 ''' Eng Kai Hin '''
 ## EKH_1. BUTTON INTERACTION SYSTEM
-
-
+# (Handled by Button_System.py, which contains button and drawer system)
 
 ## EKH_2. AFK SYSTEM
-
-
+# (Handled by AFK_System.py, which contains AFK system and data saving system)
 
 ## EKH_3. SHOP SYSTEM
 
@@ -78,6 +76,7 @@ damage_per_click = 10
 
 ## CLS_2. GAIN & LOST OF GEAR & CURRENCY SYSTEM
 # (Handled by Currency_System.py)
+
 ## CLS_3. CRAFTING SYSTEM
 
 
@@ -186,11 +185,11 @@ while IsRunning:
 
     window.fill((227,227,227)) # Adjust the window color from here by editing its RGB code
     current_monster.draw(window)
-    Currency_System.draw_ui(window)
+    Currency_System.draw_ui(window) # CLS_2. Trigger your separate UI file!
     AFK_System.draw_AFK_ui(window)
 
     for button in Button_System.buttons:
-        button.draw(window)     # CLS_2. Trigger your separate UI file!
+        button.draw(window)
 
     #Draw button if actived
     Button_System.panel_manager.draw(window)
@@ -208,7 +207,9 @@ References list
 Source code: Copilot
 Link: None
 
-
+#2. Drawer system (Inside Button_System file, line 38 - line 77)
+Source code: Deepseek
+Link: None
 
 Example:
 # [Name of the code] (From line x to line x)
