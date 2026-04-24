@@ -1,8 +1,7 @@
 import pygame as pg
-import json
-import os
 import time
 import Button_System
+import AFK_System
 import Currency_System
 import Gear_System
 
@@ -92,6 +91,28 @@ damage_per_click = 10
 pg.init()
 window = pg.display.set_mode((800,600)) 
 pg.display.set_caption("Attack On Food Titan") 
+
+# Load AFK rewards and saved game data
+afk_earnings, saved_monster_data, saved_money = AFK_System.afk_system.load_and_calculate_afk_rewards()
+
+#Reload saved money, then sum up with AFK rewards
+if saved_money > 0:
+    pocket_money = saved_money
+
+# Load AFK rewards screen
+if afk_earnings > 0:
+    pocket_money += afk_earnings
+    AFK_System.show_afk_rewards(window, afk_earnings)
+    
+    # if status of monster was saved, then load it
+    if saved_monster_data:
+        current_monster = Monster(
+            saved_monster_data["name"],
+            saved_monster_data["max_hp"],
+            tuple(saved_monster_data["color"])
+        )
+        current_monster.hp = saved_monster_data["hp"]
+
 IsRunning = True
 # Timer for AFK system
 last_auto_save = time.time()
@@ -100,6 +121,14 @@ auto_save_interval = 5  # Save the game every 5 second
 while IsRunning:
     for event in pg.event.get():
         if event.type == pg.QUIT:
+            # Save game data before exit it
+            AFK_System.afk_system.save_game_data(
+                pocket_money,
+                current_monster.hp,
+                current_monster.max_hp,
+                current_monster.name,
+                current_monster.color
+            )
             IsRunning = False
             break
         elif event.type == pg.KEYDOWN:
@@ -135,6 +164,20 @@ while IsRunning:
                     
                     # Spawn next monster
                     current_monster = Monster("Baguette Monster", 100, (0,0,255))
+
+
+# Auto save system for AFK
+    current_time = time.time()
+    if current_time - last_auto_save >= auto_save_interval:
+        AFK_System.afk_system.save_game_data(
+            pocket_money,
+            current_monster.hp,
+            current_monster.max_hp,
+            current_monster.name,
+            current_monster.color
+        )
+        AFK_System.afk_system.update_save_time()
+        last_auto_save = current_time
 
     window.fill((227,227,227)) 
     current_monster.draw(window)
