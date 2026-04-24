@@ -149,7 +149,9 @@ class AFKSystem:
     def __init__(self, save_file="afk_save.json"):
         self.save_file = save_file
         self.last_save_time = time.time()
-        self.afk_income_rate = 1  # Gain 1 currency per a second
+        self.afk_income_rate = 1 / 3600  # Gain 1 currency per every hour
+        self.max_afk_earnings = 100      #Setting $100 as limit for AFK earns
+        
         
     def save_game_data(self, pocket_money, monster_hp, monster_max_hp, monster_name, monster_color):
         """Save game date to json file"""
@@ -184,8 +186,9 @@ class AFKSystem:
             time_diff = current_time - last_time
             
             
-            # Calculate currency obtain after leaving the game
-            afk_earnings = int(time_diff * self.afk_income_rate)
+            # Calculate currency obtain after leaving the game (With $1 per hour, and a $100 limit for it)
+            raw_earnings = int(time_diff * self.afk_income_rate)
+            afk_earnings = min(raw_earnings, self.max_afk_earnings) #Setting the limitation
             
             # Get and load monster status
             monster_data = save_data.get("monster", None)
@@ -210,8 +213,10 @@ def draw_ui(window):
     
     # Show AFk stats
     small_font = pg.font.SysFont(None, 24)
-    afk_text = small_font.render("Your mom paid you $1 every second since you didn't destroy her taste buds", True, (100, 100, 100))
-    window.blit(afk_text, (10, 50))
+    afk_text_line_1 = small_font.render("*Your mom paid you $1 every hour since you didn't destroy her taste buds,", True, (100, 100, 100))
+    afk_text_line_2 = small_font.render(" but she will won't paid you when you reached $100 since you are lazy.", True, (100, 100, 100))
+    window.blit(afk_text_line_1, (10, 50))
+    window.blit(afk_text_line_2, (10, 75))
 
 def show_afk_rewards(window, afk_earnings):
     """AFK rewards screen"""
@@ -228,11 +233,19 @@ def show_afk_rewards(window, afk_earnings):
         
         title_text = font_big.render("Welcome Back!", True, (255, 255, 0))
         reward_text = font_small.render(f"You earned ${afk_earnings} while away!", True, (0, 255, 0))
-        continue_text = font_small.render("Click anywhere to continue", True, (255, 255, 255))
+
+        if afk_earnings >= 100:
+            limit_text = font_small.render("You've reached the $100 AFK limit"), True, (255,255,0)
+            limit_rect = limit_text.get_rect(center=(400, 320))
+            window.blit(limit_text, limit_rect)
+            continue_text = font_small.render("Click anywhere to continue", True, (255,255,255))
+            continue_rect = continue_text.get_rect(center=(400, 360))
+        else:
+            continue_text = font_small.render("Click anywhere to continue", True, (255,255,255))
+            continue_rect = continue_text.get_rect(center=(400, 360))
         
         title_rect = title_text.get_rect(center=(400, 200))
         reward_rect = reward_text.get_rect(center=(400, 280))
-        continue_rect = continue_text.get_rect(center=(400, 360))
         
         window.blit(title_text, title_rect)
         window.blit(reward_text, reward_rect)
