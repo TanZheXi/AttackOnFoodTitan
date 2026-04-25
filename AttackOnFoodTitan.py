@@ -192,6 +192,10 @@ Link: None
 Source code: Deepseek
 Link: None
 
+#3. Shop system's UI system ()
+Source code: Deepseek
+Link: None
+
 Example:
 # [Name of the code] (From line x to line x)
 #Source code: (Creater of the sources - Platform)
