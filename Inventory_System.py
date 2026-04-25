@@ -10,7 +10,7 @@ class InventorySystem:
         self.font_medium = pg.font.SysFont(None, 28)
         self.items = []  # List of item names
         self.scroll_offset = 0
-        self.item_height = 35
+        self.item_height = 30
 
     def add_item(self, item_name):
         """Adding items into player's inventory"""

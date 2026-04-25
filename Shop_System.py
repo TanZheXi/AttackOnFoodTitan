@@ -26,21 +26,21 @@ class ShopItem:
 class ShopSystem:
     def __init__(self, x, y, width, height):
         self.rect = pg.Rect(x, y, width, height)
-        self.font_small = pg.font.SysFont(None, 18)
-        self.font_medium = pg.font.SysFont(None, 24)
-        self.font_large = pg.font.SysFont(None, 28)
+        self.font_small = pg.font.SysFont(None, 16)
+        self.font_medium = pg.font.SysFont(None, 20)
+        self.font_large = pg.font.SysFont(None, 24)
 
         # 9 items for 3x3 grid (Creating a 3x3 boxes storing goods that the Shop will sells)
         self.items = [
-            ShopItem("Iron Sword", 80, "Uncommon", "A sturdy iron blade", (180, 180, 220)),
-            ShopItem("Health Potion", 30, "Common", "Restores 50 HP", (220, 120, 120)),
-            ShopItem("Steel Shield", 120, "Rare", "Reduces damage taken", (150, 150, 200)),
-            ShopItem("Magic Staff", 200, "Epic", "Unleashes arcane power", (200, 130, 250)),
-            ShopItem("Leather Boots", 45, "Common", "Increases movement speed", (160, 120, 80)),
-            ShopItem("Dragon Scale", 300, "Legendary", "A rare dragon artifact", (255, 100, 50)),
-            ShopItem("Golden Apple", 60, "Rare", "Restores full health", (255, 215, 0)),
-            ShopItem("Steel Gauntlets", 90, "Uncommon", "Increases attack power", (170, 170, 190)),
-            ShopItem("Mystic Orb", 150, "Epic", "Reveals hidden secrets", (180, 100, 220)),
+            ShopItem("Apple", 80, "Uncommon", "Fruit 1", (180, 180, 220)),
+            ShopItem("Banana", 30, "Common", "Fruit 2", (220, 120, 120)),
+            ShopItem("Carrot", 120, "Rare", "Fruit 3", (150, 150, 200)),
+            ShopItem("Ur dad belt", 200, "Epic", "Ur dad favourite weapon", (200, 130, 250)),
+            ShopItem("Ur sister's pen", 45, "Common", "Sis pls don't tell mom about it, I will do anything", (160, 120, 80)),
+            ShopItem("Ur mom credit card", 300, "Legendary", "Mom gonna be so mad about me if she know", (255, 100, 50)),
+            ShopItem("Wok", 60, "Rare", "Tool 1", (255, 215, 0)),
+            ShopItem("Fork", 90, "Uncommon", "Tool 2", (170, 170, 190)),
+            ShopItem("Spon", 150, "Epic", "Tool 3", (180, 100, 220)),
         ]
 
         self.selected_item = None
@@ -51,10 +51,10 @@ class ShopSystem:
         # Grid settings (3x3 grid setting)
         self.grid_cols = 3
         self.grid_rows = 3
-        self.cell_size = 90
-        self.grid_start_x = self.rect.x + 20
-        self.grid_start_y = self.rect.y + 70
-        self.cell_spacing = 15
+        self.cell_size = 70
+        self.grid_start_x = self.rect.x + 10
+        self.grid_start_y = self.rect.y + 50
+        self.cell_spacing = 8
 
     def update(self):
         if self.message_timer > 0:
@@ -99,7 +99,7 @@ class ShopSystem:
                                 item.sold_out = True
                                 self.buy_messages.append(f"Purchased {item.name}! -{item.price} Pocket money")
                                 self.message_timer = 120
-                                # print指令显示购买了什么商品以及扣除了多少Pocket_money
+                                # Print code just for testing
                                 print(f"[SHOP] Purchased {item.name} for {item.price} Pocket money. Remaining: {pocket_money}")
                             else:
                                 self.buy_messages.append(f"Not enough money! Need {item.price}")
@@ -166,10 +166,10 @@ class ShopSystem:
 
         # Draw info panel on the right side of shop
         # Show a tips panel about information of the items in Shop
-        info_panel_x = self.rect.x + self.rect.width - 220
-        info_panel_y = self.rect.y + 70
-        info_panel_width = 200
-        info_panel_height = 300
+        info_panel_x = self.rect.x + self.rect.width - 190
+        info_panel_y = self.rect.y + 50
+        info_panel_width = 175
+        info_panel_height = 280
 
         if self.selected_item and self.hovered_index != -1:
             # Clay color panel

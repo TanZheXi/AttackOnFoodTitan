@@ -2,7 +2,7 @@ import pygame as pg
 import Button_System
 
 pg.init()
-window = pg.display.set_mode((1000, 650))
+window = pg.display.set_mode((800, 600))
 pg.display.set_caption("Game Shop Test")
 is_Running = True
 
