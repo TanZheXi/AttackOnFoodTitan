@@ -230,6 +230,10 @@ Link: None
 Source code: Deepseek
 Link: None
 
+#3. Code for decorational circle (Inside Inventory_System.py, line 130 - line 131, and line 176 - line 177)
+Source code: Deepseek
+Link: None
+
 Example:
 # [Name of the code] (From line x to line x)
 #Source code: (Creater of the sources - Platform)
