@@ -144,6 +144,7 @@ while IsRunning:
 
                     current_monster = monster_manager.current_monster
 
+        Button_System.panel_manager.handle_event(event)
         for button in Button_System.buttons:
             button.handle_event(event)
 

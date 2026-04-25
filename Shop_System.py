@@ -1,4 +1,5 @@
 import pygame as pg
+import Currency_System
 
 pg.init()
 pg.font.init()
@@ -62,7 +63,7 @@ class ShopSystem:
         else:
             self.buy_messages = []
 
-    def handle_event(self, event, pocket_money, add_to_inventory_callback):
+    def handle_event(self, event, add_to_inventory_callback):
         # Detect position of mouse hovered, then apply change of color to the button
         if event.type == pg.MOUSEMOTION:
             self.hovered_index = -1
@@ -93,20 +94,20 @@ class ShopSystem:
                     if cell_rect.collidepoint(event.pos):
                         item = self.items[idx]
                         if not item.sold_out:
-                            if pocket_money >= item.price:
+                            if Currency_System.pocket_money >= item.price:
                                 add_to_inventory_callback(item.name)
-                                pocket_money -= item.price
+                                Currency_System.pocket_money -= item.price
                                 item.sold_out = True
                                 self.buy_messages.append(f"Purchased {item.name}! -{item.price} Pocket money")
                                 self.message_timer = 120
                                 # Print code just for testing
-                                print(f"[SHOP] Purchased {item.name} for {item.price} Pocket money. Remaining: {pocket_money}")
+                                print(f"[SHOP] Purchased {item.name} for {item.price} Pocket money. Remaining: {Currency_System.pocket_money}")
                             else:
                                 self.buy_messages.append(f"Not enough money! Need {item.price}")
                                 self.message_timer = 120
-                                print(f"[SHOP] Failed to buy {item.name}: Need {item.price}, have {pocket_money}")
+                                print(f"[SHOP] Failed to buy {item.name}: Need {item.price}, have {Currency_System.pocket_money}")
                         break
-        return pocket_money
+        return Currency_System.pocket_money
 
     def draw(self, screen):
         # Shop background
