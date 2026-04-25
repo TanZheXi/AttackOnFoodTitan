@@ -57,6 +57,32 @@ class ShopSystem:
         self.grid_start_y = self.rect.y + 50
         self.cell_spacing = 8
 
+    def restore_shop_state(self, shop_state):
+        """Restore which items were sold out from saved data"""
+        if not shop_state:
+            return
+    
+        for saved_item in shop_state:
+            saved_name = saved_item.get("name")
+            saved_sold_out = saved_item.get("sold_out", False)
+            
+            for item in self.items:
+                if item.name == saved_name:
+                    item.sold_out = saved_sold_out
+                    break
+        
+        print(f"[SHOP] Restored shop state. Sold out items: {sum(1 for i in self.items if i.sold_out)}")
+
+    def get_shop_state(self):
+        """Get current shop state for saving"""
+        shop_state = []
+        for item in self.items:
+            shop_state.append({
+                "name": item.name,
+                "sold_out": item.sold_out
+            })
+        return shop_state
+
     def update(self):
         if self.message_timer > 0:
             self.message_timer -= 1

@@ -51,6 +51,33 @@ class PanelManager:
         self.shop_system = None  # will be created when needed
         self.inventory_system = None  # will be created when needed
         self.global_pocket_money = Currency_System.pocket_money
+        self.shop_state_loaded = False  #Prevent from repeat loading 
+
+    def load_saved_data(self, pocket_money, inventory_items, shop_state):
+        """Load saved data into systems"""
+        self.global_pocket_money = pocket_money
+        
+        # Load item data inside inventory
+        if self.inventory_system:
+            self.inventory_system.restore_inventory(inventory_items)
+        
+        # Load item data inside shop
+        if self.shop_system and shop_state:
+            self.shop_system.restore_shop_state(shop_state)
+        
+        print(f"[LOAD] Data loaded: Money={pocket_money}, Inventory={len(inventory_items)} items")
+
+    def get_save_data(self):
+        """Get current data for saving"""
+        inventory_items = []
+        if self.inventory_system:
+            inventory_items = self.inventory_system.get_inventory_state()
+        
+        shop_state = []
+        if self.shop_system:
+            shop_state = self.shop_system.get_shop_state()
+        
+        return inventory_items, shop_state
         
     def toggle_panel(self, button_name):
         """Shows status when pannel changed"""

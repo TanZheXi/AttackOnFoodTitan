@@ -12,6 +12,15 @@ class InventorySystem:
         self.scroll_offset = 0
         self.item_height = 30
 
+    def restore_inventory(self, inventory_items):
+        """Restore inventory from saved data"""
+        self.items = inventory_items.copy()
+        print(f"[INVENTORY] Restored {len(self.items)} items: {self.items}")
+
+    def get_inventory_state(self):
+        """Get current inventory for saving"""
+        return self.items.copy()
+
     def add_item(self, item_name):
         """Adding items into player's inventory"""
         self.items.append(item_name)
