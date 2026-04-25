@@ -64,7 +64,10 @@ pg.display.set_caption("Attack On Food Titan")
 # Load AFK rewards and saved game data
 afk_earnings, saved_monster_data, saved_money = AFK_System.afk_system.load_and_calculate_afk_rewards()
 
-#Reload saved money, then sum up with AFK rewards
+# Load saved gear data
+Gear_System.load_gear()
+
+#   Reload saved money, then sum up with AFK rewards
 if saved_money > 0:
     Currency_System.pocket_money = saved_money
 
@@ -111,13 +114,16 @@ while IsRunning:
         elif event.type == pg.KEYDOWN:
             # Press 'G' to get the item (Goes to backpack)
             if event.key == pg.K_g:
-                Gear_System.gain_gear("Golden Spatula") 
+                Gear_System.gain_gear("Mythic Pan") 
             # Press 'E' to wear the item 
             elif event.key == pg.K_e:
-                Gear_System.equip_gear("Golden Spatula")
+                Gear_System.equip_gear("Mythic Pan")
             # Press 'U' to unequip weapon
             elif event.key == pg.K_u:
                 Gear_System.unequip_gear("weapon")
+            # Press 'C' to craft the item (Consumes scraps) - Placeholder for crafting system
+            elif event.key == pg.K_c:
+                Gear_System.craft_item("Golden Spatula")
         elif event.type == pg.MOUSEBUTTONDOWN:
             if current_monster.rect.collidepoint(event.pos):
                 
@@ -125,10 +131,10 @@ while IsRunning:
                 base_damage = Click_Damage_Feature.damage_per_click 
                 
                 # 2. active gear buffs
-                gear_bonus = Gear_System.total_bonus_damage 
+                gear_multi = Gear_System.total_damage_multiplier
                 
                 # 3. Final Damage Calculation
-                final_damage = base_damage + gear_bonus 
+                final_damage = int(base_damage * gear_multi)
                 
                 # 4. Deal the damage to the monster
                 current_monster.take_damage(final_damage)
@@ -158,6 +164,10 @@ while IsRunning:
             current_monster.color
         )
         AFK_System.afk_system.update_save_time()
+
+        # Gear system auto save
+        Gear_System.save_gear()
+
         last_auto_save = current_time
 
     for button in Button_System.buttons:
