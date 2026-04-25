@@ -1,12 +1,10 @@
 import pygame as pg
 from Shop_System import ShopSystem
 from Inventory_System import InventorySystem
+import Currency_System
 
 pg.init()
 pg.font.init()  
-
-# Global pocket money for testing Shop system
-POCKET_MONEY = 300
 
 class Main_button:
     def __init__(self, x, y, width, height, text, color, hover_color, callback=None):
@@ -52,7 +50,7 @@ class PanelManager:
         self.border_color = (200, 200, 200) # Setting for its border
         self.shop_system = None  # will be created when needed
         self.inventory_system = None  # will be created when needed
-        self.global_pocket_money = POCKET_MONEY
+        self.global_pocket_money = Currency_System.pocket_money
         
     def toggle_panel(self, button_name):
         """Shows status when pannel changed"""
@@ -70,7 +68,7 @@ class PanelManager:
             self.inventory_system.handle_event(event)
 
     def add_to_inventory(self, item_name):
-        """添加物品到背包（回调函数）"""
+        """Adding item into inventory"""
         if self.inventory_system is None:
             inv_x = self.panel_rect.x + 15
             inv_y = self.panel_rect.y + 15
