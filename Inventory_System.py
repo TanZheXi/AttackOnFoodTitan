@@ -14,7 +14,7 @@ class InventorySystem:
 
     def restore_inventory(self, inventory_items):
         """Restore inventory from saved data"""
-        self.items = inventory_items.copy()
+        self.items = inventory_items.copy() if inventory_items else []
         print(f"[INVENTORY] Restored {len(self.items)} items: {self.items}")
 
     def get_inventory_state(self):

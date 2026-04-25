@@ -51,21 +51,33 @@ class PanelManager:
         self.shop_system = None  # will be created when needed
         self.inventory_system = None  # will be created when needed
         self.global_pocket_money = Currency_System.pocket_money
-        self.shop_state_loaded = False  #Prevent from repeat loading 
+        self.shop_state_loaded = False  # Prevent from repeat loading
+        
+        # Store data to be recovered
+        self.pending_inventory = []
+        self.pending_shop_state = []
+        self.pending_money = None
 
     def load_saved_data(self, pocket_money, inventory_items, shop_state):
-        """Load saved data into systems"""
+        """Load saved data into systems (stores pending data if systems not yet created)"""
         self.global_pocket_money = pocket_money
         
-        # Load item data inside inventory
-        if self.inventory_system:
-            self.inventory_system.restore_inventory(inventory_items)
+        # Store data to be recovered
+        self.pending_inventory = inventory_items if inventory_items else []
+        self.pending_shop_state = shop_state if shop_state else []
+        self.pending_money = pocket_money
         
-        # Load item data inside shop
-        if self.shop_system and shop_state:
-            self.shop_system.restore_shop_state(shop_state)
+        # Load if inventory was activated
+        if self.inventory_system and self.pending_inventory:
+            self.inventory_system.restore_inventory(self.pending_inventory)
+            print(f"[LOAD] Inventory restored immediately: {len(self.pending_inventory)} items")
         
-        print(f"[LOAD] Data loaded: Money={pocket_money}, Inventory={len(inventory_items)} items")
+        # Load if shop was activated
+        if self.shop_system and self.pending_shop_state:
+            self.shop_system.restore_shop_state(self.pending_shop_state)
+            print(f"[LOAD] Shop state restored immediately: {len(self.pending_shop_state)} items")
+        
+        print(f"[LOAD] Data loaded: Money={pocket_money}, Pending Inventory={len(self.pending_inventory)} items")
 
     def get_save_data(self):
         """Get current data for saving"""
@@ -88,9 +100,8 @@ class PanelManager:
     
     def handle_event(self, event):
         if self.active_panel == "Shop" and self.shop_system:
-            self.global_pocket_money = self.shop_system.handle_event(
-                event, self.global_pocket_money, self.add_to_inventory
-            )
+            self.shop_system.handle_event(event, self.add_to_inventory)
+            self.global_pocket_money = Currency_System.pocket_money
         elif self.active_panel == "Inventory" and self.inventory_system:
             self.inventory_system.handle_event(event)
 
@@ -102,6 +113,12 @@ class PanelManager:
             inv_width = self.panel_rect.width - 30
             inv_height = self.panel_rect.height - 30
             self.inventory_system = InventorySystem(inv_x, inv_y, inv_width, inv_height)
+            
+            # Restore pending inventory data immediately after activated
+            if self.pending_inventory:
+                self.inventory_system.restore_inventory(self.pending_inventory)
+                print(f"[RESTORE] Inventory restored on creation: {len(self.pending_inventory)} items")
+            
         self.inventory_system.add_item(item_name)
 
     def draw(self, screen):
@@ -124,6 +141,12 @@ class PanelManager:
                     shop_width = self.panel_rect.width - 30
                     shop_height = self.panel_rect.height - 30
                     self.shop_system = ShopSystem(shop_x, shop_y, shop_width, shop_height)
+                    
+                    # Restore pending shop data immediately after activated
+                    if self.pending_shop_state:
+                        self.shop_system.restore_shop_state(self.pending_shop_state)
+                        print(f"[RESTORE] Shop state restored on creation: {len(self.pending_shop_state)} items")
+                    
                 self.shop_system.update()
                 self.shop_system.draw(screen)
             elif self.active_panel == "Inventory":
@@ -133,6 +156,12 @@ class PanelManager:
                     inv_width = self.panel_rect.width - 30
                     inv_height = self.panel_rect.height - 30
                     self.inventory_system = InventorySystem(inv_x, inv_y, inv_width, inv_height)
+                    
+                    # Restore pending inventory data immediately after activated
+                    if self.pending_inventory:
+                        self.inventory_system.restore_inventory(self.pending_inventory)
+                        print(f"[RESTORE] Inventory restored on creation: {len(self.pending_inventory)} items")
+                    
                 self.inventory_system.draw(screen)
             else:
                 font = pg.font.SysFont(None, 48)

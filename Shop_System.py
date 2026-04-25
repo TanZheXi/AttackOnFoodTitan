@@ -126,7 +126,6 @@ class ShopSystem:
                                 item.sold_out = True
                                 self.buy_messages.append(f"Purchased {item.name}! -{item.price} Pocket money")
                                 self.message_timer = 120
-                                # Print code just for testing
                                 print(f"[SHOP] Purchased {item.name} for {item.price} Pocket money. Remaining: {Currency_System.pocket_money}")
                             else:
                                 self.buy_messages.append(f"Not enough money! Need {item.price}")

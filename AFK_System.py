@@ -13,17 +13,23 @@ class AFKSystem:
         self.afk_income_rate = 1 / 3600  # Gain 1 currency per every hour
         self.max_afk_earnings = 100      # Setting $100 as limit for AFK earns
         
-    def save_game_data(self, pocket_money, monster_hp, monster_max_hp, monster_name, monster_color, inventory_items=None, shop_items_state=None):
+    def save_game_data(self, pocket_money, monster_hp, monster_max_hp, monster_name, monster_color, progression_index, inventory_items=None, shop_items_state=None):
         """Save full game data including inventory and shop states"""
         # Prepare shop items state (which items are sold out)
         shop_state = []
         if shop_items_state:
             for item in shop_items_state:
-                shop_state.append({
-                    "name": item.name,
-                    "sold_out": item.sold_out
-                })
-        
+                if isinstance(item, dict):
+                    shop_state.append({
+                        "name": item.get("name", "Unknown"),
+                        "sold_out": item.get("sold_out", False)
+                    })
+                else:
+                    shop_state.append({
+                        "name": item.name,
+                        "sold_out": item.sold_out
+                    })
+
         save_data = {
             "pocket_money": pocket_money,
             "last_time": self.last_save_time,
@@ -33,20 +39,21 @@ class AFKSystem:
                 "max_hp": monster_max_hp,
                 "color": monster_color
             },
+            "progression_index": progression_index,
             "inventory": inventory_items if inventory_items else [],
             "shop_items": shop_state
         }
         try:
             with open(self.save_file, 'w') as f:
                 json.dump(save_data, f)
-            print(f"[SAVE] Game saved. Money: {pocket_money}, Items: {len(inventory_items) if inventory_items else 0}")
+            print(f"[SAVE] Game saved. Money: {pocket_money}, Progress: {progression_index}, Items: {len(inventory_items) if inventory_items else 0}")
         except Exception as e:
             print(f"Save failed: {e}")
     
     def load_and_calculate_afk_rewards(self):
         """Load saved data and calculate AFK rewards"""
         if not os.path.exists(self.save_file):
-            return 0, None, 0, [], []  # Returns: afk_earnings, monster_data, saved_money, inventory, shop_state
+            return 0, None, 0, 1, [], []
         
         try:
             with open(self.save_file, 'r') as f:
@@ -57,22 +64,19 @@ class AFKSystem:
             current_time = time.time()
             time_diff = current_time - last_time
             
-            # Calculate currency obtain after leaving the game (With $1 per hour, and a $100 limit for it)
             raw_earnings = int(time_diff * self.afk_income_rate)
-            afk_earnings = min(raw_earnings, self.max_afk_earnings)  # Setting the limitation
+            afk_earnings = min(raw_earnings, self.max_afk_earnings)
             
-            # Get and load monster status
             monster_data = save_data.get("monster", None)
-            
-            # Load inventory and shop states
+            progression_index = save_data.get("progression_index", 1)
             inventory = save_data.get("inventory", [])
             shop_state = save_data.get("shop_items", [])
             
-            return afk_earnings, monster_data, saved_money, inventory, shop_state
+            return afk_earnings, monster_data, saved_money, progression_index, inventory, shop_state
             
         except Exception as e:
-            print(f"Loading failed, please try again: {e}")
-            return 0, None, 0, [], []
+            print(f"Loading failed: {e}")
+            return 0, None, 0, 1, [], []
     
     def update_save_time(self):
         """Update last save time"""
@@ -92,13 +96,11 @@ def draw_AFK_ui(window):
 def show_afk_rewards(window, afk_earnings):
     """AFK rewards screen"""
     if afk_earnings > 0:
-        # Create a surface
         overlay = pg.Surface((800, 600))
         overlay.set_alpha(180)
         overlay.fill((0, 0, 0))
         window.blit(overlay, (0, 0))
         
-        # Show AFK reward 
         font_big = pg.font.SysFont(None, 48)
         font_small = pg.font.SysFont(None, 32)
         
@@ -122,7 +124,6 @@ def show_afk_rewards(window, afk_earnings):
         
         pg.display.update()
         
-        # Continue after player click the screen
         waiting = True
         while waiting:
             for event in pg.event.get():
