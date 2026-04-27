@@ -1,12 +1,11 @@
 import pygame as pg
 import time
-from Click_Damage_Feature import Monster, MonsterManager, damage_per_click
+import random
+from Click_Damage_Feature import Monster, MonsterManager, DamageText, damage_per_click, calculate_damage
 import Button_System
 import AFK_System
 import Currency_System
 import Gear_System
-
-# General (Main loop) #
 
 pg.init()
 window = pg.display.set_mode((800,600)) 
@@ -15,16 +14,13 @@ pg.display.set_caption("Attack On Food Titan")
 # Load AFK rewards and saved game data
 afk_earnings, saved_monster_data, saved_money = AFK_System.afk_system.load_and_calculate_afk_rewards()
 
-# Reload saved money, then sum up with AFK rewards
 if saved_money > 0:
     Currency_System.pocket_money = saved_money
 
-# Load AFK rewards screen
 if afk_earnings > 0:
     Currency_System.pocket_money += afk_earnings
     AFK_System.show_afk_rewards(window, afk_earnings)
-    
-# Initialize Monster
+
 if saved_monster_data:
     current_monster = Monster(
         saved_monster_data["name"],
@@ -37,11 +33,13 @@ else:
 
 IsRunning = True
 last_auto_save = time.time()
-auto_save_interval = 5  # Save the game every 5 seconds
+auto_save_interval = 5
 
-# Initialize Monster Manager
 monster_manager = MonsterManager()
 current_monster = monster_manager.current_monster
+
+# NEW: list for damage popups
+damage_texts = []
 
 while IsRunning:
     for event in pg.event.get():
@@ -64,11 +62,21 @@ while IsRunning:
                 Gear_System.unequip_gear("weapon")
         elif event.type == pg.MOUSEBUTTONDOWN:
             if current_monster.rect.collidepoint(event.pos):
-                base_damage = damage_per_click 
-                gear_bonus = Gear_System.total_bonus_damage 
-                final_damage = base_damage + gear_bonus 
+                # --- Use centralized damage calculation ---
+                final_damage, is_critical = calculate_damage(
+                    damage_per_click, 
+                    Gear_System.total_bonus_damage
+                )
+
+                # Apply damage
                 current_monster.take_damage(final_damage)
 
+                # Spawn floating damage text
+                popup_x = current_monster.rect.x + random.randint(20, current_monster.rect.width - 40)
+                popup_y = current_monster.rect.y + random.randint(20, current_monster.rect.height - 40)
+                damage_texts.append(DamageText(str(final_damage), (popup_x, popup_y), is_critical=is_critical))
+
+                # Handle monster defeat
                 if current_monster.is_defeated():
                     Currency_System.update_economy(current_monster.max_hp, monster_manager.progression_index) 
                     monster_manager.next_monster()
@@ -93,17 +101,28 @@ while IsRunning:
     for button in Button_System.buttons:
         button.update()
 
+    # Update damage texts
+    for dt in damage_texts[:]:
+        dt.update()
+        if not dt.is_alive():
+            damage_texts.remove(dt)
+
+    # Draw everything
     window.fill((227,227,227))
     current_monster.draw(window)
-    monster_manager.draw_counter(window)
+    monster_manager.draw_counter(window)        # Monster counter (top-right)
+    monster_manager.draw_stage_counter(window)  # Stage counter (top-middle)
     Currency_System.draw_ui(window)
     AFK_System.draw_AFK_ui(window)
+
+    # Draw damage texts
+    for dt in damage_texts:
+        dt.draw(window)
 
     for button in Button_System.buttons:
         button.draw(window)
 
     Button_System.panel_manager.draw(window)
-    
     pg.display.update()
 
 pg.quit()
