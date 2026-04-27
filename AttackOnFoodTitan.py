@@ -1,6 +1,11 @@
 import pygame as pg
+import time
+import Click_Damage_Feature
+import Button_System
+import AFK_System
 import Currency_System
 import Gear_System
+
 
 ''' Tan Zhe Xi '''
 ## TZX_1. MINIGAME SYSTEM
@@ -12,38 +17,7 @@ import Gear_System
 
 
 ## TZX_3. ABILITY TO CLICK TO DEAL DAMAGE
-
-class Monster: # Monster class
-    def __init__(self, name, max_hp, color):
-        self.name = name
-        self.max_hp = max_hp
-        self.hp = max_hp
-        self.color = color
-        self.rect = pg.Rect(300, 200, 200, 200)  # Monster position and size
-
-    def take_damage(self, dmg):
-        self.hp -= dmg
-        if self.hp < 0:
-            self.hp = 0
-
-    def is_defeated(self):
-        return self.hp <= 0
-
-    def draw(self, surface):
-        pg.draw.rect(surface, self.color, self.rect)
-        # Draw HP bar
-        hp_bar_width = int((self.hp / self.max_hp) * self.rect.width)
-        pg.draw.rect(surface, (255,0,0), (self.rect.x, self.rect.y - 20, hp_bar_width, 10))
-        # Draw monster name
-        font = pg.font.SysFont(None, 30)
-        text = font.render(f"{self.name} HP: {self.hp}/{self.max_hp}", True, (0,0,0))
-        surface.blit(text, (self.rect.x, self.rect.y - 50))
-
-# Initialize first monster
-current_monster = Monster("Bread Monster", 50, (0,255,0))
-
-# Damage per click
-damage_per_click = 10
+#(Handled by Click_Damage_Feature.py)
 
 ## TZX_4. ADJUSTING STATS ACCORDING TO PRESTIGE LEVELS
 
@@ -52,12 +26,10 @@ damage_per_click = 10
 
 ''' Eng Kai Hin '''
 ## EKH_1. BUTTON INTERACTION SYSTEM
-
-
+# (Handled by Button_System.py, which contains button and drawer system)
 
 ## EKH_2. AFK SYSTEM
-
-
+# (Handled by AFK_System.py, which contains AFK system and data saving system)
 
 ## EKH_3. SHOP SYSTEM
 
@@ -74,6 +46,7 @@ damage_per_click = 10
 
 ## CLS_2. GAIN & LOST OF GEAR & CURRENCY SYSTEM
 # (Handled by Currency_System.py)
+
 ## CLS_3. CRAFTING SYSTEM
 
 
@@ -87,11 +60,52 @@ damage_per_click = 10
 pg.init()
 window = pg.display.set_mode((800,600)) 
 pg.display.set_caption("Attack On Food Titan") 
+
+# Load AFK rewards and saved game data
+afk_earnings, saved_monster_data, saved_money = AFK_System.afk_system.load_and_calculate_afk_rewards()
+
+#Reload saved money, then sum up with AFK rewards
+if saved_money > 0:
+    Currency_System.pocket_money = saved_money
+
+# Load AFK rewards screen
+if afk_earnings > 0:
+    Currency_System.pocket_money += afk_earnings
+    AFK_System.show_afk_rewards(window, afk_earnings)
+    
+current_monster = None
+
+# if status of monster was saved, then load it
+if saved_monster_data:
+    current_monster = Click_Damage_Feature.Monster(
+        saved_monster_data["name"],
+        saved_monster_data["max_hp"],
+        tuple(saved_monster_data["color"])
+    )
+    current_monster.hp = saved_monster_data["hp"]
+else:
+    current_monster = Click_Damage_Feature.Monster("Bread Monster", 50, (139,69,19))
+
 IsRunning = True
+# Timer for AFK system
+last_auto_save = time.time()
+auto_save_interval = 5  # Save the game every 5 second
+
+# Initialize Monster Manager
+monster_manager = Click_Damage_Feature.MonsterManager()
+current_monster = monster_manager.current_monster
 
 while IsRunning:
     for event in pg.event.get():
         if event.type == pg.QUIT:
+            # Save game data before exit it
+            AFK_System.afk_system.save_game_data(
+                Currency_System.pocket_money,
+                current_monster.hp,
+                current_monster.max_hp,
+                current_monster.name,
+                current_monster.color
+            )
             IsRunning = False
             break
         elif event.type == pg.KEYDOWN:
@@ -108,7 +122,7 @@ while IsRunning:
             if current_monster.rect.collidepoint(event.pos):
                 
                 # 1. base damage
-                base_damage = damage_per_click 
+                base_damage = Click_Damage_Feature.damage_per_click 
                 
                 # 2. active gear buffs
                 gear_bonus = Gear_System.total_bonus_damage 
@@ -120,19 +134,46 @@ while IsRunning:
                 current_monster.take_damage(final_damage)
                 
                 # Print to terminal so you can prove it works
-                print(f"Dealt {final_damage} damage (Base {base_damage} + Gear {gear_bonus})")
+                #print(f"Dealt {final_damage} damage (Base {base_damage} + Gear {gear_bonus})")
                 if current_monster.is_defeated():
                     # Trigger your economy system
-                    Currency_System.update_economy(current_monster.hp) 
+                    Currency_System.update_economy(current_monster.hp, monster_manager.progression_index) 
                     
                     # Spawn next monster
-                    current_monster = Monster("Baguette Monster", 100, (0,0,255))
+                    monster_manager.next_monster()
 
-    window.fill((227,227,227)) 
+                    current_monster = monster_manager.current_monster
+
+        for button in Button_System.buttons:
+            button.handle_event(event)
+
+# Auto save system for AFK
+    current_time = time.time()
+    if current_time - last_auto_save >= auto_save_interval:
+        AFK_System.afk_system.save_game_data(
+            Currency_System.pocket_money,
+            current_monster.hp,
+            current_monster.max_hp,
+            current_monster.name,
+            current_monster.color
+        )
+        AFK_System.afk_system.update_save_time()
+        last_auto_save = current_time
+
+    for button in Button_System.buttons:
+        button.update()
+
+    window.fill((227,227,227)) # Adjust the window color from here by editing its RGB code
     current_monster.draw(window)
-    
-    # 2. Trigger your separate UI file!
-    Currency_System.draw_ui(window)
+    monster_manager.draw_counter(window)  # Draw monster counter
+    Currency_System.draw_ui(window) # CLS_2. Trigger your separate UI file!
+    AFK_System.draw_AFK_ui(window)
+
+    for button in Button_System.buttons:
+        button.draw(window)
+
+    #Draw button if actived
+    Button_System.panel_manager.draw(window)
     
     pg.display.update()
 
@@ -147,7 +188,9 @@ References list
 Source code: Copilot
 Link: None
 
-
+#2. Drawer system (Inside Button_System file, line 38 - line 77)
+Source code: Deepseek
+Link: None
 
 Example:
 # [Name of the code] (From line x to line x)
