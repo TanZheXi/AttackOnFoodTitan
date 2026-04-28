@@ -1,5 +1,6 @@
 import pygame as pg
 import random 
+import Gear_System
 
 # Variables for CLS_1
 pocket_money = 0
@@ -8,8 +9,19 @@ current_stage = 1
 # Setup for CLS_2
 pg.font.init()
 ui_font = pg.font.SysFont(None, 48)
+scrap_font= pg.font.SysFont(None, 36)
 
-# Added is_boss=False as a safety net!
+def spend_money(amount):
+    global pocket_money
+    if pocket_money >= amount:
+        pocket_money -= amount
+        print(f"Purchase successful! Remaining money: ${pocket_money}")
+        return True
+    else:
+        print(f"Not enough money! You need ${amount - pocket_money} more.")
+    return False
+
+
 def update_economy(enemy_hp, current_stage=1, is_boss=False):
     global pocket_money
     if enemy_hp <= 0:
@@ -46,3 +58,5 @@ def draw_ui(window):
     """Logic for drawing the money on screen"""
     money_text = ui_font.render(f"Pocket Money: ${pocket_money}", True, (34, 139, 34))
     window.blit(money_text, (280, 100))
+
+"""For FUTURE USE: PRESTIGE/REBBIRTH SYSTEM & CURRENCY CONVERSION"""
