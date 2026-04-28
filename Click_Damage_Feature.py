@@ -20,7 +20,7 @@ class Monster:
         # Background bar
         pg.draw.rect(surface, (100, 100, 100), (self.rect.x, self.rect.y - 20, self.rect.width, 10))
         # Current HP bar
-        hp_bar_width = int((self.hp / self.max_hp) * self.rect.width)
+        hp_bar_width = int((self.hp / self.max_hp) * self.rect.width) if self.max_hp > 0 else 0
         pg.draw.rect(surface, (255, 0, 0), (self.rect.x, self.rect.y - 20, hp_bar_width, 10))
         # Text
         font = pg.font.SysFont(None, 30)
@@ -99,7 +99,7 @@ class DamageText:
         return self.lifetime > 0
 
 
-# Damage System 
+# Damage System
 damage_per_click = 1
 
 # Critical hit settings
@@ -107,7 +107,7 @@ crit_chance = 0.05       # 5% chance
 crit_multiplier = 2.0    # double damage on crit
 
 def calculate_damage(base_damage, gear_bonus=0):
-    # Return (final_damage, is_critical) with crit chance applied. 
+    # Return (final_damage, is_critical) with crit chance applied.
     final_damage = base_damage + gear_bonus
     is_critical = random.random() < crit_chance
     if is_critical:
