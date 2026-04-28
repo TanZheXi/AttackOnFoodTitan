@@ -13,10 +13,16 @@ pg.init()
 window = pg.display.set_mode((800,600)) 
 pg.display.set_caption("Attack On Food Titan") 
 
+# Reload saved money, then sum up with AFK rewards
 # Load AFK rewards and saved game data
 afk_earnings, saved_monster_data, saved_money, saved_progression_index, saved_inventory, saved_shop_state = AFK_System.afk_system.load_and_calculate_afk_rewards()
 
+# Load saved gear data
+Gear_System.load_gear()
+
+#   Reload saved money, then sum up with AFK rewards
 # Reload saved money, then sum up with AFK rewards
+
 if saved_money > 0:
     Currency_System.pocket_money = saved_money
 
@@ -77,19 +83,34 @@ while IsRunning:
             break
         elif event.type == pg.KEYDOWN:
             if event.key == pg.K_g:
-                Gear_System.gain_gear("Golden Spatula") 
+
+                Gear_System.gain_gear("Mythic Pan") 
+            # Press 'E' to wear the item 
             elif event.key == pg.K_e:
-                Gear_System.equip_gear("Golden Spatula")
+                Gear_System.equip_gear("Mythic Pan")
+            # Press 'U' to unequip weapon
             elif event.key == pg.K_u:
                 Gear_System.unequip_gear("weapon")
+            # Press 'C' to craft the item (Consumes scraps) - Placeholder for crafting system
+            elif event.key == pg.K_c:
+                Gear_System.craft_item("Golden Spatula")
         elif event.type == pg.MOUSEBUTTONDOWN:
             if current_monster.rect.collidepoint(event.pos):
-                # --- Use centralized damage calculation ---
-                final_damage, is_critical = calculate_damage(
-                    damage_per_click, 
-                    Gear_System.total_bonus_damage
-                )
-
+                
+                # --- MERGED DAMAGE CALCULATION ---
+                # 1. Base damage
+                base_damage = Click_Damage_Feature.damage_per_click 
+                
+                # 2. Tap Titans Multiplier (From your branch)
+                gear_multi = Gear_System.total_damage_multiplier
+                
+                # 3. Main branch's new critical hit logic
+                # (We pass '0' for the old additive bonus since you multiply now!)
+                calculated_base, is_critical = calculate_damage(base_damage, 0)
+                
+                # 4. Final TT2 Multiplier Calculation
+                final_damage = int(calculated_base * gear_multi)
+                
                 # Apply damage
                 current_monster.take_damage(final_damage)
 
@@ -138,6 +159,10 @@ while IsRunning:
             shop_items_state=shop_state
         )
         AFK_System.afk_system.update_save_time()
+
+        # Gear system auto save
+        Gear_System.save_gear()
+
         last_auto_save = current_time
 
     for button in Button_System.buttons:
