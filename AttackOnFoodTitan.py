@@ -1,6 +1,8 @@
 import pygame as pg
 import time
+import random
 import Click_Damage_Feature
+from Click_Damage_Feature import Monster, MonsterManager, DamageText, damage_per_click, calculate_damage
 import Button_System
 import AFK_System
 import Currency_System
@@ -18,12 +20,9 @@ afk_earnings, saved_monster_data, saved_money, saved_progression_index, saved_in
 if saved_money > 0:
     Currency_System.pocket_money = saved_money
 
-# Load AFK rewards screen
 if afk_earnings > 0:
     Currency_System.pocket_money += afk_earnings
     AFK_System.show_afk_rewards(window, afk_earnings)
-    
-current_monster = None
 
 # Initialize Monster Manager
 monster_manager = Click_Damage_Feature.MonsterManager()
@@ -47,9 +46,8 @@ else:
     current_monster = monster_manager.current_monster
 
 IsRunning = True
-# Timer for AFK system
 last_auto_save = time.time()
-auto_save_interval = 5  # Save the game every 5 second
+auto_save_interval = 5
 
 # Set data that will be restore
 Button_System.panel_manager.pending_inventory = saved_inventory if saved_inventory else []
@@ -57,6 +55,9 @@ Button_System.panel_manager.pending_shop_state = saved_shop_state if saved_shop_
 Button_System.panel_manager.pending_money = Currency_System.pocket_money
 
 data_restored = False   # Shows data restore state
+
+# NEW: list for damage popups
+damage_texts = []
 
 while IsRunning:
     for event in pg.event.get():
@@ -75,33 +76,32 @@ while IsRunning:
             IsRunning = False
             break
         elif event.type == pg.KEYDOWN:
-            # Press 'G' to get the item (Goes to backpack)
             if event.key == pg.K_g:
                 Gear_System.gain_gear("Golden Spatula") 
-            # Press 'E' to wear the item 
             elif event.key == pg.K_e:
                 Gear_System.equip_gear("Golden Spatula")
-            # Press 'U' to unequip weapon
             elif event.key == pg.K_u:
                 Gear_System.unequip_gear("weapon")
         elif event.type == pg.MOUSEBUTTONDOWN:
             if current_monster.rect.collidepoint(event.pos):
-                
-                # 1. base damage
-                base_damage = Click_Damage_Feature.damage_per_click 
-                
-                # 2. active gear buffs
-                gear_bonus = Gear_System.total_bonus_damage 
-                
-                # 3. Final Damage Calculation
-                final_damage = base_damage + gear_bonus 
-                
-                # 4. Deal the damage to the monster
+                # --- Use centralized damage calculation ---
+                final_damage, is_critical = calculate_damage(
+                    damage_per_click, 
+                    Gear_System.total_bonus_damage
+                )
+
+                # Apply damage
                 current_monster.take_damage(final_damage)
+
+                # Spawn floating damage text
+                popup_x = current_monster.rect.x + random.randint(20, current_monster.rect.width - 40)
+                popup_y = current_monster.rect.y + random.randint(20, current_monster.rect.height - 40)
+                damage_texts.append(DamageText(str(final_damage), (popup_x, popup_y), is_critical=is_critical))
+
                 
                 if current_monster.is_defeated():
                     # Trigger your economy system
-                    Currency_System.update_economy(current_monster.hp, monster_manager.progression_index) 
+                    Currency_System.update_economy(current_monster.hp, monster_manager.progression_index)
                     
                     # Spawn next monster
                     monster_manager.next_monster()
@@ -143,22 +143,31 @@ while IsRunning:
     for button in Button_System.buttons:
         button.update()
 
-    window.fill((227,227,227)) # Adjust the window color from here by editing its RGB code
+    # Update damage texts
+    for dt in damage_texts[:]:
+        dt.update()
+        if not dt.is_alive():
+            damage_texts.remove(dt)
+
+    # Draw everything
+    window.fill((227,227,227))
     current_monster.draw(window)
-    monster_manager.draw_counter(window)  # Draw monster counter
-    Currency_System.draw_ui(window) # CLS_2. Trigger your separate UI file!
+    monster_manager.draw_counter(window)        # Monster counter (top-right)
+    monster_manager.draw_stage_counter(window)  # Stage counter (top-middle)
+    Currency_System.draw_ui(window)
     AFK_System.draw_AFK_ui(window)
+
+    # Draw damage texts
+    for dt in damage_texts:
+        dt.draw(window)
 
     for button in Button_System.buttons:
         button.draw(window)
 
-    #Draw button if actived
     Button_System.panel_manager.draw(window)
-    
     pg.display.update()
 
 pg.quit()
-
 
 
 '''
