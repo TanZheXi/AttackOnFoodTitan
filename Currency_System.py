@@ -10,11 +10,11 @@ pg.font.init()
 ui_font = pg.font.SysFont(None, 36)
 
 def update_economy(enemy_hp, current_stage=1, is_boss=False):
-    """
-    Awards pocket money when enemy_hp <= 0.
-    current_stage should be 1-based stage number.
-    Returns True if money was awarded.
-    """
+    
+    # Awards pocket money when enemy_hp <= 0.
+    # current_stage should be 1-based stage number.
+    # Returns True if money was awarded.
+    
     global pocket_money
     if enemy_hp <= 0:
         # Base drop for stage 1
