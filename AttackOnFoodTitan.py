@@ -13,10 +13,6 @@ pg.init()
 window = pg.display.set_mode((800,600)) 
 pg.display.set_caption("Attack On Food Titan") 
 
-
-# Load saved gear data
-Gear_System.load_gear()
-
 # Reload saved money, then sum up with AFK rewards
 # Load AFK rewards and saved game data
 afk_earnings, saved_monster_data, saved_money, saved_progression_index, saved_inventory, saved_shop_state = AFK_System.afk_system.load_and_calculate_afk_rewards()
