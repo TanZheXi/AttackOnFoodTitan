@@ -6,56 +6,6 @@ import AFK_System
 import Currency_System
 import Gear_System
 
-
-''' Tan Zhe Xi '''
-## TZX_1. MINIGAME SYSTEM
-
-
-
-## TZX_2. GEAR & DATA DESIGN
-
-
-
-## TZX_3. ABILITY TO CLICK TO DEAL DAMAGE
-#(Handled by Click_Damage_Feature.py)
-
-## TZX_4. ADJUSTING STATS ACCORDING TO PRESTIGE LEVELS
-
-
-
-
-''' Eng Kai Hin '''
-## EKH_1. BUTTON INTERACTION SYSTEM
-# (Handled by Button_System.py, which contains button and drawer system)
-
-## EKH_2. AFK SYSTEM
-# (Handled by AFK_System.py, which contains AFK system and data saving system that save player's data)
-
-## EKH_3. SHOP SYSTEM
-# (Handled by Shop_System.py and Inventory_System, One for buying item one for storing item)
-
-
-## EKH_4. CLEAR WHEN PRESTIGE SYSTEM
-
-
-
-
-''' Chen Lik Shen '''
-## CLS_1. GAME UI & SOUND EFFECT
-# (Handled by Currency_System.py)
-
-## CLS_2. GAIN & LOST OF GEAR & CURRENCY SYSTEM
-# (Handled by Currency_System.py)
-
-## CLS_3. CRAFTING SYSTEM
-
-
-
-## CLS_4. SYSTEM TO ADD NEW GEAR, CHARACTER, AND RECIPES ACCORDING TO EACH PRESTIGE LEVELS
-
-
-
-
 '''General'''
 pg.init()
 window = pg.display.set_mode((800,600)) 
@@ -240,3 +190,27 @@ Example:
 #Link: the link to your reference sources
 
 '''
+
+''' Tan Zhe Xi '''
+## TZX_1. MINIGAME SYSTEM
+## TZX_2. GEAR & DATA DESIGN
+## TZX_3. ABILITY TO CLICK TO DEAL DAMAGE
+#(Handled by Click_Damage_Feature.py)
+## TZX_4. ADJUSTING STATS ACCORDING TO PRESTIGE LEVELS
+
+''' Eng Kai Hin '''
+## EKH_1. BUTTON INTERACTION SYSTEM
+# (Handled by Button_System.py, which contains button and drawer system)
+## EKH_2. AFK SYSTEM
+# (Handled by AFK_System.py, which contains AFK system and data saving system that save player's data)
+## EKH_3. SHOP SYSTEM
+# (Handled by Shop_System.py and Inventory_System, One for buying item one for storing item)
+## EKH_4. CLEAR WHEN PRESTIGE SYSTEM
+
+''' Chen Lik Shen '''
+## CLS_1. GAME UI & SOUND EFFECT
+# (Handled by Currency_System.py)
+## CLS_2. GAIN & LOST OF GEAR & CURRENCY SYSTEM
+# (Handled by Currency_System.py)
+## CLS_3. CRAFTING SYSTEM
+## CLS_4. SYSTEM TO ADD NEW GEAR, CHARACTER, AND RECIPES ACCORDING TO EACH PRESTIGE LEVELS
