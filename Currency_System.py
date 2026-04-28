@@ -58,3 +58,5 @@ def draw_ui(window):
     """Logic for drawing the money on screen"""
     money_text = ui_font.render(f"Pocket Money: ${pocket_money}", True, (34, 139, 34))
     window.blit(money_text, (280, 100))
+
+"""For FUTURE USE: PRESTIGE/REBBIRTH SYSTEM & CURRENCY CONVERSION"""
