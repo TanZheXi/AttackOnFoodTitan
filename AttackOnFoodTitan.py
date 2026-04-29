@@ -8,21 +8,35 @@ import AFK_System
 import Currency_System
 import Gear_System
 
+
+
 '''General'''
+# ========== NEW UI LAYOUT (1300x750 Three Column Layout) ==========
+WINDOW_WIDTH = 1300
+WINDOW_HEIGHT = 750
+
+# Column widths
+LEFT_WIDTH = 300
+MIDDLE_WIDTH = 550
+RIGHT_WIDTH = WINDOW_WIDTH - LEFT_WIDTH - MIDDLE_WIDTH
+
+# Column X starting positions
+LEFT_AREA_X = 0
+MIDDLE_AREA_X = LEFT_WIDTH
+RIGHT_AREA_X = LEFT_WIDTH + MIDDLE_WIDTH
+# =================================================================
+
 pg.init()
-window = pg.display.set_mode((800,600)) 
+window = pg.display.set_mode((WINDOW_WIDTH, WINDOW_HEIGHT)) 
 pg.display.set_caption("Attack On Food Titan") 
 
-# Reload saved money, then sum up with AFK rewards
 # Load AFK rewards and saved game data
 afk_earnings, saved_monster_data, saved_money, saved_progression_index, saved_inventory, saved_shop_state = AFK_System.afk_system.load_and_calculate_afk_rewards()
 
 # Load saved gear data
 Gear_System.load_gear()
 
-#   Reload saved money, then sum up with AFK rewards
 # Reload saved money, then sum up with AFK rewards
-
 if saved_money > 0:
     Currency_System.pocket_money = saved_money
 
@@ -83,7 +97,6 @@ while IsRunning:
             break
         elif event.type == pg.KEYDOWN:
             if event.key == pg.K_g:
-
                 Gear_System.gain_gear("Mythic Pan") 
             # Press 'E' to wear the item 
             elif event.key == pg.K_e:
@@ -175,7 +188,12 @@ while IsRunning:
             damage_texts.remove(dt)
 
     # Draw everything
-    window.fill((227,227,227))
+    window.fill((227,227,227)) # Adjust the window color from here by editing its RGB code
+    
+    # Draw Black Lines
+    pg.draw.line(window, (0, 0, 0), (MIDDLE_AREA_X, 0), (MIDDLE_AREA_X, WINDOW_HEIGHT), 3)
+    pg.draw.line(window, (0, 0, 0), (RIGHT_AREA_X, 0), (RIGHT_AREA_X, WINDOW_HEIGHT), 3)
+    
     current_monster.draw(window)
     monster_manager.draw_counter(window)        # Monster counter (top-right)
     monster_manager.draw_stage_counter(window)  # Stage counter (top-middle)
@@ -224,6 +242,7 @@ Example:
 #Link: the link to your reference sources
 
 '''
+
 
 ''' Tan Zhe Xi '''
 ## TZX_1. MINIGAME SYSTEM
