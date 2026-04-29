@@ -11,19 +11,24 @@ import Gear_System
 
 
 '''General'''
-# ========== NEW UI LAYOUT (1300x750 Three Column Layout) ==========
+# ========== UI LAYOUT (1300x750 Three Column Layout) ==========
 WINDOW_WIDTH = 1300
 WINDOW_HEIGHT = 750
 
-# Column widths
-LEFT_WIDTH = 300
-MIDDLE_WIDTH = 550
-RIGHT_WIDTH = WINDOW_WIDTH - LEFT_WIDTH - MIDDLE_WIDTH
+LEFT_WIDTH = 300        # Nothing much happens here, will add on in future
+MIDDLE_WIDTH = 550      # Monster UI section
+RIGHT_WIDTH = WINDOW_WIDTH - LEFT_WIDTH - MIDDLE_WIDTH  # 450px, PLayer interaction section (Shop, Inventory, etc.)
 
-# Column X starting positions
+# Origin points for each section (for easier UI element placement)
 LEFT_AREA_X = 0
 MIDDLE_AREA_X = LEFT_WIDTH
 RIGHT_AREA_X = LEFT_WIDTH + MIDDLE_WIDTH
+
+# Origin x for centering elements in the middle area
+MIDDLE_CENTER_X = MIDDLE_AREA_X + MIDDLE_WIDTH // 2
+
+# Transfer MIDDLE_CENTER_X to Currency_System for drawing money UI
+Currency_System.MIDDLE_CENTER_X = MIDDLE_CENTER_X
 # =================================================================
 
 pg.init()
@@ -31,7 +36,7 @@ window = pg.display.set_mode((WINDOW_WIDTH, WINDOW_HEIGHT))
 pg.display.set_caption("Attack On Food Titan") 
 
 # Load AFK rewards and saved game data
-afk_earnings, saved_monster_data, saved_money, saved_progression_index, saved_inventory, saved_shop_state = AFK_System.afk_system.load_and_calculate_afk_rewards()
+afk_earnings, saved_monster_data, saved_money, saved_progression_index, saved_stage, saved_inventory, saved_shop_state = AFK_System.afk_system.load_and_calculate_afk_rewards()
 
 # Load saved gear data
 Gear_System.load_gear()
@@ -47,10 +52,14 @@ if afk_earnings > 0:
 # Initialize Monster Manager
 monster_manager = Click_Damage_Feature.MonsterManager()
 
+# Monster size
+MONSTER_SIZE = 200
+
 # if status of monster was saved, then load it
 if saved_monster_data:
     # Restore waves of monster
     monster_manager.progression_index = saved_progression_index
+    monster_manager.stage = saved_stage
     
     # Save monster's data
     current_monster = Click_Damage_Feature.Monster(
@@ -59,11 +68,17 @@ if saved_monster_data:
         tuple(saved_monster_data["color"])
     )
     current_monster.hp = saved_monster_data["hp"]
+    # Adjust monster position to the middle area center
+    current_monster.rect.x = MIDDLE_CENTER_X - MONSTER_SIZE // 2
+    current_monster.rect.y = 275
     monster_manager.current_monster = current_monster
     
-    print(f"[LOAD] Restored progress: {saved_progression_index}/10, Monster HP: {current_monster.hp}/{current_monster.max_hp}")
+    print(f"[LOAD] Restored progress: {saved_progression_index}/10, Stage: {saved_stage}, Monster HP: {current_monster.hp}/{current_monster.max_hp}")
 else:
     current_monster = monster_manager.current_monster
+    # Adjust monster position to the middle area center
+    current_monster.rect.x = MIDDLE_CENTER_X - MONSTER_SIZE // 2
+    current_monster.rect.y = 275
 
 IsRunning = True
 last_auto_save = time.time()
@@ -76,7 +91,6 @@ Button_System.panel_manager.pending_money = Currency_System.pocket_money
 
 data_restored = False   # Shows data restore state
 
-# NEW: list for damage popups
 damage_texts = []
 
 while IsRunning:
@@ -90,6 +104,7 @@ while IsRunning:
                 monster_name=current_monster.name,
                 monster_color=current_monster.color,
                 progression_index=monster_manager.progression_index,
+                stage=monster_manager.stage,
                 inventory_items=inventory_state,
                 shop_items_state=shop_state
             )
@@ -140,6 +155,9 @@ while IsRunning:
                     # Spawn next monster
                     monster_manager.next_monster()
                     current_monster = monster_manager.current_monster
+                    # Prevent monster from spawning at random position by setting it to the middle area center
+                    current_monster.rect.x = MIDDLE_CENTER_X - MONSTER_SIZE // 2
+                    current_monster.rect.y = 275
 
         Button_System.panel_manager.handle_event(event)
         for button in Button_System.buttons:
@@ -168,6 +186,7 @@ while IsRunning:
             monster_name=current_monster.name,
             monster_color=current_monster.color,
             progression_index=monster_manager.progression_index,
+            stage=monster_manager.stage,
             inventory_items=inventory_state,
             shop_items_state=shop_state
         )
@@ -188,17 +207,29 @@ while IsRunning:
             damage_texts.remove(dt)
 
     # Draw everything
-    window.fill((227,227,227)) # Adjust the window color from here by editing its RGB code
+    window.fill((227,227,227))
     
-    # Draw Black Lines
+    # ========== Draw partition lines ==========
     pg.draw.line(window, (0, 0, 0), (MIDDLE_AREA_X, 0), (MIDDLE_AREA_X, WINDOW_HEIGHT), 3)
     pg.draw.line(window, (0, 0, 0), (RIGHT_AREA_X, 0), (RIGHT_AREA_X, WINDOW_HEIGHT), 3)
+    # =====================================
+    
+    # ========== Draw top UI (swap positions: Monster counter on top, Stage on bottom) ==========
+    font_counter = pg.font.SysFont(None, 36)
+    counter_value = (monster_manager.progression_index % 10) + 1
+    counter_surface = font_counter.render(f"Monster {counter_value}/10", True, (0, 0, 0))
+    counter_rect = counter_surface.get_rect(center=(MIDDLE_CENTER_X, 120))
+    window.blit(counter_surface, counter_rect)
+    
+    font_stage = pg.font.SysFont(None, 48, bold=True)
+    stage_surface = font_stage.render(f"Stage {monster_manager.stage}", True, (0, 0, 0))
+    stage_rect = stage_surface.get_rect(center=(MIDDLE_CENTER_X, 70))
+    window.blit(stage_surface, stage_rect)
+    # =====================================================
     
     current_monster.draw(window)
-    monster_manager.draw_counter(window)        # Monster counter (top-right)
-    monster_manager.draw_stage_counter(window)  # Stage counter (top-middle)
+    
     Currency_System.draw_ui(window)
-    AFK_System.draw_AFK_ui(window)
 
     # Draw damage texts
     for dt in damage_texts:
@@ -213,36 +244,31 @@ while IsRunning:
 pg.quit()
 
 
-'''
-References list
+#References list
 
-#1. ABILITY TO CLICK TO DEAL DAMAGE (line 16 - line 40)
-Source code: Copilot
-Link: None
+#1. ABILITY TO CLICK TO DEAL DAMAGE (Click_Damage_Feature.py)
+#Source code: Copilot
+#Link: None
 
-#2. Drawer system (Inside Button_System.py, line 38 - line 77)
-Source code: Deepseek
-Link: None
+#2. Drawer system (Button_System.py)
+#Source code: Deepseek
+#Link: None
 
-#3. Shop system's UI system (Inside Shop_System.py, line 92 - line 251)
-Source code: Deepseek
-Link: None
+#3. Shop system's UI system (Shop_System.py)
+#Source code: Deepseek
+#Link: None
 
-#3. Code for fixing bug (Inside AFK_System.py, line 22 - line 31)
-Source code: Deepseek
-Link: None
+#4. Code for fixing bug (AFK_System.py)
+#Source code: Deepseek
+#Link: None
 
-#3. Code for decorational circle (Inside Inventory_System.py, line 130 - line 131, and line 176 - line 177)
-Source code: Deepseek
-Link: None
+#5. Code for decorational circle (Inventory_System.py)
+#Source code: Deepseek
+#Link: None
 
-Example:
-# [Name of the code] (From line x to line x)
-#Source code: (Creater of the sources - Platform)
-#Link: the link to your reference sources
-
-'''
-
+#6. UI reedit (Every file before window size=1300x750)
+#Source code: Deepseek
+#Link: None
 
 ''' Tan Zhe Xi '''
 ## TZX_1. MINIGAME SYSTEM

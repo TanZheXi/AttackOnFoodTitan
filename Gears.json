@@ -58,7 +58,7 @@
     "Player_Data": {
         "scraps": 0,
         "equipped": {
-            "weapon": null,
+            "weapon": "Mythic Pan",
             "hat": null,
             "armor": null,
             "aroma": null
