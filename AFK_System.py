@@ -13,8 +13,8 @@ class AFKSystem:
         self.afk_income_rate = 1 / 3600  # Gain 1 currency per every hour
         self.max_afk_earnings = 100      # Setting $100 as limit for AFK earns
         
-    def save_game_data(self, pocket_money, monster_hp, monster_max_hp, monster_name, monster_color, progression_index, stage, inventory_items=None, shop_items_state=None):
-        """Save full game data including inventory and shop states"""
+    def save_game_data(self, pocket_money, monster_hp, monster_max_hp, monster_name, monster_color, progression_index, stage, inventory_items=None, shop_items_state=None, pet_data=None):
+        """Save full game data including inventory, shop states and pet data"""
         # Prepare shop items state (which items are sold out)
         shop_state = []
         if shop_items_state:
@@ -42,19 +42,20 @@ class AFKSystem:
             "progression_index": progression_index,
             "stage": stage,
             "inventory": inventory_items if inventory_items else [],
-            "shop_items": shop_state
+            "shop_items": shop_state,
+            "pet_data": pet_data if pet_data else []
         }
         try:
             with open(self.save_file, 'w') as f:
                 json.dump(save_data, f)
-            print(f"[SAVE] Game saved. Money: {pocket_money}, Progress: {progression_index}, Stage: {stage}, Items: {len(inventory_items) if inventory_items else 0}")
+            print(f"[SAVE] Game saved. Money: {pocket_money}, Progress: {progression_index}, Stage: {stage}, Items: {len(inventory_items) if inventory_items else 0}, Pets: {len(pet_data) if pet_data else 0}")
         except Exception as e:
             print(f"Save failed: {e}")
     
     def load_and_calculate_afk_rewards(self):
         """Load saved data and calculate AFK rewards"""
         if not os.path.exists(self.save_file):
-            return 0, None, 0, 1, 1, [], []
+            return 0, None, 0, 1, 1, [], [], []
         
         try:
             with open(self.save_file, 'r') as f:
@@ -73,12 +74,13 @@ class AFKSystem:
             stage = save_data.get("stage", 1)
             inventory = save_data.get("inventory", [])
             shop_state = save_data.get("shop_items", [])
+            pet_data = save_data.get("pet_data", [])
             
-            return afk_earnings, monster_data, saved_money, progression_index, stage, inventory, shop_state
+            return afk_earnings, monster_data, saved_money, progression_index, stage, inventory, shop_state, pet_data
             
         except Exception as e:
             print(f"Loading failed: {e}")
-            return 0, None, 0, 1, 1, [], []
+            return 0, None, 0, 1, 1, [], [], []
     
     def update_save_time(self):
         """Update last save time"""

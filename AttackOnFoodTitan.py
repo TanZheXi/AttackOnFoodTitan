@@ -36,7 +36,7 @@ window = pg.display.set_mode((WINDOW_WIDTH, WINDOW_HEIGHT))
 pg.display.set_caption("Attack On Food Titan") 
 
 # Load AFK rewards and saved game data
-afk_earnings, saved_monster_data, saved_money, saved_progression_index, saved_stage, saved_inventory, saved_shop_state = AFK_System.afk_system.load_and_calculate_afk_rewards()
+afk_earnings, saved_monster_data, saved_money, saved_progression_index, saved_stage, saved_inventory, saved_shop_state, saved_pet_data = AFK_System.afk_system.load_and_calculate_afk_rewards()
 
 # Load saved gear data
 Gear_System.load_gear()
@@ -84,9 +84,15 @@ IsRunning = True
 last_auto_save = time.time()
 auto_save_interval = 5
 
+# ========== PET ATTACK INTERVAL TIMER ==========
+PET_ATTACK_INTERVAL = 1.0  # Attck every 1 second
+last_pet_attack_time = time.time()
+# ====================================
+
 # Set data that will be restore
 Button_System.panel_manager.pending_inventory = saved_inventory if saved_inventory else []
 Button_System.panel_manager.pending_shop_state = saved_shop_state if saved_shop_state else []
+Button_System.panel_manager.pending_pet_data = saved_pet_data if saved_pet_data else []
 Button_System.panel_manager.pending_money = Currency_System.pocket_money
 
 data_restored = False   # Shows data restore state
@@ -96,7 +102,7 @@ damage_texts = []
 while IsRunning:
     for event in pg.event.get():
         if event.type == pg.QUIT:
-            inventory_state, shop_state = Button_System.panel_manager.get_save_data()
+            inventory_state, shop_state, pet_data = Button_System.panel_manager.get_save_data()
             AFK_System.afk_system.save_game_data(
                 pocket_money=Currency_System.pocket_money,
                 monster_hp=current_monster.hp,
@@ -106,7 +112,8 @@ while IsRunning:
                 progression_index=monster_manager.progression_index,
                 stage=monster_manager.stage,
                 inventory_items=inventory_state,
-                shop_items_state=shop_state
+                shop_items_state=shop_state,
+                pet_data=pet_data
             )
             IsRunning = False
             break
@@ -163,12 +170,38 @@ while IsRunning:
         for button in Button_System.buttons:
             button.handle_event(event)
 
+    # ========== PET AUTO ATTACK ==========
+    current_time = time.time()
+    if current_time - last_pet_attack_time >= PET_ATTACK_INTERVAL:
+        pet_system = Button_System.panel_manager.pet_system
+        if pet_system:
+            total_pet_damage = pet_system.get_total_damage()
+            if total_pet_damage > 0 and current_monster.hp > 0:
+                # Pet damage application
+                current_monster.take_damage(total_pet_damage)
+                
+                # Pop damge text for pet attack
+                popup_x = current_monster.rect.x + random.randint(20, current_monster.rect.width - 40)
+                popup_y = current_monster.rect.y + random.randint(20, current_monster.rect.height - 40)
+                damage_texts.append(DamageText(str(total_pet_damage), (popup_x, popup_y), is_critical=False))
+                
+                # Check if monster is defeated after pet attack
+                if current_monster.is_defeated():
+                    Currency_System.update_economy(current_monster.hp, monster_manager.progression_index)
+                    monster_manager.next_monster()
+                    current_monster = monster_manager.current_monster
+                    current_monster.rect.x = MIDDLE_CENTER_X - MONSTER_SIZE // 2
+                    current_monster.rect.y = 275
+        last_pet_attack_time = current_time
+    # =================================
+
     # Load Inventory or Shop data when activated
-    if not data_restored and (Button_System.panel_manager.active_panel == "Shop" or Button_System.panel_manager.active_panel == "Inventory"):
+    if not data_restored and (Button_System.panel_manager.active_panel == "Shop" or Button_System.panel_manager.active_panel == "Inventory" or Button_System.panel_manager.active_panel == "Pet"):
         Button_System.panel_manager.load_saved_data(
             Currency_System.pocket_money,
             saved_inventory,
-            saved_shop_state
+            saved_shop_state,
+            saved_pet_data
         )
         data_restored = True
 
@@ -178,7 +211,7 @@ while IsRunning:
     # Auto save system for AFK
     current_time = time.time()
     if current_time - last_auto_save >= auto_save_interval:
-        inventory_state, shop_state = Button_System.panel_manager.get_save_data()
+        inventory_state, shop_state, pet_data = Button_System.panel_manager.get_save_data()
         AFK_System.afk_system.save_game_data(
             pocket_money=Currency_System.pocket_money,
             monster_hp=current_monster.hp,
@@ -188,7 +221,8 @@ while IsRunning:
             progression_index=monster_manager.progression_index,
             stage=monster_manager.stage,
             inventory_items=inventory_state,
-            shop_items_state=shop_state
+            shop_items_state=shop_state,
+            pet_data=pet_data
         )
         AFK_System.afk_system.update_save_time()
 
@@ -228,7 +262,32 @@ while IsRunning:
     # =====================================================
     
     current_monster.draw(window)
-    
+
+    # ========== Draw equipped pets as squares ==========
+    pet_system = Button_System.panel_manager.pet_system
+    if pet_system:
+        equipped_pets = pet_system.get_equipped_pets()
+        pet_size = 60  # Pet's square size
+        pet_spacing = 10
+        start_x = MIDDLE_CENTER_X - (len(equipped_pets) * pet_size + (len(equipped_pets) - 1) * pet_spacing) // 2
+        pet_y = current_monster.rect.y + current_monster.rect.height + 20  # Place pet's square below Monster's square
+        
+        font_pet = pg.font.SysFont(None, 14)
+        
+        for idx, pet in enumerate(equipped_pets):
+            pet_x = start_x + idx * (pet_size + pet_spacing)
+            pet_rect = pg.Rect(pet_x, pet_y, pet_size, pet_size)
+            
+            # Draw pet square with its rareity color and a border
+            pg.draw.rect(window, pet.color, pet_rect)
+            pg.draw.rect(window, (200, 200, 200), pet_rect, 2)
+            
+            # Draw pet's name (black text)
+            name_text = font_pet.render(pet.name, True, (0, 0, 0))
+            name_rect = name_text.get_rect(center=(pet_rect.centerx, pet_rect.centery))
+            window.blit(name_text, name_rect)
+    # ============================================
+
     Currency_System.draw_ui(window)
 
     # Draw damage texts
@@ -267,6 +326,10 @@ pg.quit()
 #Link: None
 
 #6. UI reedit (Every file before window size=1300x750)
+#Source code: Deepseek
+#Link: None
+
+#7. Pet system (Pet_System.py)
 #Source code: Deepseek
 #Link: None
 
