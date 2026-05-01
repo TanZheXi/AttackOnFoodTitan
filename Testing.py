@@ -1,7 +1,7 @@
 import pygame as pg
 
 pg.init()
-window = pg.display.set_mode((800, 600))
+window = pg.display.set_mode((1300, 750))
 pg.display.set_caption("Test")
 is_Running = True
 
