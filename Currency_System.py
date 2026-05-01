@@ -11,6 +11,8 @@ pg.font.init()
 ui_font = pg.font.SysFont(None, 48)
 scrap_font= pg.font.SysFont(None, 36)
 
+MIDDLE_CENTER_x = 575
+
 def spend_money(amount):
     global pocket_money
     if pocket_money >= amount:
@@ -57,6 +59,7 @@ def update_economy(enemy_hp, current_stage=1, is_boss=False):
 def draw_ui(window):
     """Logic for drawing the money on screen"""
     money_text = ui_font.render(f"Pocket Money: ${pocket_money}", True, (34, 139, 34))
-    window.blit(money_text, (280, 100))
+    money_rect = money_text.get_rect(center=(MIDDLE_CENTER_x, 160))
+    window.blit(money_text, money_rect)
 
 """For FUTURE USE: PRESTIGE/REBBIRTH SYSTEM & CURRENCY CONVERSION"""
