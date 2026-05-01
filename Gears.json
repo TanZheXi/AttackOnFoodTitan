@@ -62,14 +62,5 @@
         "scrap_value": 500,
         "rarity": "Epic",
         "slot": "aroma"
-    },
-    "Player_Data": {
-        "scraps": 0,
-        "equipped": {
-            "weapon": "OP WEAPON",
-            "hat": null,
-            "armor": null,
-            "aroma": null
-        }
     }
 }
