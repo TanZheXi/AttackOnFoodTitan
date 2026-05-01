@@ -192,6 +192,10 @@ class PanelManager:
         self.pending_pet_data = []
         self.pending_money = None
 
+        # --- NEW PRESTIGE VARIABLES ---
+        self.current_stage = 1
+        self.wants_to_prestige = False
+
     def load_saved_data(self, pocket_money, inventory_items, shop_state, pet_data=None):
         self.global_pocket_money = pocket_money
         
@@ -250,7 +254,17 @@ class PanelManager:
             self.inventory_system.handle_event(event)
         elif self.active_panel == "Pet" and self.pet_system:
             self.pet_system.handle_event(event)
-
+        elif self.active_panel == "Prestige":
+            import Currency_System
+            stars_to_gain = Currency_System.calculate_prestige_rewards(self.current_stage)
+            # Check if the player clicked the Prestige button
+            if event.type == pg.MOUSEBUTTONDOWN and event.button == 1:
+                if hasattr(self, 'prestige_btn_rect') and self.prestige_btn_rect.collidepoint(event.pos):
+                    if stars_to_gain > 0:
+                        # Set flag for main loop to handle prestige
+                        self.wants_to_prestige = True
+            return
+        
     def add_to_inventory(self, item_name):
         if self.inventory_system is None:
             inv_x = self.panel_rect.x + 10
@@ -337,6 +351,45 @@ class PanelManager:
                 
                 self.pet_system.update()
                 self.pet_system.draw(screen, self.panel_rect, self.desc_panel_rect)
+
+            elif self.active_panel == "Prestige":
+                
+                # 1. Fetch the preview stats
+                stars_to_gain = Currency_System.calculate_prestige_rewards(self.current_stage)
+                new_start = Currency_System.get_advanced_start(self.current_stage)
+                
+                y_offset = self.panel_rect.y + 80
+                font_large = pg.font.SysFont(None, 32, bold=True)
+                font_med = pg.font.SysFont(None, 24)
+                
+                # 2. Draw Warning Text
+                warn_text = font_med.render("Money resets to $0. Gear and Pets are KEPT.", True, (200, 100, 100))
+                screen.blit(warn_text, warn_text.get_rect(center=(self.panel_rect.centerx, y_offset)))
+                
+                # 3. Draw Rewards Text
+                y_offset += 60
+                gain_text = font_large.render(f"Michelin Stars to Gain: +{stars_to_gain}", True, (255, 215, 0))
+                screen.blit(gain_text, gain_text.get_rect(center=(self.panel_rect.centerx, y_offset)))
+                
+                y_offset += 50
+                start_text = font_med.render(f"Advanced Start: Stage {new_start}", True, (150, 200, 255))
+                screen.blit(start_text, start_text.get_rect(center=(self.panel_rect.centerx, y_offset)))
+                
+                # 4. Draw the BIG CONFIRM BUTTON
+                self.prestige_btn_rect = pg.Rect(self.panel_rect.centerx - 100, self.panel_rect.bottom - 100, 200, 60)
+                
+                # Change color if they don't have enough stages
+                if stars_to_gain > 0:
+                    btn_color = (200, 150, 0) if self.prestige_btn_rect.collidepoint(pg.mouse.get_pos()) else (150, 100, 0)
+                    btn_text = "CONFIRM PRESTIGE"
+                else:
+                    btn_color = (100, 100, 100)
+                    btn_text = "REACH STAGE 10"
+                    
+                pg.draw.rect(screen, btn_color, self.prestige_btn_rect)
+                pg.draw.rect(screen, (255, 255, 255), self.prestige_btn_rect, 2)
+                
+                lbl = font_large.render(btn_text, True, (255, 255, 255))
 
 
 # ----- Active PanelManager -----
