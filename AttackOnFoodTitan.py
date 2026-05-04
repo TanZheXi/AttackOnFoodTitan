@@ -119,16 +119,31 @@ while IsRunning:
             break
         elif event.type == pg.KEYDOWN:
             if event.key == pg.K_g:
-                Gear_System.gain_gear("Mythic Pan") 
+                Gear_System.gain_gear("OP WEAPON") 
             # Press 'E' to wear the item 
             elif event.key == pg.K_e:
-                Gear_System.equip_gear("Mythic Pan")
+                Gear_System.equip_gear("OP WEAPON")
             # Press 'U' to unequip weapon
             elif event.key == pg.K_u:
                 Gear_System.unequip_gear("weapon")
             # Press 'C' to craft the item (Consumes scraps) - Placeholder for crafting system
             elif event.key == pg.K_c:
                 Gear_System.craft_item("Golden Spatula")
+
+            # --- DEV HACKS FOR TESTING ---
+            # Press 'N' to instantly skip to the next stage
+            elif event.key == pg.K_n:
+                monster_manager.stage += 1
+                monster_manager.progression_index = (monster_manager.stage - 1) * 10
+                monster_manager.current_monster = monster_manager.spawn_monster()
+                print(f"[DEV CHEAT] Skipped to Stage {monster_manager.stage}")
+                
+            # Press 'P' to instantly trigger a Prestige
+            elif event.key == pg.K_p:
+                success = Currency_System.trigger_prestige(monster_manager)
+                if not success:
+                    print("[DEV WARNING] Prestige failed. Are you at least Stage 10?")
+
         elif event.type == pg.MOUSEBUTTONDOWN:
             if current_monster.rect.collidepoint(event.pos):
                 
@@ -136,15 +151,17 @@ while IsRunning:
                 # 1. Base damage
                 base_damage = Click_Damage_Feature.damage_per_click 
                 
-                # 2. Tap Titans Multiplier (From your branch)
+                # 2. Gear Multiplier
                 gear_multi = Gear_System.total_damage_multiplier
                 
-                # 3. Main branch's new critical hit logic
-                # (We pass '0' for the old additive bonus since you multiply now!)
+                # 3. PRESTIGE MULTIPLIER (NEW!)
+                prestige_multi = Currency_System.get_prestige_multiplier()
+                
+                # 4. Main branch's critical hit logic   
                 calculated_base, is_critical = calculate_damage(base_damage, 0)
                 
-                # 4. Final TT2 Multiplier Calculation
-                final_damage = int(calculated_base * gear_multi)
+                # 5. Final God-Tier Math
+                final_damage = int(calculated_base * gear_multi * prestige_multi)
                 
                 # Apply damage
                 current_monster.take_damage(final_damage)
@@ -175,8 +192,14 @@ while IsRunning:
     if current_time - last_pet_attack_time >= PET_ATTACK_INTERVAL:
         pet_system = Button_System.panel_manager.pet_system
         if pet_system:
-            total_pet_damage = pet_system.get_total_damage()
-            if total_pet_damage > 0 and current_monster.hp > 0:
+            # 1. Get base pet damage
+            base_pet_damage = pet_system.get_total_damage()
+            
+            if base_pet_damage > 0 and current_monster.hp > 0:
+                # 2. Apply the Prestige Multiplier
+                prestige_multi = Currency_System.get_prestige_multiplier()
+                total_pet_damage = int(base_pet_damage * prestige_multi)
+
                 # Pet damage application
                 current_monster.take_damage(total_pet_damage)
                 
@@ -207,6 +230,15 @@ while IsRunning:
 
     # Sync currency
     Button_System.panel_manager.global_pocket_money = Currency_System.pocket_money
+
+    # --- NEW: Sync Stage & Check for Prestige ---
+    Button_System.panel_manager.current_stage = monster_manager.stage
+    
+    if getattr(Button_System.panel_manager, 'wants_to_prestige', False):
+        success = Currency_System.trigger_prestige(monster_manager)
+        if success:
+            Button_System.panel_manager.active_panel = None # Auto-close the panel
+        Button_System.panel_manager.wants_to_prestige = False # Reset the flag
 
     # Auto save system for AFK
     current_time = time.time()
@@ -285,7 +317,7 @@ while IsRunning:
             # Draw pet's name (black text)
             name_text = font_pet.render(pet.name, True, (0, 0, 0))
             name_rect = name_text.get_rect(center=(pet_rect.centerx, pet_rect.centery))
-            window.blit(name_text, name_rect)
+            window.blit(name_text, name_rect)   
     # ============================================
 
     Currency_System.draw_ui(window)
