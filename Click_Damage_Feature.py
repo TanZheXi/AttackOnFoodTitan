@@ -1,5 +1,6 @@
 import pygame as pg
 import random
+import time
 
 class Monster:
     def __init__(self, name, max_hp, color):
@@ -9,6 +10,7 @@ class Monster:
         self.color = color
         self.rect = pg.Rect(300, 200, 200, 200)
         self.is_boss = False
+        self.time_left = None  # for boss countdown display
 
     def take_damage(self, dmg):
         self.hp = max(self.hp - dmg, 0)
@@ -17,29 +19,53 @@ class Monster:
         return self.hp <= 0
 
     def draw(self, surface):
-        # Monster body
-        pg.draw.rect(surface, self.color, self.rect)
+     # Monster body
+     pg.draw.rect(surface, self.color, self.rect)
 
-        # HP bar background
-        pg.draw.rect(surface, (100, 100, 100), (self.rect.x, self.rect.y - 20, self.rect.width, 10))
+     # HP bar background
+     pg.draw.rect(surface, (100, 100, 100), (self.rect.x, self.rect.y - 20, self.rect.width, 10))
 
-        # Current HP bar
-        hp_bar_width = int((self.hp / self.max_hp) * self.rect.width) if self.max_hp > 0 else 0
-        bar_color = (255, 215, 0) if self.is_boss else (255, 0, 0)  # gold for bosses
-        pg.draw.rect(surface, bar_color, (self.rect.x, self.rect.y - 20, hp_bar_width, 10))
+     # Current HP bar
+     hp_bar_width = int((self.hp / self.max_hp) * self.rect.width) if self.max_hp > 0 else 0
+     bar_color = (255, 215, 0) if self.is_boss else (255, 0, 0)
+     pg.draw.rect(surface, bar_color, (self.rect.x, self.rect.y - 20, hp_bar_width, 10))
 
-        # Text setup
-        font = pg.font.SysFont("Arial", 28, bold=self.is_boss)  # Arial supports wide glyphs
-        label = f"{self.name} HP: {self.hp}/{self.max_hp}"
-        if self.is_boss:
-            label = "[BOSS] " + label  # safe text indicator instead of emoji
+     # Monster text centered above HP bar
+     font = pg.font.SysFont("Arial", 28, bold=self.is_boss)
+     label = f"{self.name} HP: {self.hp}/{self.max_hp}"
+     if self.is_boss:
+        label = "[BOSS] " + label
+     text = font.render(label, True, (0, 0, 0))
+     text_x = self.rect.x + (self.rect.width - text.get_width()) // 2
+     text_y = self.rect.y - 50
+     surface.blit(text, (text_x, text_y))
 
-        text = font.render(label, True, (0, 0, 0))
+     # ✅ Boss timer text + bar below HP bar
+     if self.is_boss and self.time_left is not None:
+        timer_font = pg.font.SysFont("Arial", 24, bold=True)
+        color = (200, 0, 0) if self.time_left <= 5 else (0, 0, 0)
+        timer_text = timer_font.render(f"Time Left: {self.time_left}s", True, color)
 
-        # Clamp text position so it stays inside window
-        text_x = max(10, min(self.rect.x, surface.get_width() - text.get_width() - 10))
-        text_y = max(10, self.rect.y - 50)
-        surface.blit(text, (text_x, text_y))
+        # Position text centered below HP bar
+        timer_x = self.rect.x + (self.rect.width - timer_text.get_width()) // 2
+        timer_y = self.rect.y - 5
+        surface.blit(timer_text, (timer_x, timer_y))
+
+        # Draw timer bar to the left of the text
+        total_time = 30
+        bar_max_width = 100  # fixed width for full 30s
+        bar_height = 10
+        # shrink bar proportionally
+        bar_width = int((self.time_left / total_time) * bar_max_width)
+
+        bar_x = timer_x - bar_max_width - 10  # 10px gap to the left of text
+        bar_y = timer_y + (timer_text.get_height() - bar_height) // 2
+
+        # background (gray)
+        pg.draw.rect(surface, (180, 180, 180), (bar_x, bar_y, bar_max_width, bar_height))
+        # foreground (green → red as time decreases)
+        fg_color = (0, 200, 0) if self.time_left > 10 else (200, 0, 0)
+        pg.draw.rect(surface, fg_color, (bar_x, bar_y, bar_width, bar_height))
 
 
 class MonsterManager:
@@ -60,20 +86,19 @@ class MonsterManager:
         self.stage = 1
         self.base_hp = 50.0
         self.common_ratio = 1.05
-
-        # 🔑 Create a shuffled order of monsters
         self.monster_order = random.sample(self.food_monsters, len(self.food_monsters))
         self.current_monster = self.spawn_monster()
+        self.boss_start_time = None
 
     def spawn_monster(self):
         hp_value = int(self.base_hp * (self.common_ratio ** self.progression_index))
-
-        # Boss check: every 10th monster
         is_boss = (self.progression_index + 1) % 10 == 0
         if is_boss:
             hp_value *= 2
+            self.boss_start_time = time.time()
+        else:
+            self.boss_start_time = None
 
-        # Pick monster from shuffled order
         data = self.monster_order[self.progression_index % len(self.monster_order)]
         monster = Monster(data["name"], hp_value, data["color"])
         monster.is_boss = is_boss
@@ -83,11 +108,24 @@ class MonsterManager:
         self.progression_index += 1
         if self.progression_index % 10 == 0:
             self.stage += 1
-
-            # 🔄 Reshuffle order at the end of each stage
             self.monster_order = random.sample(self.food_monsters, len(self.food_monsters))
-
         self.current_monster = self.spawn_monster()
+
+    def check_boss_timer(self):
+        if self.current_monster.is_boss and self.boss_start_time:
+            elapsed = time.time() - self.boss_start_time
+            return elapsed > 30
+        return False
+
+    def reset_to_first_monster(self):
+        self.progression_index = (self.stage - 1) * 10
+        self.current_monster = self.spawn_monster()
+
+    def get_boss_time_left(self):
+        if self.current_monster.is_boss and self.boss_start_time:
+            elapsed = time.time() - self.boss_start_time
+            return max(0, 30 - int(elapsed))
+        return None
 
     def draw_counter(self, surface):
      font = pg.font.SysFont(None, 40)

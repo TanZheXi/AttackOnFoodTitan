@@ -168,6 +168,19 @@ while IsRunning:
             except ValueError:
                 pass
 
+    # --- Boss timer logic ---
+    time_left = monster_manager.get_boss_time_left()
+    if current_monster.is_boss:
+        current_monster.time_left = time_left
+    else:
+        current_monster.time_left = None
+
+    if monster_manager.check_boss_timer():
+     print("Boss time expired! Returning to first monster of stage.")
+     monster_manager.reset_to_first_monster()
+     current_monster = monster_manager.current_monster
+
+
     # --- Draw everything ---
     window.fill((227, 227, 227))
     try:
