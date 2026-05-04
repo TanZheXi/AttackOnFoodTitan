@@ -9,14 +9,18 @@ current_stage = 1
 pg.font.init()
 ui_font = pg.font.SysFont(None, 36)
 
-def update_economy(enemy_hp, current_stage=1, is_boss=False):
-    
-    # Awards pocket money when enemy_hp <= 0.
-    # current_stage should be 1-based stage number.
-    # Returns True if money was awarded.
-    
+def update_economy(enemy_hp, current_stage=1, is_boss=False, force_award=False):
+    """
+    Award pocket money when enemy_hp <= 0 OR when force_award=True.
+    - enemy_hp: current hp (<=0) OR max_hp (if force_award=True)
+    - current_stage: 1-based stage number
+    - is_boss: True for boss rewards
+    - force_award: explicitly award currency regardless of enemy_hp
+    Returns True if money was awarded.
+    """
     global pocket_money
-    if enemy_hp <= 0:
+
+    if force_award or enemy_hp <= 0:
         # Base drop for stage 1
         min_pocket_drop = 50
         max_pocket_drop = 100
@@ -38,9 +42,9 @@ def update_economy(enemy_hp, current_stage=1, is_boss=False):
         dropped_pocket_money = random.randint(scaled_min_drop, scaled_max_drop)
         pocket_money += dropped_pocket_money
 
-        # Optional print for testing
+        # Debug print
         enemy_type = "BOSS" if is_boss else "Titan"
-        print(f"Stage {current_stage} {enemy_type} defeated! Dropped: ${dropped_pocket_money}")
+        print(f"Stage {current_stage} {enemy_type} defeated! Dropped: ${dropped_pocket_money} | Total: ${pocket_money}")
 
         return True
     return False

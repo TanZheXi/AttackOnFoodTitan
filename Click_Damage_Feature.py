@@ -8,6 +8,7 @@ class Monster:
         self.hp = max_hp
         self.color = color
         self.rect = pg.Rect(300, 200, 200, 200)
+        self.is_boss = False
 
     def take_damage(self, dmg):
         self.hp = max(self.hp - dmg, 0)
@@ -16,16 +17,29 @@ class Monster:
         return self.hp <= 0
 
     def draw(self, surface):
+        # Monster body
         pg.draw.rect(surface, self.color, self.rect)
-        # Background bar
+
+        # HP bar background
         pg.draw.rect(surface, (100, 100, 100), (self.rect.x, self.rect.y - 20, self.rect.width, 10))
+
         # Current HP bar
         hp_bar_width = int((self.hp / self.max_hp) * self.rect.width) if self.max_hp > 0 else 0
-        pg.draw.rect(surface, (255, 0, 0), (self.rect.x, self.rect.y - 20, hp_bar_width, 10))
-        # Text
-        font = pg.font.SysFont(None, 30)
-        text = font.render(f"{self.name} HP: {self.hp}/{self.max_hp}", True, (0, 0, 0))
-        surface.blit(text, (self.rect.x, self.rect.y - 50))
+        bar_color = (255, 215, 0) if self.is_boss else (255, 0, 0)  # gold for bosses
+        pg.draw.rect(surface, bar_color, (self.rect.x, self.rect.y - 20, hp_bar_width, 10))
+
+        # Text setup
+        font = pg.font.SysFont("Arial", 28, bold=self.is_boss)  # Arial supports wide glyphs
+        label = f"{self.name} HP: {self.hp}/{self.max_hp}"
+        if self.is_boss:
+            label = "[BOSS] " + label  # safe text indicator instead of emoji
+
+        text = font.render(label, True, (0, 0, 0))
+
+        # Clamp text position so it stays inside window
+        text_x = max(10, min(self.rect.x, surface.get_width() - text.get_width() - 10))
+        text_y = max(10, self.rect.y - 50)
+        surface.blit(text, (text_x, text_y))
 
 
 class MonsterManager:
@@ -44,30 +58,57 @@ class MonsterManager:
         ]
         self.progression_index = 0
         self.stage = 1
+        self.base_hp = 50.0
+        self.common_ratio = 1.05
+
+        # 🔑 Create a shuffled order of monsters
+        self.monster_order = random.sample(self.food_monsters, len(self.food_monsters))
         self.current_monster = self.spawn_monster()
 
     def spawn_monster(self):
-        hp_value = 50 + (self.progression_index * 100)
-        data = random.choice(self.food_monsters)
-        return Monster(data["name"], hp_value, data["color"])
+        hp_value = int(self.base_hp * (self.common_ratio ** self.progression_index))
+
+        # Boss check: every 10th monster
+        is_boss = (self.progression_index + 1) % 10 == 0
+        if is_boss:
+            hp_value *= 2
+
+        # Pick monster from shuffled order
+        data = self.monster_order[self.progression_index % len(self.monster_order)]
+        monster = Monster(data["name"], hp_value, data["color"])
+        monster.is_boss = is_boss
+        return monster
 
     def next_monster(self):
         self.progression_index += 1
         if self.progression_index % 10 == 0:
             self.stage += 1
+
+            # 🔄 Reshuffle order at the end of each stage
+            self.monster_order = random.sample(self.food_monsters, len(self.food_monsters))
+
         self.current_monster = self.spawn_monster()
 
     def draw_counter(self, surface):
-        font = pg.font.SysFont(None, 40)
-        counter_value = (self.progression_index % 10) + 1
-        counter_text = font.render(f"Monster {counter_value}/10", True, (0, 0, 0))
-        surface.blit(counter_text, (surface.get_width() - 200, 20))
+     font = pg.font.SysFont(None, 40)
+     counter_value = (self.progression_index % 10) + 1
+     label = f"Monster {counter_value}/10"
+     if getattr(self.current_monster, "is_boss", False):
+      label += " (Boss!)"
+
+     counter_text = font.render(label, True, (0, 0, 0))
+
+     # Clamp position so text stays inside window
+     text_width = counter_text.get_width()
+     text_x = max(10, surface.get_width() - text_width - 10)  # 10px padding
+     text_y = 20
+
+     surface.blit(counter_text, (text_x, text_y))
 
     def draw_stage_counter(self, surface):
         font = pg.font.SysFont(None, 50, bold=True)
         stage_text = font.render(f"Stage {self.stage}", True, (0, 0, 0))
-        surface_width = surface.get_width()
-        stage_x = (surface_width - stage_text.get_width()) // 2
+        stage_x = (surface.get_width() - stage_text.get_width()) // 2
         surface.blit(stage_text, (stage_x, 20))
 
 
@@ -100,7 +141,7 @@ class DamageText:
 
 
 # Damage System
-damage_per_click = 1
+damage_per_click = 50
 
 # Critical hit settings
 crit_chance = 0.05       # 5% chance
