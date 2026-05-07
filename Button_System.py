@@ -255,7 +255,6 @@ class PanelManager:
         elif self.active_panel == "Pet" and self.pet_system:
             self.pet_system.handle_event(event)
         elif self.active_panel == "Prestige":
-            import Currency_System
             stars_to_gain = Currency_System.calculate_prestige_rewards(self.current_stage)
             # Check if the player clicked the Prestige button
             if event.type == pg.MOUSEBUTTONDOWN and event.button == 1:
