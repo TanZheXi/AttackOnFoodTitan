@@ -11,7 +11,7 @@ pg.font.init()
 ui_font = pg.font.SysFont(None, 48)
 scrap_font= pg.font.SysFont(None, 36)
 
-MIDDLE_CENTER_x = 575
+MIDDLE_CENTER_X = 575
 
 def spend_money(amount):
     global pocket_money
@@ -95,16 +95,18 @@ def format_money(amount):
 
 def draw_ui(window):
     """Logic for drawing the money and prestige stats on screen"""
+    global michelin_stars
+
     # 1. Draw Money
     money_text = ui_font.render(f"Pocket Money: {format_money(pocket_money)}", True, (34, 139, 34))
-    money_rect = money_text.get_rect(center=(MIDDLE_CENTER_x, 160))
+    money_rect = money_text.get_rect(center=(MIDDLE_CENTER_X, 160))
     window.blit(money_text, money_rect)
 
     # 2. Draw Michelin Stars & Multiplier (Only if they have prestiged)
     if michelin_stars > 0:
         multiplier_display = get_prestige_multiplier()
         stars_text = scrap_font.render(f"Michelin Stars: {michelin_stars} (x{multiplier_display:.1f} DMG)", True, (255, 215, 0))
-        stars_rect = stars_text.get_rect(center=(MIDDLE_CENTER_x, 200))
+        stars_rect = stars_text.get_rect(center=(MIDDLE_CENTER_X, 200))
         window.blit(stars_text, stars_rect)
 
 """For FUTURE USE: PRESTIGE/REBBIRTH SYSTEM & CURRENCY CONVERSION"""
