@@ -14,7 +14,7 @@ class Main_button:
         self.color = color
         self.hover_color = hover_color
         self.callback = callback
-        self.font = pg.font.SysFont(None, 24)
+        self.font = pg.font.SysFont(None, 20)
         self.is_hovered = False
 
     def handle_event(self, event):
@@ -37,8 +37,6 @@ class Main_button:
         text_rect = text_surf.get_rect(center=self.rect.center)
         screen.blit(text_surf, text_rect)
 
-
-# ----- Guide System -----
 class GuideSystem:
     def __init__(self, x, y, width, height):
         self.rect = pg.Rect(x, y, width, height)
@@ -47,41 +45,33 @@ class GuideSystem:
         self.font_small = pg.font.SysFont(None, 16)
         self.visible = False
         
-        # Guide content
         self.guide_lines = [
             "=== GAME GUIDE ===",
             "",
             "[CONTROLS]",
             "Click on Monster - Deal damage",
-            "G Key - Gain a test item (Mythic Pan)",
+            "G Key - Gain OP WEAPON (Test)",
             "E Key - Equip weapon",
             "U Key - Unequip weapon",
             "C Key - Craft Golden Spatula",
+            "N Key - Next Stage (Dev)",
+            "P Key - Prestige (Dev)",
             "",
             "[SHOP]",
             "Click Shop button to open shop",
-            "Hover over items to see details",
-            "Click item to purchase",
+            "Use category tabs to filter items",
             "",
             "[INVENTORY]",
             "Click Inv button to open inventory",
-            "Hover over items to see description",
-            "Scroll mouse wheel to scroll",
-            "",
-            "[AFK SYSTEM]",
-            "Earn $1 per hour while offline",
-            "Max AFK earnings: $100",
-            "",
-            "[GEAR SYSTEM]",
-            "Equip gear to increase damage",
-            "Higher rarity = higher multiplier",
-            "Craft items using scraps",
+            "Use category tabs to filter items",
             "",
             "[PET SYSTEM]",
             "Click Pet button to manage pets",
-            "Equip up to 3 pets to fight with you",
-            "Pets attack automatically every second",
-            "Higher rarity = higher damage"
+            "Equip up to 3 pets",
+            "",
+            "[PRESTIGE]",
+            "Reach Stage 10 to Prestige",
+            "Earn Michelin Stars for permanent DMG boost"
         ]
 
     def toggle(self):
@@ -156,49 +146,49 @@ class GuideSystem:
         
         return False
 
-
-# ----- Pannel (Like a drawer system lah basically)-----
 class PanelManager:
     def __init__(self, screen_width, screen_height):
         self.active_panel = None
+        self.buttons = []
         
         RIGHT_AREA_X = 850
         RIGHT_AREA_WIDTH = 450
         RIGHT_AREA_HEIGHT = screen_height
         
-        panel_width = RIGHT_AREA_WIDTH - 20
-        panel_height = 500
+        panel_width = RIGHT_AREA_WIDTH - 20  # 430px
+        panel_height = RIGHT_AREA_HEIGHT - 40  # 710px
         panel_x = RIGHT_AREA_X + 10
-        panel_y = 60
+        panel_y = 20
         
         self.panel_rect = pg.Rect(panel_x, panel_y, panel_width, panel_height)
         self.panel_color = (50, 50, 50, 220)
         self.border_color = (200, 200, 200)
         
+        # Description panel (at the bottom of the panel, for Shop/Inventory)
         desc_panel_height = 150
-        desc_panel_y = panel_y + panel_height + 10
-        self.desc_panel_rect = pg.Rect(panel_x, desc_panel_y, panel_width, desc_panel_height)
+        desc_panel_y = panel_y + panel_height - desc_panel_height - 10
+        self.desc_panel_rect = pg.Rect(panel_x + 10, desc_panel_y, panel_width - 20, desc_panel_height)
         
-        self.guide_system = GuideSystem(panel_x, panel_y, panel_width, panel_height + desc_panel_height + 10)
+        self.guide_system = GuideSystem(panel_x, panel_y, panel_width, panel_height)
         
         self.shop_system = None
         self.inventory_system = None
         self.pet_system = None
         self.global_pocket_money = Currency_System.pocket_money
-        self.shop_state_loaded = False
+        
+        self.current_shop_category = 0
+        self.current_inv_category = 0
         
         self.pending_inventory = []
         self.pending_shop_state = []
         self.pending_pet_data = []
         self.pending_money = None
 
-        # --- NEW PRESTIGE VARIABLES ---
         self.current_stage = 1
         self.wants_to_prestige = False
 
     def load_saved_data(self, pocket_money, inventory_items, shop_state, pet_data=None):
         self.global_pocket_money = pocket_money
-        
         self.pending_inventory = inventory_items if inventory_items else []
         self.pending_shop_state = shop_state if shop_state else []
         self.pending_pet_data = pet_data if pet_data else []
@@ -206,33 +196,31 @@ class PanelManager:
         
         if self.inventory_system and self.pending_inventory:
             self.inventory_system.restore_inventory(self.pending_inventory)
-            print(f"[LOAD] Inventory restored immediately: {len(self.pending_inventory)} items")
-        
         if self.shop_system and self.pending_shop_state:
             self.shop_system.restore_shop_state(self.pending_shop_state)
-            print(f"[LOAD] Shop state restored immediately: {len(self.pending_shop_state)} items")
-        
         if self.pet_system and self.pending_pet_data:
             self.pet_system.restore_save_data(self.pending_pet_data)
-            print(f"[LOAD] Pet data restored immediately: {len(self.pending_pet_data)} pets")
-        
-        print(f"[LOAD] Data loaded: Money={pocket_money}, Pending Inventory={len(self.pending_inventory)} items")
 
     def get_save_data(self):
         inventory_items = []
         if self.inventory_system:
             inventory_items = self.inventory_system.get_inventory_state()
-        
         shop_state = []
         if self.shop_system:
             shop_state = self.shop_system.get_shop_state()
-        
         pet_data = []
         if self.pet_system:
             pet_data = self.pet_system.get_save_data()
-        
         return inventory_items, shop_state, pet_data
-        
+
+    def reset_all_on_prestige(self):
+        if self.shop_system:
+            self.shop_system.reset_shop()
+        if self.inventory_system:
+            self.inventory_system.reset_inventory()
+        if self.pet_system:
+            self.pet_system.reset_on_prestige()
+
     def toggle_panel(self, button_name):
         if self.active_panel == button_name:
             self.active_panel = None
@@ -241,12 +229,25 @@ class PanelManager:
     
     def toggle_guide(self):
         self.guide_system.toggle()
-    
+
     def handle_event(self, event):
         if self.guide_system.visible:
+            # Allow Guide to handle its own events (like closing or scrolling)
             self.guide_system.handle_event(event)
+            
+            # Check if any button was clicked while Guide is open
+            if event.type == pg.MOUSEBUTTONDOWN and event.button == 1:
+                for button in self.buttons:
+                    if button.rect.collidepoint(event.pos):
+                        # Close the guide and open the corresponding panel
+                        self.guide_system.visible = False
+                        # Execute the button's callback (switch panel)
+                        if button.callback:
+                            button.callback()
+                        return
             return
         
+        # Event logic for active panels
         if self.active_panel == "Shop" and self.shop_system:
             self.shop_system.handle_event(event, self.add_to_inventory)
             self.global_pocket_money = Currency_System.pocket_money
@@ -255,34 +256,53 @@ class PanelManager:
         elif self.active_panel == "Pet" and self.pet_system:
             self.pet_system.handle_event(event)
         elif self.active_panel == "Prestige":
-            stars_to_gain = Currency_System.calculate_prestige_rewards(self.current_stage)
-            # Check if the player clicked the Prestige button
             if event.type == pg.MOUSEBUTTONDOWN and event.button == 1:
                 if hasattr(self, 'prestige_btn_rect') and self.prestige_btn_rect.collidepoint(event.pos):
+                    stars_to_gain = Currency_System.calculate_prestige_rewards(self.current_stage)
                     if stars_to_gain > 0:
-                        # Set flag for main loop to handle prestige
                         self.wants_to_prestige = True
             return
-        
+
     def add_to_inventory(self, item_name):
+        if self.pet_system is None:
+            self.pet_system = PetSystem()
+            if self.pending_pet_data:
+                self.pet_system.restore_save_data(self.pending_pet_data)
+        
         if self.inventory_system is None:
             inv_x = self.panel_rect.x + 10
-            inv_y = self.panel_rect.y + 10
+            inv_y = self.panel_rect.y + 60
             inv_width = self.panel_rect.width - 20
-            inv_height = self.panel_rect.height - 20
+            inv_height = self.panel_rect.height - 90
             self.inventory_system = InventorySystem(inv_x, inv_y, inv_width, inv_height)
-            
             self.inventory_system.set_desc_panel_rect(self.desc_panel_rect)
-            
+            self.inventory_system.set_category(self.current_inv_category)
             if self.pending_inventory:
                 self.inventory_system.restore_inventory(self.pending_inventory)
-                print(f"[RESTORE] Inventory restored on creation: {len(self.pending_inventory)} items")
-            
         self.inventory_system.add_item(item_name)
+        
+        if self.pet_system:
+            self.pet_system.add_pet(item_name)
 
     def draw(self, screen):
+        right_area_rect = pg.Rect(850, 0, 450, 750)
+        pg.draw.rect(screen, (45, 45, 55), right_area_rect)
+        pg.draw.rect(screen, (150, 150, 170), right_area_rect, 2)
+        
         if self.guide_system.visible:
             self.guide_system.draw(screen)
+            return
+        
+        if self.active_panel is None:
+            font = pg.font.SysFont(None, 28)
+            hint_text = font.render("Click any button to interact!", True, (200, 200, 220))
+            hint_rect = hint_text.get_rect(center=(850 + 225, 375))
+            screen.blit(hint_text, hint_rect)
+            
+            font_small = pg.font.SysFont(None, 20)
+            hint_text2 = font_small.render("It would shown here", True, (150, 150, 170))
+            hint_rect2 = hint_text2.get_rect(center=(850 + 225, 420))
+            screen.blit(hint_text2, hint_rect2)
             return
         
         if self.active_panel:
@@ -290,111 +310,102 @@ class PanelManager:
             panel_surface.set_alpha(self.panel_color[3])
             panel_surface.fill(self.panel_color[:3])
             screen.blit(panel_surface, (self.panel_rect.x, self.panel_rect.y))
-            
             pg.draw.rect(screen, self.border_color, self.panel_rect, 3)
             
-            # Draw description panel background (shown for all panels)
-            desc_surface = pg.Surface((self.desc_panel_rect.width, self.desc_panel_rect.height))
-            desc_surface.set_alpha(self.panel_color[3])
-            desc_surface.fill(self.panel_color[:3])
-            screen.blit(desc_surface, (self.desc_panel_rect.x, self.desc_panel_rect.y))
-            
-            pg.draw.rect(screen, self.border_color, self.desc_panel_rect, 3)
+            # ========== Description panel that every panel have except Prestige ==========
+            if self.active_panel != "Prestige":
+                desc_surface = pg.Surface((self.desc_panel_rect.width, self.desc_panel_rect.height))
+                desc_surface.set_alpha(self.panel_color[3])
+                desc_surface.fill(self.panel_color[:3])
+                screen.blit(desc_surface, (self.desc_panel_rect.x, self.desc_panel_rect.y))
+                pg.draw.rect(screen, self.border_color, self.desc_panel_rect, 3)
+            # =============================================================================
             
             pg.draw.line(screen, (100, 100, 100), 
                         (self.panel_rect.x, self.panel_rect.y + self.panel_rect.height),
                         (self.panel_rect.x + self.panel_rect.width, self.panel_rect.y + self.panel_rect.height), 2)
             
+            # Main title
             font = pg.font.SysFont(None, 36)
             title_text = font.render(f"{self.active_panel}", True, (255, 220, 100))
             title_rect = title_text.get_rect(center=(self.panel_rect.centerx, self.panel_rect.y + 25))
             screen.blit(title_text, title_rect)
             
+            # Draw the specific panel content
             if self.active_panel == "Shop":
                 if self.shop_system is None:
                     shop_x = self.panel_rect.x + 10
-                    shop_y = self.panel_rect.y + 50
+                    shop_y = self.panel_rect.y + 60
                     shop_width = self.panel_rect.width - 20
-                    shop_height = self.panel_rect.height - 60
+                    shop_height = self.panel_rect.height - 90
                     self.shop_system = ShopSystem(shop_x, shop_y, shop_width, shop_height)
-                    
                     self.shop_system.set_desc_panel_rect(self.desc_panel_rect)
-                    
+                    self.shop_system.set_category(self.current_shop_category)
                     if self.pending_shop_state:
                         self.shop_system.restore_shop_state(self.pending_shop_state)
-                        print(f"[RESTORE] Shop state restored on creation: {len(self.pending_shop_state)} items")
-                    
                 self.shop_system.update()
                 self.shop_system.draw(screen)
             elif self.active_panel == "Inventory":
                 if self.inventory_system is None:
                     inv_x = self.panel_rect.x + 10
-                    inv_y = self.panel_rect.y + 50
+                    inv_y = self.panel_rect.y + 60
                     inv_width = self.panel_rect.width - 20
-                    inv_height = self.panel_rect.height - 60
+                    inv_height = self.panel_rect.height - 90
                     self.inventory_system = InventorySystem(inv_x, inv_y, inv_width, inv_height)
-                    
                     self.inventory_system.set_desc_panel_rect(self.desc_panel_rect)
-                    
+                    self.inventory_system.set_category(self.current_inv_category)
                     if self.pending_inventory:
                         self.inventory_system.restore_inventory(self.pending_inventory)
-                        print(f"[RESTORE] Inventory restored on creation: {len(self.pending_inventory)} items")
-                    
                 self.inventory_system.draw(screen)
             elif self.active_panel == "Pet":
                 if self.pet_system is None:
                     self.pet_system = PetSystem()
                     if self.pending_pet_data:
                         self.pet_system.restore_save_data(self.pending_pet_data)
-                        print(f"[RESTORE] Pet data restored on creation: {len(self.pending_pet_data)} pets")
-                
                 self.pet_system.update()
                 self.pet_system.draw(screen, self.panel_rect, self.desc_panel_rect)
-
             elif self.active_panel == "Prestige":
-                
-                # 1. Fetch the preview stats
-                stars_to_gain = Currency_System.calculate_prestige_rewards(self.current_stage)
-                new_start = Currency_System.get_advanced_start(self.current_stage)
-                
-                y_offset = self.panel_rect.y + 80
-                font_large = pg.font.SysFont(None, 32, bold=True)
-                font_med = pg.font.SysFont(None, 24)
-                
-                # 2. Draw Warning Text
-                warn_text = font_med.render("Money resets to $0. Gear and Pets are KEPT.", True, (200, 100, 100))
-                screen.blit(warn_text, warn_text.get_rect(center=(self.panel_rect.centerx, y_offset)))
-                
-                # 3. Draw Rewards Text
-                y_offset += 60
-                gain_text = font_large.render(f"Michelin Stars to Gain: +{stars_to_gain}", True, (255, 215, 0))
-                screen.blit(gain_text, gain_text.get_rect(center=(self.panel_rect.centerx, y_offset)))
-                
-                y_offset += 50
-                start_text = font_med.render(f"Advanced Start: Stage {new_start}", True, (150, 200, 255))
-                screen.blit(start_text, start_text.get_rect(center=(self.panel_rect.centerx, y_offset)))
-                
-                # 4. Draw the BIG CONFIRM BUTTON
-                self.prestige_btn_rect = pg.Rect(self.panel_rect.centerx - 100, self.panel_rect.bottom - 100, 200, 60)
-                
-                # Change color if they don't have enough stages
-                if stars_to_gain > 0:
-                    btn_color = (200, 150, 0) if self.prestige_btn_rect.collidepoint(pg.mouse.get_pos()) else (150, 100, 0)
-                    btn_text = "CONFIRM PRESTIGE"
-                else:
-                    btn_color = (100, 100, 100)
-                    btn_text = "REACH STAGE 10"
-                    
-                pg.draw.rect(screen, btn_color, self.prestige_btn_rect)
-                pg.draw.rect(screen, (255, 255, 255), self.prestige_btn_rect, 2)
-                
-                lbl = font_large.render(btn_text, True, (255, 255, 255))
+                self._draw_prestige_panel(screen)
+
+    def _draw_prestige_panel(self, screen):
+        stars_to_gain = Currency_System.calculate_prestige_rewards(self.current_stage)
+        new_start = Currency_System.get_advanced_start(self.current_stage)
+        
+        # Middle the information text
+        y_offset = self.panel_rect.y + 100
+        font_large = pg.font.SysFont(None, 32, bold=True)
+        font_med = pg.font.SysFont(None, 24)
+        
+        warn_text = font_med.render("Money resets to $0. Gear and Pets are KEPT.", True, (200, 100, 100))
+        screen.blit(warn_text, warn_text.get_rect(center=(self.panel_rect.centerx, y_offset)))
+        
+        y_offset += 60
+        gain_text = font_large.render(f"Michelin Stars to Gain: +{stars_to_gain}", True, (255, 215, 0))
+        screen.blit(gain_text, gain_text.get_rect(center=(self.panel_rect.centerx, y_offset)))
+        
+        y_offset += 50
+        start_text = font_med.render(f"Advanced Start: Stage {new_start}", True, (150, 200, 255))
+        screen.blit(start_text, start_text.get_rect(center=(self.panel_rect.centerx, y_offset)))
+        
+        self.prestige_btn_rect = pg.Rect(self.panel_rect.centerx - 100, self.panel_rect.bottom - 120, 200, 60)
+        
+        if stars_to_gain > 0:
+            btn_color = (200, 150, 0) if self.prestige_btn_rect.collidepoint(pg.mouse.get_pos()) else (150, 100, 0)
+            btn_text = "CONFIRM PRESTIGE"
+        else:
+            btn_color = (100, 100, 100)
+            btn_text = "REACH STAGE 10"
+            
+        pg.draw.rect(screen, btn_color, self.prestige_btn_rect)
+        pg.draw.rect(screen, (255, 255, 255), self.prestige_btn_rect, 2)
+        
+        lbl = font_large.render(btn_text, True, (255, 255, 255))
+        lbl_rect = lbl.get_rect(center=self.prestige_btn_rect.center)
+        screen.blit(lbl, lbl_rect)
 
 
-# ----- Active PanelManager -----
 panel_manager = PanelManager(1300, 750)
 
-# ----- call out PanelManager function -----
 def create_button_callback(button_name):
     def callback():
         panel_manager.toggle_panel(button_name)
@@ -403,11 +414,18 @@ def create_button_callback(button_name):
 def guide_callback():
     panel_manager.toggle_guide()
 
-# ========== Layout of buttons ==========
 MIDDLE_AREA_X = 300
 MIDDLE_WIDTH = 550
-BUTTON_Y = 680
 
+INV_BUTTON_X = MIDDLE_AREA_X + MIDDLE_WIDTH - 45
+PET_BUTTON_X = INV_BUTTON_X
+INV_BUTTON_Y = 12
+PET_BUTTON_Y = INV_BUTTON_Y + 45
+
+GUIDE_BUTTON_X = MIDDLE_AREA_X + 5
+GUIDE_BUTTON_Y = 12
+
+BOTTOM_BUTTON_Y = 680
 button_width = 90
 button_height = 40
 spacing = 8
@@ -416,28 +434,20 @@ total_buttons_width = button_width * 5 + spacing * 4
 start_x = MIDDLE_AREA_X + (MIDDLE_WIDTH - total_buttons_width) // 2
 
 buttons = [
-    Main_button(start_x + 0 * (button_width + spacing), BUTTON_Y, button_width, button_height, "Upgrade", (80, 80, 100), (120, 120, 140), create_button_callback("Upgrade")),
-    Main_button(start_x + 1 * (button_width + spacing), BUTTON_Y, button_width, button_height, "Crafting", (80, 80, 100), (120, 120, 140), create_button_callback("Crafting")),
-    Main_button(start_x + 2 * (button_width + spacing), BUTTON_Y, button_width, button_height, "Raids", (80, 80, 100), (120, 120, 140), create_button_callback("Raids")),
-    Main_button(start_x + 3 * (button_width + spacing), BUTTON_Y, button_width, button_height, "Shop", (80, 80, 100), (120, 120, 140), create_button_callback("Shop")),
-    Main_button(start_x + 4 * (button_width + spacing), BUTTON_Y, button_width, button_height, "Prestige", (80, 80, 100), (120, 120, 140), create_button_callback("Prestige")),
+    Main_button(start_x + 0 * (button_width + spacing), BOTTOM_BUTTON_Y, button_width, button_height, "Upgrade", (80, 80, 100), (120, 120, 140), create_button_callback("Upgrade")),
+    Main_button(start_x + 1 * (button_width + spacing), BOTTOM_BUTTON_Y, button_width, button_height, "Crafting", (80, 80, 100), (120, 120, 140), create_button_callback("Crafting")),
+    Main_button(start_x + 2 * (button_width + spacing), BOTTOM_BUTTON_Y, button_width, button_height, "Raids", (80, 80, 100), (120, 120, 140), create_button_callback("Raids")),
+    Main_button(start_x + 3 * (button_width + spacing), BOTTOM_BUTTON_Y, button_width, button_height, "Shop", (80, 80, 100), (120, 120, 140), create_button_callback("Shop")),
+    Main_button(start_x + 4 * (button_width + spacing), BOTTOM_BUTTON_Y, button_width, button_height, "Prestige", (80, 80, 100), (120, 120, 140), create_button_callback("Prestige")),
 ]
 
-# Inventory button
-INV_BUTTON_X = 1240
-INV_BUTTON_Y = 12
 inventory_button = Main_button(INV_BUTTON_X, INV_BUTTON_Y, 40, 40, "Inv", (80, 80, 100), (120, 120, 140), create_button_callback("Inventory"))
 buttons.append(inventory_button)
 
-# Guide button
-GUIDE_BUTTON_X = INV_BUTTON_X - 50
-GUIDE_BUTTON_Y = 12
+pet_button = Main_button(PET_BUTTON_X, PET_BUTTON_Y, 40, 40, "Pet", (80, 80, 100), (120, 120, 140), create_button_callback("Pet"))
+buttons.append(pet_button)
+
 guide_button = Main_button(GUIDE_BUTTON_X, GUIDE_BUTTON_Y, 40, 40, "?", (80, 80, 100), (120, 120, 140), guide_callback)
 buttons.append(guide_button)
 
-# Pet button
-PET_BUTTON_X = GUIDE_BUTTON_X - 50
-PET_BUTTON_Y = 12
-pet_button = Main_button(PET_BUTTON_X, PET_BUTTON_Y, 40, 40, "Pet", (80, 80, 100), (120, 120, 140), create_button_callback("Pet"))
-buttons.append(pet_button)
-# ===============================
+panel_manager.buttons = buttons

@@ -15,7 +15,7 @@ import Gear_System
 WINDOW_WIDTH = 1300
 WINDOW_HEIGHT = 750
 
-LEFT_WIDTH = 300        # Nothing much happens here, will add on in future
+LEFT_WIDTH = 300        # Stats section
 MIDDLE_WIDTH = 550      # Monster UI section
 RIGHT_WIDTH = WINDOW_WIDTH - LEFT_WIDTH - MIDDLE_WIDTH  # 450px, PLayer interaction section (Shop, Inventory, etc.)
 
@@ -87,7 +87,7 @@ auto_save_interval = 5
 # ========== PET ATTACK INTERVAL TIMER ==========
 PET_ATTACK_INTERVAL = 1.0  # Attck every 1 second
 last_pet_attack_time = time.time()
-# ====================================
+# ===============================================
 
 # Set data that will be restore
 Button_System.panel_manager.pending_inventory = saved_inventory if saved_inventory else []
@@ -98,6 +98,24 @@ Button_System.panel_manager.pending_money = Currency_System.pocket_money
 data_restored = False   # Shows data restore state
 
 damage_texts = []
+
+def on_prestige_reset():
+    """Reset or clear every system when prestige"""
+    if Button_System.panel_manager.shop_system:
+        Button_System.panel_manager.shop_system.reset_shop()
+        print("[PRESTIGE] Shop restocked.")
+    
+    if Button_System.panel_manager.inventory_system:
+        Button_System.panel_manager.inventory_system.reset_inventory()
+        print("[PRESTIGE] Inventory cleared.")
+    
+    if Button_System.panel_manager.pet_system:
+        Button_System.panel_manager.pet_system.reset_on_prestige()
+        print("[PRESTIGE] Pets unequipped.")
+    
+    damage_texts.clear()
+
+Currency_System.register_prestige_callback(on_prestige_reset)
 
 while IsRunning:
     for event in pg.event.get():
@@ -278,7 +296,7 @@ while IsRunning:
     # ========== Draw partition lines ==========
     pg.draw.line(window, (0, 0, 0), (MIDDLE_AREA_X, 0), (MIDDLE_AREA_X, WINDOW_HEIGHT), 3)
     pg.draw.line(window, (0, 0, 0), (RIGHT_AREA_X, 0), (RIGHT_AREA_X, WINDOW_HEIGHT), 3)
-    # =====================================
+    # ==========================================
     
     # ========== Draw top UI (swap positions: Monster counter on top, Stage on bottom) ==========
     font_counter = pg.font.SysFont(None, 36)
@@ -291,7 +309,7 @@ while IsRunning:
     stage_surface = font_stage.render(f"Stage {monster_manager.stage}", True, (0, 0, 0))
     stage_rect = stage_surface.get_rect(center=(MIDDLE_CENTER_X, 70))
     window.blit(stage_surface, stage_rect)
-    # =====================================================
+    # ============================================================================================
     
     current_monster.draw(window)
 
@@ -318,9 +336,19 @@ while IsRunning:
             name_text = font_pet.render(pet.name, True, (0, 0, 0))
             name_rect = name_text.get_rect(center=(pet_rect.centerx, pet_rect.centery))
             window.blit(name_text, name_rect)   
-    # ============================================
+    # ====================================================
 
     Currency_System.draw_ui(window)
+    # ========== List pet were equipped on the left side area ==========
+    if Button_System.panel_manager.pet_system:
+        equipped_pets = Button_System.panel_manager.pet_system.get_equipped_pets()
+        font_left = pg.font.SysFont(None, 20)
+        y = 150
+        for pet in equipped_pets:
+            pet_text = font_left.render(f"Equipped: {pet.name}", True, (80, 80, 80))
+            window.blit(pet_text, (10, y))
+            y += 25
+    # ==================================================================
 
     # Draw damage texts
     for dt in damage_texts:

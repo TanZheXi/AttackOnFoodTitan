@@ -5,12 +5,13 @@ pg.init()
 pg.font.init()
 
 class ShopItem:
-    def __init__(self, name, price, rarity, description, icon_color):
+    def __init__(self, name, price, rarity, description, icon_color, category):
         self.name = name
         self.price = price
         self.rarity = rarity
         self.description = description
         self.icon_color = icon_color
+        self.category = category
         self.sold_out = False
 
     def get_rarity_color(self):
@@ -19,75 +20,145 @@ class ShopItem:
             "Uncommon": (100, 255, 100),
             "Rare": (100, 150, 255),
             "Epic": (170, 100, 255),
-            "Legendary": (255, 150, 50)
+            "Legendary": (255, 150, 50),
+            "Mythic": (255, 100, 100)
         }
         return rarity_colors.get(self.rarity, (200, 200, 200))
+
+
+class CategoryButton:
+    def __init__(self, rect, text, category_id):
+        self.rect = rect
+        self.text = text
+        self.category_id = category_id
+        self.is_selected = False
+        self.font = pg.font.SysFont(None, 14)
+
+    def draw(self, screen):
+        color = (100, 100, 150) if self.is_selected else (60, 60, 80)
+        pg.draw.rect(screen, color, self.rect)
+        pg.draw.rect(screen, (200, 200, 200), self.rect, 1)
+        text_surf = self.font.render(self.text, True, (255, 255, 255))
+        text_rect = text_surf.get_rect(center=self.rect.center)
+        screen.blit(text_surf, text_rect)
 
 
 class ShopSystem:
     def __init__(self, x, y, width, height):
         self.rect = pg.Rect(x, y, width, height)
         self.font_small = pg.font.SysFont(None, 14)
-        self.font_medium = pg.font.SysFont(None, 18)
-        self.font_large = pg.font.SysFont(None, 22)
-        
-        # Rectagle of Description Panel (Set by Button_System)
-        self.desc_panel_rect = None
+        self.font_medium = pg.font.SysFont(None, 20)
+        self.font_large = pg.font.SysFont(None, 24)
 
-        # 9 items for 3x3 grid (Creating a 3x3 boxes storing goods that the Shop will sells)
-        self.items = [
-            ShopItem("Apple", 80, "Uncommon", "A crisp red apple. Keeps the doctor away!", (180, 180, 220)),
-            ShopItem("Banana", 30, "Common", "A yellow banana. Great source of potassium.", (220, 120, 120)),
-            ShopItem("Carrot", 120, "Rare", "A crunchy carrot. Good for your eyesight.", (150, 150, 200)),
-            ShopItem("Ur dad belt", 200, "Epic", "Your father's favorite weapon. +50 respect.", (200, 130, 250)),
-            ShopItem("Ur sister's pen", 45, "Common", "Borrowed without permission. Use carefully.", (160, 120, 80)),
-            ShopItem("Ur mom credit card", 300, "Legendary", "Unlimited spending power. Use wisely!", (255, 100, 50)),
-            ShopItem("Wok", 60, "Rare", "A versatile cooking tool. Also works as a shield.", (255, 215, 0)),
-            ShopItem("Fork", 90, "Uncommon", "A three-pronged weapon. For dining and fighting.", (170, 170, 190)),
-            ShopItem("Spon", 150, "Epic", "A hybrid spoon-fork. Very confusing to enemies.", (180, 100, 220)),
+        # All goods
+        self.all_items = [
+            # Weapon Shop (0)
+            ShopItem("Rusty Spatula", 100, "Common", "An old spatula. Better than nothing.", (150, 150, 150), "weapon"),
+            ShopItem("Golden Spatula", 500, "Rare", "A legendary cooking tool. Flip anything!", (255, 215, 0), "weapon"),
+            ShopItem("Chef's Wok", 2000, "Epic", "Master chef's wok. Perfect for stir-frying.", (200, 150, 50), "weapon"),
+            ShopItem("Mythic Pan", 10000, "Mythic", "A pan of legendary power. Sizzles with energy.", (255, 100, 100), "weapon"),
+            ShopItem("OP WEAPON", 999999, "Mythic", "Overpowered weapon! Use with care.", (255, 50, 50), "weapon"),
+            # Gear Shop (1)
+            ShopItem("Master Chef Hat", 1500, "Rare", "Increases cooking skill. Look professional!", (200, 180, 100), "gear"),
+            ShopItem("Titanium Apron", 4000, "Epic", "Heavy-duty protection. Stain resistant.", (150, 150, 200), "gear"),
+            ShopItem("Roasted Garlic Aroma", 5000, "Epic", "Smells amazing! Distracts enemies.", (200, 150, 100), "gear"),
+            ShopItem("Speed Boots", 2000, "Rare", "Increases movement speed. Very comfortable.", (100, 150, 200), "gear"),
+            ShopItem("Magic Ring", 8000, "Legendary", "Boosts all stats. Glows with power.", (255, 200, 100), "gear"),
+            # Pet Shop (2)
+            ShopItem("Baby Slime", 500, "Common", "A cute slime pet. Jiggly and friendly.", (100, 200, 100), "pet"),
+            ShopItem("Fire Spirit", 2000, "Epic", "Burns enemies with passion. Handle with care.", (255, 100, 50), "pet"),
+            ShopItem("Fairy", 5000, "Epic", "Heals owner over time. Very rare indeed.", (200, 150, 255), "pet"),
+            ShopItem("Dragon Whelp", 15000, "Legendary", "A baby dragon. Breathes tiny flames.", (255, 100, 100), "pet"),
+            ShopItem("Phoenix", 30000, "Mythic", "Rises from ashes. Immortal companion.", (255, 100, 50), "pet"),
+            # Scraps Shop (3)
+            ShopItem("Scrap Pack S", 100, "Common", "Contains 10 scraps. For basic crafting.", (200, 200, 200), "scraps"),
+            ShopItem("Scrap Pack M", 500, "Uncommon", "Contains 50 scraps. Better value!", (200, 200, 150), "scraps"),
+            ShopItem("Scrap Pack L", 2000, "Rare", "Contains 250 scraps. Great deal!", (200, 200, 100), "scraps"),
+            ShopItem("Scrap Pack XL", 8000, "Epic", "Contains 1000 scraps. Massive pile!", (200, 180, 80), "scraps"),
+            ShopItem("Scrap Pack XXL", 30000, "Legendary", "Contains 5000 scraps. Mountain of scraps!", (200, 150, 50), "scraps"),
         ]
+
+        self.category_map = {
+            0: "weapon",
+            1: "gear", 
+            2: "pet",
+            3: "scraps"
+        }
+        
+        self.current_category = 0
+        self.items = []
+        self.update_items_by_category()
 
         self.selected_item = None
         self.hovered_index = -1
         self.buy_messages = []
         self.message_timer = 0
 
-        # Grid settings (3x3 grid setting)
-        self.grid_cols = 3
-        self.grid_rows = 3
-        self.cell_size = 65
+        # Catogory buttons
+        self.category_buttons = []
+        self._init_category_buttons()
+
+        # ========== Grid Settings ==========
+        self.grid_cols = 5
+        self.cell_spacing = 6
+        available_width = self.rect.width - 20
+        total_spacing = self.cell_spacing * (self.grid_cols - 1)
+        self.cell_size = (available_width - total_spacing) // self.grid_cols
+        
         self.grid_start_x = self.rect.x + 10
-        self.grid_start_y = self.rect.y + 40
-        self.cell_spacing = 8
+        self.grid_start_y = self.rect.y + 48
+        # ===================================
+
+        self.desc_panel_rect = None
+
+    def _init_category_buttons(self):
+        btn_width = 75
+        btn_height = 28
+        spacing = 8
+        total_width = btn_width * 4 + spacing * 3
+        start_x = self.rect.centerx - total_width // 2
+        y = self.rect.y + 8
+        
+        categories = ["Weapon", "Gear", "Pet", "Scraps"]
+        for i, cat in enumerate(categories):
+            btn_rect = pg.Rect(start_x + i * (btn_width + spacing), y, btn_width, btn_height)
+            btn = CategoryButton(btn_rect, cat, i)
+            btn.is_selected = (i == self.current_category)
+            self.category_buttons.append(btn)
+
+    def set_category(self, category_index):
+        self.current_category = category_index
+        self.update_items_by_category()
+        for btn in self.category_buttons:
+            btn.is_selected = (btn.category_id == self.current_category)
+
+    def update_items_by_category(self):
+        category = self.category_map.get(self.current_category, "weapon")
+        self.items = [item for item in self.all_items if item.category == category]
 
     def set_desc_panel_rect(self, rect):
         self.desc_panel_rect = rect
 
     def restore_shop_state(self, shop_state):
-        """Restore which items were sold out from saved data"""
         if not shop_state:
             return
-    
         for saved_item in shop_state:
             saved_name = saved_item.get("name")
             saved_sold_out = saved_item.get("sold_out", False)
-            
-            for item in self.items:
+            for item in self.all_items:
                 if item.name == saved_name:
                     item.sold_out = saved_sold_out
                     break
-        
-        print(f"[SHOP] Restored shop state. Sold out items: {sum(1 for i in self.items if i.sold_out)}")
+        self.update_items_by_category()
 
     def get_shop_state(self):
-        """Get current shop state for saving"""
-        shop_state = []
-        for item in self.items:
-            shop_state.append({
-                "name": item.name,
-                "sold_out": item.sold_out
-            })
-        return shop_state
+        return [{"name": item.name, "sold_out": item.sold_out} for item in self.all_items]
+
+    def reset_shop(self):
+        for item in self.all_items:
+            item.sold_out = False
+        self.update_items_by_category()
+        print(f"[SHOP] Shop restocked on prestige.")
 
     def update(self):
         if self.message_timer > 0:
@@ -96,11 +167,17 @@ class ShopSystem:
             self.buy_messages = []
 
     def handle_event(self, event, add_to_inventory_callback):
-        # Detect position of mouse hovered, then apply change of color to the button
+        if event.type == pg.MOUSEBUTTONDOWN and event.button == 1:
+            for btn in self.category_buttons:
+                if btn.rect.collidepoint(event.pos):
+                    self.set_category(btn.category_id)
+                    return
+
         if event.type == pg.MOUSEMOTION:
             self.hovered_index = -1
             mouse_pos = event.pos
-            for i in range(self.grid_rows):
+            rows = (len(self.items) + self.grid_cols - 1) // self.grid_cols
+            for i in range(rows):
                 for j in range(self.grid_cols):
                     idx = i * self.grid_cols + j
                     if idx >= len(self.items):
@@ -113,9 +190,10 @@ class ShopSystem:
                         self.selected_item = self.items[idx]
                         break
 
-        # Setting for buying goods
+        # Logics for buying items
         if event.type == pg.MOUSEBUTTONDOWN and event.button == 1:
-            for i in range(self.grid_rows):
+            rows = (len(self.items) + self.grid_cols - 1) // self.grid_cols
+            for i in range(rows):
                 for j in range(self.grid_cols):
                     idx = i * self.grid_cols + j
                     if idx >= len(self.items):
@@ -130,28 +208,24 @@ class ShopSystem:
                                 add_to_inventory_callback(item.name)
                                 Currency_System.pocket_money -= item.price
                                 item.sold_out = True
-                                self.buy_messages.append(f"Purchased {item.name}! -{item.price} Pocket money")
+                                self.buy_messages.append(f"Bought {item.name}!")
                                 self.message_timer = 120
-                                print(f"[SHOP] Purchased {item.name} for {item.price} Pocket money. Remaining: {Currency_System.pocket_money}")
                             else:
-                                self.buy_messages.append(f"Not enough money! Need {item.price}")
+                                self.buy_messages.append(f"Need ${item.price}!")
                                 self.message_timer = 120
-                                print(f"[SHOP] Failed to buy {item.name}: Need {item.price}, have {Currency_System.pocket_money}")
                         break
-        return Currency_System.pocket_money
 
     def draw(self, screen):
-        # Shop background
         pg.draw.rect(screen, (45, 45, 55), self.rect)
         pg.draw.rect(screen, (150, 150, 170), self.rect, 2)
 
-        # Title
-        title = self.font_large.render("SHOP", True, (255, 220, 100))
-        title_rect = title.get_rect(center=(self.rect.centerx, self.rect.y + 20))
-        screen.blit(title, title_rect)
+        # Draw category buttons
+        for btn in self.category_buttons:
+            btn.draw(screen)
 
-        # Draw 3x3 grid
-        for i in range(self.grid_rows):
+        # Draw items in grid
+        rows = (len(self.items) + self.grid_cols - 1) // self.grid_cols
+        for i in range(rows):
             for j in range(self.grid_cols):
                 idx = i * self.grid_cols + j
                 if idx >= len(self.items):
@@ -161,7 +235,6 @@ class ShopSystem:
                 cell_y = self.grid_start_y + i * (self.cell_size + self.cell_spacing)
                 cell_rect = pg.Rect(cell_x, cell_y, self.cell_size, self.cell_size)
 
-                # Determine button color
                 if item.sold_out:
                     color = (60, 60, 70)
                 elif self.hovered_index == idx:
@@ -170,83 +243,37 @@ class ShopSystem:
                     color = item.icon_color
 
                 pg.draw.rect(screen, color, cell_rect)
-                pg.draw.rect(screen, (200, 200, 220), cell_rect, 1)
+                pg.draw.rect(screen, (200, 200, 220), cell_rect, 2)
 
-                # Item name
                 if item.sold_out:
-                    font = self.font_small
-                    text = font.render("SOLD OUT", True, (150, 150, 150))
+                    text = self.font_small.render("SOLD OUT", True, (150, 150, 150))
                     text_rect = text.get_rect(center=cell_rect.center)
                     screen.blit(text, text_rect)
                 else:
-                    font = self.font_small
-                    if len(item.name) > 10:
-                        name_display = item.name[:8] + ".."
-                    else:
-                        name_display = item.name
-                    text = font.render(name_display, True, (255, 255, 255))
-                    text_rect = text.get_rect(center=(cell_rect.centerx, cell_rect.centery - 8))
+                    # Show item name (Only show first 8 chars if too long)
+                    name_display = item.name[:8] + ".." if len(item.name) > 9 else item.name
+                    text = self.font_small.render(name_display, True, (255, 255, 255))
+                    text_rect = text.get_rect(center=(cell_rect.centerx, cell_rect.centery - 10))
                     screen.blit(text, text_rect)
 
-                    if self.hovered_index == idx:
-                        buy_text = self.font_small.render("Buy!", True, (255, 255, 150))
-                        buy_rect = buy_text.get_rect(center=(cell_rect.centerx, cell_rect.centery + 10))
-                        screen.blit(buy_text, buy_rect)
+                    # Show price
+                    if item.price >= 10000:
+                        price_display = f"{item.price//1000}k"
+                    else:
+                        price_display = str(item.price)
+                    price_text = self.font_small.render(f"${price_display}", True, (255, 220, 100))
+                    price_rect = price_text.get_rect(center=(cell_rect.centerx, cell_rect.centery + 12))
+                    screen.blit(price_text, price_rect)
 
-        # Draw message at bottom of shop panel
+        # Print buy messages
         if self.buy_messages and self.message_timer > 0:
             msg = self.buy_messages[-1]
-            msg_surface = self.font_small.render(msg, True, (255, 255, 150))
+            msg_surface = self.font_medium.render(msg, True, (255, 255, 150))
             msg_rect = msg_surface.get_rect(center=(self.rect.centerx, self.rect.y + self.rect.height - 15))
             screen.blit(msg_surface, msg_rect)
         
-        # ========== Draw Description Panel ==========
-        if self.desc_panel_rect and self.selected_item and self.hovered_index != -1:
-            desc_x = self.desc_panel_rect.x
-            desc_y = self.desc_panel_rect.y
-            desc_w = self.desc_panel_rect.width
-            desc_h = self.desc_panel_rect.height
-            
-            # Description panel background
-            pg.draw.rect(screen, (50, 50, 65), (desc_x, desc_y, desc_w, desc_h))
-            pg.draw.rect(screen, (130, 130, 150), (desc_x, desc_y, desc_w, desc_h), 2)
-            
-            # Top decoration bar
-            top_bar = pg.Rect(desc_x, desc_y, desc_w, 5)
-            pg.draw.rect(screen, (255, 220, 100), top_bar)
-            
-            y_offset = desc_y + 15
-            
-            # Item name
-            name_text = self.font_medium.render(self.selected_item.name, True, (255, 255, 200))
-            name_rect = name_text.get_rect(center=(desc_x + desc_w // 2, y_offset))
-            screen.blit(name_text, name_rect)
-            y_offset += 30
-            
-            # Prices
-            price_text = self.font_small.render(f"Price: {self.selected_item.price}", True, (255, 220, 100))
-            screen.blit(price_text, (desc_x + 12, y_offset))
-            y_offset += 22
-            
-            # Rarity with color
-            rarity_color = self.selected_item.get_rarity_color()
-            rarity_text = self.font_small.render(f"Rarity: {self.selected_item.rarity}", True, rarity_color)
-            screen.blit(rarity_text, (desc_x + 12, y_offset))
-            y_offset += 25
-            
-            # line separator
-            pg.draw.line(screen, (100, 100, 120), (desc_x + 10, y_offset), (desc_x + desc_w - 10, y_offset), 1)
-            y_offset += 12
-            
-            # Description with text wrapping
-            desc_lines = self.wrap_text(self.selected_item.description, self.font_small, desc_w - 25)
-            for line in desc_lines:
-                desc_text = self.font_small.render(line, True, (200, 200, 220))
-                screen.blit(desc_text, (desc_x + 12, y_offset))
-                y_offset += 18
-        
-        elif self.desc_panel_rect:
-            # Show default message when no item is hovered
+        # ========== Description box ==========
+        if self.desc_panel_rect:
             desc_x = self.desc_panel_rect.x
             desc_y = self.desc_panel_rect.y
             desc_w = self.desc_panel_rect.width
@@ -258,18 +285,42 @@ class ShopSystem:
             top_bar = pg.Rect(desc_x, desc_y, desc_w, 5)
             pg.draw.rect(screen, (255, 220, 100), top_bar)
             
-            info_text = self.font_medium.render("Item Info", True, (255, 220, 100))
-            info_rect = info_text.get_rect(center=(desc_x + desc_w // 2, desc_y + 40))
-            screen.blit(info_text, info_rect)
+            y = desc_y + 12
+            title_desc = self.font_medium.render("ITEM DESCRIPTION", True, (255, 220, 100))
+            title_rect = title_desc.get_rect(center=(desc_x + desc_w // 2, y))
+            screen.blit(title_desc, title_rect)
+            y += 30
             
-            hint_text = self.font_small.render("Hover over an item", True, (180, 180, 200))
-            hint_rect = hint_text.get_rect(center=(desc_x + desc_w // 2, desc_y + 80))
-            screen.blit(hint_text, hint_rect)
-            
-            hint_text2 = self.font_small.render("to see details", True, (180, 180, 200))
-            hint_rect2 = hint_text2.get_rect(center=(desc_x + desc_w // 2, desc_y + 105))
-            screen.blit(hint_text2, hint_rect2)
-        # =============================================
+            if self.selected_item and self.hovered_index != -1:
+                name_text = self.font_medium.render(self.selected_item.name, True, (255, 255, 200))
+                screen.blit(name_text, (desc_x + 12, y))
+                y += 25
+                
+                price_text = self.font_small.render(f"Price: ${self.selected_item.price}", True, (255, 220, 100))
+                screen.blit(price_text, (desc_x + 12, y))
+                y += 20
+                
+                rarity_color = self.selected_item.get_rarity_color()
+                rarity_text = self.font_small.render(f"Rarity: {self.selected_item.rarity}", True, rarity_color)
+                screen.blit(rarity_text, (desc_x + 12, y))
+                y += 20
+                
+                pg.draw.line(screen, (100, 100, 120), (desc_x + 12, y), (desc_x + desc_w - 12, y), 1)
+                y += 10
+                
+                desc_lines = self.wrap_text(self.selected_item.description, self.font_small, desc_w - 24)
+                for line in desc_lines:
+                    desc_text = self.font_small.render(line, True, (180, 180, 200))
+                    screen.blit(desc_text, (desc_x + 12, y))
+                    y += 16
+            else:
+                hint_text1 = self.font_small.render("Hover over an item", True, (150, 150, 170))
+                hint_rect1 = hint_text1.get_rect(center=(desc_x + desc_w // 2, y + 15))
+                screen.blit(hint_text1, hint_rect1)
+                
+                hint_text2 = self.font_small.render("to see details", True, (150, 150, 170))
+                hint_rect2 = hint_text2.get_rect(center=(desc_x + desc_w // 2, y + 35))
+                screen.blit(hint_text2, hint_rect2)
 
     def wrap_text(self, text, font, max_width):
         words = text.split(' ')
