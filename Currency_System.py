@@ -21,6 +21,20 @@ scrap_font = pg.font.SysFont(None, 36)
 
 MIDDLE_CENTER_X = 575
 
+# --- NEW: LOAD AND SCALE THE COIN ICON ---
+try:
+    # Load the image
+
+    raw_coin_image = pg.image.load("Icon/pocket_money.png")
+    # Scale it down to a nice 40x40 pixel UI icon
+    coin_icon = pg.transform.scale(raw_coin_image, (40, 40))
+except Exception as e:
+    print(f"[UI WARN] Could not load pocket_money.png: {e}")
+    coin_icon = None
+# -----------------------------------------
+
+MIDDLE_CENTER_X = 575
+
 def spend_money(amount):
     global pocket_money
     if pocket_money >= amount:
@@ -65,29 +79,55 @@ def update_economy(monster_hp, progression_index):
     pocket_money += money_earned
 
 def format_money(amount):
-    if amount >= 1_000_000_000_000:
-        return f"${amount / 1_000_000_000_000:.2f}Trillion"
-    elif amount >= 1_000_000_000:
-        return f"${amount / 1_000_000_000:.2f}Billion"
-    elif amount >= 1_000_000:
-        return f"${amount / 1_000_000:.2f}Million"
-    elif amount >= 1_000:
-        return f"${amount / 1_000:.2f}Thousand"
-    else:
+    # 1. Less than 1,000 stays normal
+    if amount < 1000:
         return f"${int(amount)}"
+
+    # You can add as many as you want here manually. It's super easy to read.
+    suffixes = [
+        "", "K", "M", "B", "T", "Qa", "Qi",   # The Classics     
+    ]
+    
+    magnitude = 0
+    temp_amount = float(amount)
+
+    # 3. Keep dividing by 1000 as long as we haven't run out of suffixes in our list
+    while temp_amount >= 1000 and magnitude < len(suffixes) - 1:
+        magnitude += 1
+        temp_amount /= 1000.0
+
+    # We switch them to scientific notation so the game doesn't crash.
+    if temp_amount >= 1000 and magnitude == len(suffixes) - 1:
+        return f"${float(amount):.2e}"
+
+    # 5. Return the formatted number
+    return f"${temp_amount:.2f}{suffixes[magnitude]}"
         
 def draw_ui(window):
-    global michelin_stars
+    # 1. Render the text
+    money_text = ui_font.render(f"{format_money(pocket_money)}", True, (34, 139, 34))
     
-    money_text = ui_font.render(f"Pocket Money: {format_money(pocket_money)}", True, (34, 139, 34))
-    money_rect = money_text.get_rect(center=(MIDDLE_CENTER_X, 160))
-    window.blit(money_text, money_rect)
+    # 2. Check if the image loaded successfully
+    if coin_icon:
+        # Calculate the total width of the icon + 10 pixels spacing + the text
+        total_width = coin_icon.get_width() + 10 + money_text.get_width()
+        
+        # Figure out where to start drawing so the whole group is perfectly centered
+        start_x = MIDDLE_CENTER_X - (total_width // 2)
+        
+        # Draw the coin on the left
+        coin_rect = coin_icon.get_rect(midleft=(start_x, 160))
+        window.blit(coin_icon, coin_rect)
+        
+        # Draw the text right next to it
+        money_rect = money_text.get_rect(midleft=(coin_rect.right + 10, 160))
+        window.blit(money_text, money_rect)
+        
+    else:
+        # Fallback just in case the image goes missing
+        money_rect = money_text.get_rect(center=(MIDDLE_CENTER_X, 160))
+        window.blit(money_text, money_rect)
 
-    if michelin_stars > 0:
-        multiplier_display = get_prestige_multiplier()
-        stars_text = scrap_font.render(f"Michelin Stars: {michelin_stars} (x{multiplier_display:.1f} DMG)", True, (255, 215, 0))
-        stars_rect = stars_text.get_rect(center=(MIDDLE_CENTER_X, 200))
-        window.blit(stars_text, stars_rect)
 
 # Prestige System
 michelin_stars = 0 

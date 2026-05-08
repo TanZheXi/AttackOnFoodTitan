@@ -32,6 +32,7 @@ Currency_System.MIDDLE_CENTER_X = MIDDLE_CENTER_X
 # =================================================================
 
 pg.init()
+pg.mixer.init()  
 window = pg.display.set_mode((WINDOW_WIDTH, WINDOW_HEIGHT)) 
 pg.display.set_caption("Attack On Food Titan") 
 
@@ -200,6 +201,8 @@ while IsRunning:
                     # Prevent monster from spawning at random position by setting it to the middle area center
                     current_monster.rect.x = MIDDLE_CENTER_X - MONSTER_SIZE // 2
                     current_monster.rect.y = 275
+
+        Button_System.panel_manager.monster_manager = monster_manager
 
         Button_System.panel_manager.handle_event(event)
         for button in Button_System.buttons:
