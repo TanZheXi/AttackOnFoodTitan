@@ -151,6 +151,13 @@ class PanelManager:
         self.active_panel = None
         self.buttons = []
         
+        try:
+            self.prestige_sound = pg.mixer.Sound("Sound_Effects/prestige_sfx2.wav") 
+            self.prestige_sound.set_volume(1.0) #Speaker Volume
+        except FileNotFoundError:
+            print("[AUDIO WARN] prestige_sfx2.wav not found. Running without sound.")
+            self.prestige_sound = None
+
         RIGHT_AREA_X = 850
         RIGHT_AREA_WIDTH = 450
         RIGHT_AREA_HEIGHT = screen_height
@@ -256,12 +263,34 @@ class PanelManager:
         elif self.active_panel == "Pet" and self.pet_system:
             self.pet_system.handle_event(event)
         elif self.active_panel == "Prestige":
+            import Currency_System
+            stars_to_gain = Currency_System.calculate_prestige_rewards(self.current_stage)
             if event.type == pg.MOUSEBUTTONDOWN and event.button == 1:
                 if hasattr(self, 'prestige_btn_rect') and self.prestige_btn_rect.collidepoint(event.pos):
-                    stars_to_gain = Currency_System.calculate_prestige_rewards(self.current_stage)
                     if stars_to_gain > 0:
-                        self.wants_to_prestige = True
-            return
+
+                        # 1. Check if we haven't clicked it yet (ARE YOU SURE?)
+                        if getattr(self, 'confirm_prestige', False) == False:
+                            self.confirm_prestige = True  
+                            
+                        # 2. They clicked it twice. TRIGGER PRESTIGE AND SOUND!
+                        else:
+                            if Currency_System.trigger_prestige(self.monster_manager):
+                                print("Prestige Successful!")
+                                
+                                # --- PLAY THE SOUND HERE ---
+                                if hasattr(self, 'prestige_sound') and self.prestige_sound:
+                                    self.prestige_sound.play()
+                                # ---------------------------
+                                
+                                self.active_panel = None       # Close panel
+                                self.confirm_prestige = False  # Reset the flag
+            
+            # If they click anywhere else on the screen, cancel the confirmation
+            elif event.type == pg.MOUSEBUTTONDOWN:
+                self.confirm_prestige = False
+                
+            return # Block the click from hitting the monster! 
 
     def add_to_inventory(self, item_name):
         if self.pet_system is None:
@@ -367,42 +396,95 @@ class PanelManager:
             elif self.active_panel == "Prestige":
                 self._draw_prestige_panel(screen)
 
+#Prestige Panel (Chen Lik Shen)
     def _draw_prestige_panel(self, screen):
+        import Currency_System # Ensure we have access to the variables
+        
         stars_to_gain = Currency_System.calculate_prestige_rewards(self.current_stage)
         new_start = Currency_System.get_advanced_start(self.current_stage)
         
-        # Middle the information text
-        y_offset = self.panel_rect.y + 100
-        font_large = pg.font.SysFont(None, 32, bold=True)
-        font_med = pg.font.SysFont(None, 24)
+        # Fetch current stars and multiplier
+        current_stars = Currency_System.michelin_stars
+        current_mult = Currency_System.get_prestige_multiplier()
         
-        warn_text = font_med.render("Money resets to $0. Gear and Pets are KEPT.", True, (200, 100, 100))
+        # --- 1. The Retro Pixel Background ---
+        pg.draw.rect(screen, (20, 20, 40), self.panel_rect)
+        pg.draw.rect(screen, (0, 0, 0), self.panel_rect, 6) 
+        pg.draw.rect(screen, (200, 200, 200), self.panel_rect.inflate(-12, -12), 4)
+
+        font_title = pg.font.SysFont("courier", 42, bold=True)
+        font_med = pg.font.SysFont("courier", 24, bold=True)
+        font_small = pg.font.SysFont("courier", 18, bold=True)
+        
+        y_offset = self.panel_rect.y + 40
+        
+        # --- 2. Title, Warning, & CURRENT STATS ---
+        title_text = font_title.render("- PRESTIGE -", False, (255, 255, 0))
+        screen.blit(title_text, title_text.get_rect(center=(self.panel_rect.centerx, y_offset)))
+        
+        y_offset += 35
+        warn_text = font_small.render("WARNING: MONEY RESETS. GEAR KEPT.", False, (255, 50, 50))
         screen.blit(warn_text, warn_text.get_rect(center=(self.panel_rect.centerx, y_offset)))
         
-        y_offset += 60
-        gain_text = font_large.render(f"Michelin Stars to Gain: +{stars_to_gain}", True, (255, 215, 0))
-        screen.blit(gain_text, gain_text.get_rect(center=(self.panel_rect.centerx, y_offset)))
+        # NEW: Display Current Buffs here!
+        y_offset += 25
+        if current_stars > 0:
+            buff_text = font_small.render(f"CURRENT BUFF: {current_stars} STARS (x{current_mult:.1f} DMG)", False, (255, 215, 0))
+            screen.blit(buff_text, buff_text.get_rect(center=(self.panel_rect.centerx, y_offset)))
         
-        y_offset += 50
-        start_text = font_med.render(f"Advanced Start: Stage {new_start}", True, (150, 200, 255))
-        screen.blit(start_text, start_text.get_rect(center=(self.panel_rect.centerx, y_offset)))
+        # --- 3. The Reward "Screen" (Inner Box) ---
+        y_offset += 25
+        inner_screen_rect = pg.Rect(self.panel_rect.x + 40, y_offset, self.panel_rect.width - 80, 110)
+        pg.draw.rect(screen, (10, 10, 20), inner_screen_rect) 
+        pg.draw.rect(screen, (100, 255, 100), inner_screen_rect, 2) 
         
-        self.prestige_btn_rect = pg.Rect(self.panel_rect.centerx - 100, self.panel_rect.bottom - 120, 200, 60)
+        gain_text = font_med.render(f"STARS TO GAIN: +{stars_to_gain}", False, (255, 255, 255))
+        screen.blit(gain_text, gain_text.get_rect(center=(self.panel_rect.centerx, y_offset + 35)))
+        
+        start_text = font_med.render(f"NEXT START: LVL {new_start}", False, (100, 255, 255))
+        screen.blit(start_text, start_text.get_rect(center=(self.panel_rect.centerx, y_offset + 75)))
+        
+        # --- 4. The Pixel "Progress Bar" Text ---
+        tracker_y = inner_screen_rect.bottom + 25
+        if self.current_stage < 10:
+            stages_needed = 10 - self.current_stage
+            # OLD: ">> CLEAR {stages_needed} MORE STAGES TO UNLOCK <<"
+            # NEW: Shorter, punchier text
+            tracker_text = font_small.render(f">> {stages_needed} STAGES TO UNLOCK <<", False, (150, 150, 150))
+        else:
+            stages_needed = 5 - ((self.current_stage - 10) % 5)
+            # OLD: ">> CLEAR {stages_needed} MORE STAGES FOR EXTRA STAR <<"
+            # NEW: Shorter, punchier text
+            tracker_text = font_small.render(f">> {stages_needed} STAGES TO NEXT STAR <<", False, (100, 255, 100))
+            
+        screen.blit(tracker_text, tracker_text.get_rect(center=(self.panel_rect.centerx, tracker_y)))
+        
+        # --- 5. The Chunky Arcade Button ---
+        self.prestige_btn_rect = pg.Rect(self.panel_rect.centerx - 120, self.panel_rect.bottom - 80, 240, 50)
         
         if stars_to_gain > 0:
-            btn_color = (200, 150, 0) if self.prestige_btn_rect.collidepoint(pg.mouse.get_pos()) else (150, 100, 0)
-            btn_text = "CONFIRM PRESTIGE"
+            if getattr(self, 'confirm_prestige', False) == True:
+                btn_color = (255, 100, 0)
+                btn_text = "[ ARE YOU SURE? ]"
+                text_color = (255, 255, 255)
+            else:
+                btn_color = (255, 0, 0) if self.prestige_btn_rect.collidepoint(pg.mouse.get_pos()) else (180, 0, 0)
+                btn_text = "[ CONFIRM ]"
+                text_color = (255, 255, 255)
         else:
-            btn_color = (100, 100, 100)
-            btn_text = "REACH STAGE 10"
+            btn_color = (40, 40, 40)
+            btn_text = "[ LOCKED ]"
+            text_color = (100, 100, 100)
+            self.confirm_prestige = False
             
-        pg.draw.rect(screen, btn_color, self.prestige_btn_rect)
-        pg.draw.rect(screen, (255, 255, 255), self.prestige_btn_rect, 2)
+        shadow_rect = self.prestige_btn_rect.copy()
+        shadow_rect.y += 6
+        pg.draw.rect(screen, (0, 0, 0), shadow_rect) 
+        pg.draw.rect(screen, btn_color, self.prestige_btn_rect) 
+        pg.draw.rect(screen, (255, 255, 255), self.prestige_btn_rect, 2) 
         
-        lbl = font_large.render(btn_text, True, (255, 255, 255))
-        lbl_rect = lbl.get_rect(center=self.prestige_btn_rect.center)
-        screen.blit(lbl, lbl_rect)
-
+        lbl = font_med.render(btn_text, False, text_color)
+        screen.blit(lbl, lbl.get_rect(center=self.prestige_btn_rect.center))
 
 panel_manager = PanelManager(1300, 750)
 
