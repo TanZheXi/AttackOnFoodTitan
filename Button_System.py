@@ -263,7 +263,6 @@ class PanelManager:
         elif self.active_panel == "Pet" and self.pet_system:
             self.pet_system.handle_event(event)
         elif self.active_panel == "Prestige":
-            import Currency_System
             stars_to_gain = Currency_System.calculate_prestige_rewards(self.current_stage)
             if event.type == pg.MOUSEBUTTONDOWN and event.button == 1:
                 if hasattr(self, 'prestige_btn_rect') and self.prestige_btn_rect.collidepoint(event.pos):
