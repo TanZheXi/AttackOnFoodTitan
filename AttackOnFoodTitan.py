@@ -165,11 +165,13 @@ while IsRunning:
                     print("[DEV WARNING] Prestige failed. Are you at least Stage 10?")
 
         elif event.type == pg.MOUSEBUTTONDOWN:
+          if event.button == 1:
             if current_monster.rect.collidepoint(event.pos):
                 
                 # --- MERGED DAMAGE CALCULATION ---
                 # 1. Base damage
-                base_damage = Click_Damage_Feature.damage_per_click 
+                base_damage = getattr(Gear_System, "base_damage", damage_per_click)
+                final_damage, is_critical = calculate_damage(base_damage) 
                 
                 # 2. Gear Multiplier
                 gear_multi = Gear_System.total_damage_multiplier
@@ -363,7 +365,7 @@ while IsRunning:
 
     Button_System.panel_manager.draw(window)
     pg.display.update()
-    clock.tick(60)
+    
 
 pg.quit()
 
