@@ -7,7 +7,7 @@ class Monster:
         self.max_hp = max_hp
         self.hp = max_hp
         self.color = color
-        self.rect = pg.Rect(300, 200, 200, 200)
+        self.rect = pg.Rect(0, 0, 200, 200)
 
     def take_damage(self, dmg):
         self.hp = max(self.hp - dmg, 0)
@@ -25,7 +25,8 @@ class Monster:
         # Text
         font = pg.font.SysFont(None, 30)
         text = font.render(f"{self.name} HP: {self.hp}/{self.max_hp}", True, (0, 0, 0))
-        surface.blit(text, (self.rect.x, self.rect.y - 50))
+        text_rect = text.get_rect(center=(self.rect.centerx, self.rect.y - 35))
+        surface.blit(text, text_rect)
 
 
 class MonsterManager:
@@ -58,17 +59,19 @@ class MonsterManager:
         self.current_monster = self.spawn_monster()
 
     def draw_counter(self, surface):
-        font = pg.font.SysFont(None, 40)
+        font = pg.font.SysFont(None, 36)
         counter_value = (self.progression_index % 10) + 1
         counter_text = font.render(f"Monster {counter_value}/10", True, (0, 0, 0))
-        surface.blit(counter_text, (surface.get_width() - 200, 20))
+        #surface.blit(counter_text, (surface.get_width() - 200, 20))
+        return counter_text
 
     def draw_stage_counter(self, surface):
-        font = pg.font.SysFont(None, 50, bold=True)
+        font = pg.font.SysFont(None, 48, bold=True)
         stage_text = font.render(f"Stage {self.stage}", True, (0, 0, 0))
-        surface_width = surface.get_width()
-        stage_x = (surface_width - stage_text.get_width()) // 2
-        surface.blit(stage_text, (stage_x, 20))
+        #surface_width = surface.get_width()
+        #stage_x = (surface_width - stage_text.get_width()) // 2
+        #surface.blit(stage_text, (stage_x, 20))
+        return stage_text
 
 
 class DamageText:
