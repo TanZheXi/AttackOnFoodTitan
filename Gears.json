@@ -64,9 +64,9 @@
         "slot": "aroma"
     },
     "Player_Data": {
-        "scraps": 100000,
+        "scraps": 2250000,
         "equipped": {
-            "weapon": "OP WEAPON",
+            "weapon": null,
             "hat": null,
             "armor": null,
             "aroma": null

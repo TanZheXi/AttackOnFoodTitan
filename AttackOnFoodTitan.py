@@ -1,6 +1,7 @@
 import pygame as pg
 import time
 import random
+
 import Click_Damage_Feature
 from Click_Damage_Feature import Monster, MonsterManager, DamageText, damage_per_click, calculate_damage
 import Button_System
@@ -164,11 +165,13 @@ while IsRunning:
                     print("[DEV WARNING] Prestige failed. Are you at least Stage 10?")
 
         elif event.type == pg.MOUSEBUTTONDOWN:
+          if event.button == 1:
             if current_monster.rect.collidepoint(event.pos):
                 
                 # --- MERGED DAMAGE CALCULATION ---
                 # 1. Base damage
-                base_damage = Click_Damage_Feature.damage_per_click 
+                base_damage = getattr(Gear_System, "base_damage", damage_per_click)
+                final_damage, is_critical = calculate_damage(base_damage) 
                 
                 # 2. Gear Multiplier
                 gear_multi = Gear_System.total_damage_multiplier
@@ -186,14 +189,14 @@ while IsRunning:
                 current_monster.take_damage(final_damage)
 
                 # Spawn floating damage text
-                popup_x = current_monster.rect.x + random.randint(20, current_monster.rect.width - 40)
-                popup_y = current_monster.rect.y + random.randint(20, current_monster.rect.height - 40)
+                popup_x = current_monster.rect.x + random.randint(20, max(20, current_monster.rect.width - 40))
+                popup_y = current_monster.rect.y + random.randint(20, max(20, current_monster.rect.height - 40))
                 damage_texts.append(DamageText(str(final_damage), (popup_x, popup_y), is_critical=is_critical))
 
                 
                 if current_monster.is_defeated():
-                    # Trigger your economy system
-                    Currency_System.update_economy(current_monster.hp, monster_manager.progression_index)
+                    # FIX: pass current_monster.hp (0 when defeated) so update_economy awards money
+                    Currency_System.update_economy(current_monster.hp, monster_manager.progression_index + 1)
                     
                     # Spawn next monster
                     monster_manager.next_monster()
@@ -362,8 +365,10 @@ while IsRunning:
 
     Button_System.panel_manager.draw(window)
     pg.display.update()
+    
 
 pg.quit()
+
 
 
 #References list

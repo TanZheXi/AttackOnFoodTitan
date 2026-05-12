@@ -3,6 +3,7 @@ from Shop_System import ShopSystem
 from Inventory_System import InventorySystem
 import Currency_System
 from Pet_System import PetSystem
+from Player_Upgrade_System import PlayerUpgradeSystem
 
 pg.init()
 pg.font.init()  
@@ -150,7 +151,8 @@ class PanelManager:
     def __init__(self, screen_width, screen_height):
         self.active_panel = None
         self.buttons = []
-        
+        self.player_upgrade_system = None
+
         try:
             self.prestige_sound = pg.mixer.Sound("Sound_Effects/prestige_sfx2.wav") 
             self.prestige_sound.set_volume(1.0) #Speaker Volume
@@ -241,6 +243,9 @@ class PanelManager:
         if self.guide_system.visible:
             # Allow Guide to handle its own events (like closing or scrolling)
             self.guide_system.handle_event(event)
+
+        elif self.active_panel == "Upgrade" and self.player_upgrade_system:
+            self.player_upgrade_system.handle_event(event)
             
             # Check if any button was clicked while Guide is open
             if event.type == pg.MOUSEBUTTONDOWN and event.button == 1:
@@ -394,6 +399,16 @@ class PanelManager:
                 self.pet_system.draw(screen, self.panel_rect, self.desc_panel_rect)
             elif self.active_panel == "Prestige":
                 self._draw_prestige_panel(screen)
+            
+            # Player Upgrade Panel
+            elif self.active_panel == "Upgrade":
+              if self.player_upgrade_system is None:
+                upgrade_x = self.panel_rect.x + 10
+                upgrade_y = self.panel_rect.y + 60
+                upgrade_width = self.panel_rect.width - 20
+                upgrade_height = self.panel_rect.height - 90
+                self.player_upgrade_system = PlayerUpgradeSystem(upgrade_x, upgrade_y, upgrade_width, upgrade_height)
+              self.player_upgrade_system.draw(screen)
 
 #Prestige Panel (Chen Lik Shen)
     def _draw_prestige_panel(self, screen):
