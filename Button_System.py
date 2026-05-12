@@ -38,6 +38,7 @@ class Main_button:
         text_rect = text_surf.get_rect(center=self.rect.center)
         screen.blit(text_surf, text_rect)
 
+
 class GuideSystem:
     def __init__(self, x, y, width, height):
         self.rect = pg.Rect(x, y, width, height)
@@ -72,7 +73,11 @@ class GuideSystem:
             "",
             "[PRESTIGE]",
             "Reach Stage 10 to Prestige",
-            "Earn Michelin Stars for permanent DMG boost"
+            "Earn Michelin Stars for permanent DMG boost",
+            "",
+            "[UPGRADE]",
+            "Increase base damage permanently",
+            "Cost increases with each upgrade"
         ]
 
     def toggle(self):
@@ -147,6 +152,7 @@ class GuideSystem:
         
         return False
 
+
 class PanelManager:
     def __init__(self, screen_width, screen_height):
         self.active_panel = None
@@ -155,7 +161,7 @@ class PanelManager:
 
         try:
             self.prestige_sound = pg.mixer.Sound("Sound_Effects/prestige_sfx2.wav") 
-            self.prestige_sound.set_volume(1.0) #Speaker Volume
+            self.prestige_sound.set_volume(1.0)
         except FileNotFoundError:
             print("[AUDIO WARN] prestige_sfx2.wav not found. Running without sound.")
             self.prestige_sound = None
@@ -164,8 +170,8 @@ class PanelManager:
         RIGHT_AREA_WIDTH = 450
         RIGHT_AREA_HEIGHT = screen_height
         
-        panel_width = RIGHT_AREA_WIDTH - 20  # 430px
-        panel_height = RIGHT_AREA_HEIGHT - 40  # 710px
+        panel_width = RIGHT_AREA_WIDTH - 20
+        panel_height = RIGHT_AREA_HEIGHT - 40
         panel_x = RIGHT_AREA_X + 10
         panel_y = 20
         
@@ -173,7 +179,6 @@ class PanelManager:
         self.panel_color = (50, 50, 50, 220)
         self.border_color = (200, 200, 200)
         
-        # Description panel (at the bottom of the panel, for Shop/Inventory)
         desc_panel_height = 150
         desc_panel_y = panel_y + panel_height - desc_panel_height - 10
         self.desc_panel_rect = pg.Rect(panel_x + 10, desc_panel_y, panel_width - 20, desc_panel_height)
@@ -240,26 +245,24 @@ class PanelManager:
         self.guide_system.toggle()
 
     def handle_event(self, event):
+        # 如果 Guide 面板可见
         if self.guide_system.visible:
-            # Allow Guide to handle its own events (like closing or scrolling)
+            # 让 Guide 面板处理自己的事件（关闭按钮、滚动等）
             self.guide_system.handle_event(event)
-
-        elif self.active_panel == "Upgrade" and self.player_upgrade_system:
-            self.player_upgrade_system.handle_event(event)
             
-            # Check if any button was clicked while Guide is open
+            # 检查是否点击了任何 Main_button（切换面板的按钮）
             if event.type == pg.MOUSEBUTTONDOWN and event.button == 1:
                 for button in self.buttons:
                     if button.rect.collidepoint(event.pos):
-                        # Close the guide and open the corresponding panel
+                        # 关闭 Guide 面板
                         self.guide_system.visible = False
-                        # Execute the button's callback (switch panel)
+                        # 执行按钮的回调（切换面板）
                         if button.callback:
                             button.callback()
                         return
             return
         
-        # Event logic for active panels
+        # 事件逻辑 for active panels (Guide 不可见时)
         if self.active_panel == "Shop" and self.shop_system:
             self.shop_system.handle_event(event, self.add_to_inventory)
             self.global_pocket_money = Currency_System.pocket_money
@@ -267,34 +270,25 @@ class PanelManager:
             self.inventory_system.handle_event(event)
         elif self.active_panel == "Pet" and self.pet_system:
             self.pet_system.handle_event(event)
+        elif self.active_panel == "Upgrade" and self.player_upgrade_system:
+            self.player_upgrade_system.handle_event(event)
         elif self.active_panel == "Prestige":
             stars_to_gain = Currency_System.calculate_prestige_rewards(self.current_stage)
             if event.type == pg.MOUSEBUTTONDOWN and event.button == 1:
                 if hasattr(self, 'prestige_btn_rect') and self.prestige_btn_rect.collidepoint(event.pos):
                     if stars_to_gain > 0:
-
-                        # 1. Check if we haven't clicked it yet (ARE YOU SURE?)
                         if getattr(self, 'confirm_prestige', False) == False:
                             self.confirm_prestige = True  
-                            
-                        # 2. They clicked it twice. TRIGGER PRESTIGE AND SOUND!
                         else:
                             if Currency_System.trigger_prestige(self.monster_manager):
                                 print("Prestige Successful!")
-                                
-                                # --- PLAY THE SOUND HERE ---
                                 if hasattr(self, 'prestige_sound') and self.prestige_sound:
                                     self.prestige_sound.play()
-                                # ---------------------------
-                                
-                                self.active_panel = None       # Close panel
-                                self.confirm_prestige = False  # Reset the flag
-            
-            # If they click anywhere else on the screen, cancel the confirmation
-            elif event.type == pg.MOUSEBUTTONDOWN:
+                                self.active_panel = None
+                                self.confirm_prestige = False
+            if event.type == pg.MOUSEBUTTONDOWN:
                 self.confirm_prestige = False
-                
-            return # Block the click from hitting the monster! 
+            return
 
     def add_to_inventory(self, item_name):
         if self.pet_system is None:
@@ -333,7 +327,7 @@ class PanelManager:
             screen.blit(hint_text, hint_rect)
             
             font_small = pg.font.SysFont(None, 20)
-            hint_text2 = font_small.render("It would shown here", True, (150, 150, 170))
+            hint_text2 = font_small.render("Shop | Inventory | Pet | Prestige | Upgrade", True, (150, 150, 170))
             hint_rect2 = hint_text2.get_rect(center=(850 + 225, 420))
             screen.blit(hint_text2, hint_rect2)
             return
@@ -345,14 +339,13 @@ class PanelManager:
             screen.blit(panel_surface, (self.panel_rect.x, self.panel_rect.y))
             pg.draw.rect(screen, self.border_color, self.panel_rect, 3)
             
-            # ========== Description panel that every panel have except Prestige ==========
+            # 只有非 Prestige 面板才绘制描述栏
             if self.active_panel != "Prestige":
                 desc_surface = pg.Surface((self.desc_panel_rect.width, self.desc_panel_rect.height))
                 desc_surface.set_alpha(self.panel_color[3])
                 desc_surface.fill(self.panel_color[:3])
                 screen.blit(desc_surface, (self.desc_panel_rect.x, self.desc_panel_rect.y))
                 pg.draw.rect(screen, self.border_color, self.desc_panel_rect, 3)
-            # =============================================================================
             
             pg.draw.line(screen, (100, 100, 100), 
                         (self.panel_rect.x, self.panel_rect.y + self.panel_rect.height),
@@ -399,29 +392,23 @@ class PanelManager:
                 self.pet_system.draw(screen, self.panel_rect, self.desc_panel_rect)
             elif self.active_panel == "Prestige":
                 self._draw_prestige_panel(screen)
-            
-            # Player Upgrade Panel
             elif self.active_panel == "Upgrade":
-              if self.player_upgrade_system is None:
-                upgrade_x = self.panel_rect.x + 10
-                upgrade_y = self.panel_rect.y + 60
-                upgrade_width = self.panel_rect.width - 20
-                upgrade_height = self.panel_rect.height - 90
-                self.player_upgrade_system = PlayerUpgradeSystem(upgrade_x, upgrade_y, upgrade_width, upgrade_height)
-              self.player_upgrade_system.draw(screen)
+                if self.player_upgrade_system is None:
+                    upgrade_x = self.panel_rect.x + 10
+                    upgrade_y = self.panel_rect.y + 60
+                    upgrade_width = self.panel_rect.width - 20
+                    upgrade_height = self.panel_rect.height - 90
+                    self.player_upgrade_system = PlayerUpgradeSystem(upgrade_x, upgrade_y, upgrade_width, upgrade_height)
+                self.player_upgrade_system.draw(screen)
 
-#Prestige Panel (Chen Lik Shen)
     def _draw_prestige_panel(self, screen):
-        import Currency_System # Ensure we have access to the variables
-        
+        # 删除 import Currency_System（已在顶部导入）
         stars_to_gain = Currency_System.calculate_prestige_rewards(self.current_stage)
         new_start = Currency_System.get_advanced_start(self.current_stage)
         
-        # Fetch current stars and multiplier
         current_stars = Currency_System.michelin_stars
         current_mult = Currency_System.get_prestige_multiplier()
         
-        # --- 1. The Retro Pixel Background ---
         pg.draw.rect(screen, (20, 20, 40), self.panel_rect)
         pg.draw.rect(screen, (0, 0, 0), self.panel_rect, 6) 
         pg.draw.rect(screen, (200, 200, 200), self.panel_rect.inflate(-12, -12), 4)
@@ -432,7 +419,6 @@ class PanelManager:
         
         y_offset = self.panel_rect.y + 40
         
-        # --- 2. Title, Warning, & CURRENT STATS ---
         title_text = font_title.render("- PRESTIGE -", False, (255, 255, 0))
         screen.blit(title_text, title_text.get_rect(center=(self.panel_rect.centerx, y_offset)))
         
@@ -440,13 +426,12 @@ class PanelManager:
         warn_text = font_small.render("WARNING: MONEY RESETS. GEAR KEPT.", False, (255, 50, 50))
         screen.blit(warn_text, warn_text.get_rect(center=(self.panel_rect.centerx, y_offset)))
         
-        # NEW: Display Current Buffs here!
         y_offset += 25
         if current_stars > 0:
             buff_text = font_small.render(f"CURRENT BUFF: {current_stars} STARS (x{current_mult:.1f} DMG)", False, (255, 215, 0))
             screen.blit(buff_text, buff_text.get_rect(center=(self.panel_rect.centerx, y_offset)))
         
-        # --- 3. The Reward "Screen" (Inner Box) ---
+# --- 3. The Reward "Screen" (Inner Box) ---
         y_offset += 25
         inner_screen_rect = pg.Rect(self.panel_rect.x + 40, y_offset, self.panel_rect.width - 80, 110)
         pg.draw.rect(screen, (10, 10, 20), inner_screen_rect) 
