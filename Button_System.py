@@ -4,6 +4,7 @@ from Inventory_System import InventorySystem
 import Currency_System
 from Pet_System import PetSystem
 from Player_Upgrade_System import PlayerUpgradeSystem
+import Gear_System
 
 pg.init()
 pg.font.init()  
@@ -53,7 +54,7 @@ class GuideSystem:
             "[CONTROLS]",
             "Click on Monster - Deal damage",
             "G Key - Gain OP WEAPON (Test)",
-            "E Key - Equip weapon",
+            "E Key - Equip weapon (hover over item in Inv first)",
             "U Key - Unequip weapon",
             "C Key - Craft Golden Spatula",
             "N Key - Next Stage (Dev)",
@@ -66,6 +67,7 @@ class GuideSystem:
             "[INVENTORY]",
             "Click Inv button to open inventory",
             "Use category tabs to filter items",
+            "HOVER over an item, then press E to equip!",
             "",
             "[PET SYSTEM]",
             "Click Pet button to manage pets",
@@ -245,24 +247,20 @@ class PanelManager:
         self.guide_system.toggle()
 
     def handle_event(self, event):
-        # 如果 Guide 面板可见
+        # if guide panel is open, it takes priority over all other interactions
         if self.guide_system.visible:
-            # 让 Guide 面板处理自己的事件（关闭按钮、滚动等）
             self.guide_system.handle_event(event)
             
-            # 检查是否点击了任何 Main_button（切换面板的按钮）
             if event.type == pg.MOUSEBUTTONDOWN and event.button == 1:
                 for button in self.buttons:
                     if button.rect.collidepoint(event.pos):
-                        # 关闭 Guide 面板
                         self.guide_system.visible = False
-                        # 执行按钮的回调（切换面板）
                         if button.callback:
                             button.callback()
                         return
             return
         
-        # 事件逻辑 for active panels (Guide 不可见时)
+        # event logic for active panels
         if self.active_panel == "Shop" and self.shop_system:
             self.shop_system.handle_event(event, self.add_to_inventory)
             self.global_pocket_money = Currency_System.pocket_money
@@ -291,11 +289,14 @@ class PanelManager:
             return
 
     def add_to_inventory(self, item_name):
+        """Add item to inventory and sync with pet system and gear system"""
+        # Ensure pet_system exists
         if self.pet_system is None:
             self.pet_system = PetSystem()
             if self.pending_pet_data:
                 self.pet_system.restore_save_data(self.pending_pet_data)
         
+        # ensure inventory_system exists
         if self.inventory_system is None:
             inv_x = self.panel_rect.x + 10
             inv_y = self.panel_rect.y + 60
@@ -306,10 +307,25 @@ class PanelManager:
             self.inventory_system.set_category(self.current_inv_category)
             if self.pending_inventory:
                 self.inventory_system.restore_inventory(self.pending_inventory)
+        
+        # Add to inventory
         self.inventory_system.add_item(item_name)
         
+        # Add to Pet_System if the item is pet
         if self.pet_system:
             self.pet_system.add_pet(item_name)
+        
+        # Add to Gear_System if the item is gear
+        if item_name in Gear_System.gear_database:
+            Gear_System.gain_gear(item_name)
+            print(f"[SYNC] Equipment '{item_name}' added to Gear_System")
+
+
+    def get_selected_inventory_item(self):
+        """Get the currently selected item in the inventory"""
+        if self.inventory_system:
+            return self.inventory_system.selected_item
+        return None
 
     def draw(self, screen):
         right_area_rect = pg.Rect(850, 0, 450, 750)
@@ -339,7 +355,6 @@ class PanelManager:
             screen.blit(panel_surface, (self.panel_rect.x, self.panel_rect.y))
             pg.draw.rect(screen, self.border_color, self.panel_rect, 3)
             
-            # 只有非 Prestige 面板才绘制描述栏
             if self.active_panel != "Prestige":
                 desc_surface = pg.Surface((self.desc_panel_rect.width, self.desc_panel_rect.height))
                 desc_surface.set_alpha(self.panel_color[3])
@@ -351,13 +366,11 @@ class PanelManager:
                         (self.panel_rect.x, self.panel_rect.y + self.panel_rect.height),
                         (self.panel_rect.x + self.panel_rect.width, self.panel_rect.y + self.panel_rect.height), 2)
             
-            # Main title
             font = pg.font.SysFont(None, 36)
             title_text = font.render(f"{self.active_panel}", True, (255, 220, 100))
             title_rect = title_text.get_rect(center=(self.panel_rect.centerx, self.panel_rect.y + 25))
             screen.blit(title_text, title_rect)
             
-            # Draw the specific panel content
             if self.active_panel == "Shop":
                 if self.shop_system is None:
                     shop_x = self.panel_rect.x + 10
@@ -402,7 +415,6 @@ class PanelManager:
                 self.player_upgrade_system.draw(screen)
 
     def _draw_prestige_panel(self, screen):
-        # 删除 import Currency_System（已在顶部导入）
         stars_to_gain = Currency_System.calculate_prestige_rewards(self.current_stage)
         new_start = Currency_System.get_advanced_start(self.current_stage)
         
@@ -431,7 +443,6 @@ class PanelManager:
             buff_text = font_small.render(f"CURRENT BUFF: {current_stars} STARS (x{current_mult:.1f} DMG)", False, (255, 215, 0))
             screen.blit(buff_text, buff_text.get_rect(center=(self.panel_rect.centerx, y_offset)))
         
-# --- 3. The Reward "Screen" (Inner Box) ---
         y_offset += 25
         inner_screen_rect = pg.Rect(self.panel_rect.x + 40, y_offset, self.panel_rect.width - 80, 110)
         pg.draw.rect(screen, (10, 10, 20), inner_screen_rect) 
@@ -441,52 +452,31 @@ class PanelManager:
         screen.blit(gain_text, gain_text.get_rect(center=(self.panel_rect.centerx, y_offset + 35)))
         
         start_text = font_med.render(f"NEXT START: LVL {new_start}", False, (100, 255, 255))
-        screen.blit(start_text, start_text.get_rect(center=(self.panel_rect.centerx, y_offset + 75)))
+        screen.blit(start_text, start_text.get_rect(center=(self.panel_rect.centerx, y_offset + 65)))
         
-        # --- 4. The Pixel "Progress Bar" Text ---
-        tracker_y = inner_screen_rect.bottom + 25
-        if self.current_stage < 10:
-            stages_needed = 10 - self.current_stage
-            # OLD: ">> CLEAR {stages_needed} MORE STAGES TO UNLOCK <<"
-            # NEW: Shorter, punchier text
-            tracker_text = font_small.render(f">> {stages_needed} STAGES TO UNLOCK <<", False, (150, 150, 150))
-        else:
-            stages_needed = 5 - ((self.current_stage - 10) % 5)
-            # OLD: ">> CLEAR {stages_needed} MORE STAGES FOR EXTRA STAR <<"
-            # NEW: Shorter, punchier text
-            tracker_text = font_small.render(f">> {stages_needed} STAGES TO NEXT STAR <<", False, (100, 255, 100))
-            
-        screen.blit(tracker_text, tracker_text.get_rect(center=(self.panel_rect.centerx, tracker_y)))
-        
-        # --- 5. The Chunky Arcade Button ---
-        self.prestige_btn_rect = pg.Rect(self.panel_rect.centerx - 120, self.panel_rect.bottom - 80, 240, 50)
-        
-        if stars_to_gain > 0:
-            if getattr(self, 'confirm_prestige', False) == True:
-                btn_color = (255, 100, 0)
-                btn_text = "[ ARE YOU SURE? ]"
-                text_color = (255, 255, 255)
-            else:
-                btn_color = (255, 0, 0) if self.prestige_btn_rect.collidepoint(pg.mouse.get_pos()) else (180, 0, 0)
-                btn_text = "[ CONFIRM ]"
-                text_color = (255, 255, 255)
-        else:
-            btn_color = (40, 40, 40)
-            btn_text = "[ LOCKED ]"
-            text_color = (100, 100, 100)
-            self.confirm_prestige = False
-            
-        shadow_rect = self.prestige_btn_rect.copy()
-        shadow_rect.y += 6
-        pg.draw.rect(screen, (0, 0, 0), shadow_rect) 
-        pg.draw.rect(screen, btn_color, self.prestige_btn_rect) 
-        pg.draw.rect(screen, (255, 255, 255), self.prestige_btn_rect, 2) 
-        
-        lbl = font_med.render(btn_text, False, text_color)
-        screen.blit(lbl, lbl.get_rect(center=self.prestige_btn_rect.center))
+        self.prestige_btn_rect = pg.Rect(self.panel_rect.centerx - 100, self.panel_rect.bottom - 100, 200, 50)
 
+        if stars_to_gain > 0:
+            btn_color = (200, 150, 0) if self.prestige_btn_rect.collidepoint(pg.mouse.get_pos()) else (150, 100, 0)
+            btn_text = "CONFIRM PRESTIGE"
+            if getattr(self, 'confirm_prestige', False):
+                btn_text = "CLICK AGAIN TO CONFIRM!"
+        else:
+            btn_color = (100, 100, 100)
+            btn_text = "REACH STAGE 10"
+                    
+        pg.draw.rect(screen, btn_color, self.prestige_btn_rect)
+        pg.draw.rect(screen, (255, 255, 255), self.prestige_btn_rect, 2)
+                
+        lbl = font_med.render(btn_text, True, (255, 255, 255))
+        lbl_rect = lbl.get_rect(center=self.prestige_btn_rect.center)
+        screen.blit(lbl, lbl_rect)
+
+
+# ========== Panel Manager ==========
 panel_manager = PanelManager(1300, 750)
 
+# ========== Button Callbacks ==========
 def create_button_callback(button_name):
     def callback():
         panel_manager.toggle_panel(button_name)
@@ -495,6 +485,7 @@ def create_button_callback(button_name):
 def guide_callback():
     panel_manager.toggle_guide()
 
+# ========== Button Layout ==========
 MIDDLE_AREA_X = 300
 MIDDLE_WIDTH = 550
 
@@ -507,9 +498,9 @@ GUIDE_BUTTON_X = MIDDLE_AREA_X + 5
 GUIDE_BUTTON_Y = 12
 
 BOTTOM_BUTTON_Y = 680
-button_width = 90
+button_width = 80
 button_height = 40
-spacing = 8
+spacing = 6
 
 total_buttons_width = button_width * 5 + spacing * 4
 start_x = MIDDLE_AREA_X + (MIDDLE_WIDTH - total_buttons_width) // 2

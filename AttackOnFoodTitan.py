@@ -38,7 +38,7 @@ window = pg.display.set_mode((WINDOW_WIDTH, WINDOW_HEIGHT))
 pg.display.set_caption("Attack On Food Titan") 
 
 # Load AFK rewards and saved game data
-afk_earnings, saved_monster_data, saved_money, saved_progression_index, saved_stage, saved_inventory, saved_shop_state, saved_pet_data = AFK_System.afk_system.load_and_calculate_afk_rewards()
+afk_earnings, saved_monster_data, saved_money, saved_progression_index, saved_stage, saved_inventory, saved_shop_state, saved_pet_data, saved_upgrade_level = AFK_System.afk_system.load_and_calculate_afk_rewards()
 
 # Load saved gear data
 Gear_System.load_gear()
@@ -115,6 +115,9 @@ def on_prestige_reset():
         Button_System.panel_manager.pet_system.reset_on_prestige()
         print("[PRESTIGE] Pets unequipped.")
     
+    Gear_System.lose_all_gear()
+    print("[PRESTIGE] Equipment reset")
+
     damage_texts.clear()
 
 Currency_System.register_prestige_callback(on_prestige_reset)
@@ -123,6 +126,11 @@ while IsRunning:
     for event in pg.event.get():
         if event.type == pg.QUIT:
             inventory_state, shop_state, pet_data = Button_System.panel_manager.get_save_data()
+            # Get player upgrade
+            upgrade_level = 0
+            if Button_System.panel_manager.player_upgrade_system:
+                upgrade_level = Button_System.panel_manager.player_upgrade_system.level
+            
             AFK_System.afk_system.save_game_data(
                 pocket_money=Currency_System.pocket_money,
                 monster_hp=current_monster.hp,
@@ -133,22 +141,34 @@ while IsRunning:
                 stage=monster_manager.stage,
                 inventory_items=inventory_state,
                 shop_items_state=shop_state,
-                pet_data=pet_data
+                pet_data=pet_data,
+                upgrade_level=upgrade_level
             )
             IsRunning = False
             break
         elif event.type == pg.KEYDOWN:
             if event.key == pg.K_g:
-                Gear_System.gain_gear("OP WEAPON") 
-            # Press 'E' to wear the item 
+                # Sync between Gear_System and Inventory_System when gaining new gear
+                Gear_System.gain_gear("OP WEAPON")
+                Button_System.panel_manager.add_to_inventory("OP WEAPON")
+                print("[DEBUG] Gained OP WEAPON and added to inventory")
+            # Press 'E' to wear the item (only if it's in inventory and valid gear)
             elif event.key == pg.K_e:
-                Gear_System.equip_gear("OP WEAPON")
+                # Get the currently selected item from Inventory_System which can be done by hover on the item and press 'E'
+                selected_item = Button_System.panel_manager.get_selected_inventory_item()
+                if selected_item and selected_item in Gear_System.gear_database:
+                    Gear_System.equip_gear(selected_item)
+                    print(f"[DEBUG] Equipped {selected_item}")
+                else:
+                    print("[DEBUG] No valid item selected to equip")
             # Press 'U' to unequip weapon
             elif event.key == pg.K_u:
                 Gear_System.unequip_gear("weapon")
-            # Press 'C' to craft the item (Consumes scraps) - Placeholder for crafting system
+            # Press 'C' to craft the item (Consumes scraps)
             elif event.key == pg.K_c:
-                Gear_System.craft_item("Golden Spatula")
+                if Gear_System.craft_item("Golden Spatula"):
+                    Button_System.panel_manager.add_to_inventory("Golden Spatula")
+                    print("[DEBUG] Crafted Golden Spatula and added to inventory")
 
             # --- DEV HACKS FOR TESTING ---
             # Press 'N' to instantly skip to the next stage
@@ -251,6 +271,13 @@ while IsRunning:
             saved_pet_data
         )
         data_restored = True
+    
+    # Load player upgrade level
+    if Button_System.panel_manager.player_upgrade_system and saved_upgrade_level > 0:
+        if Button_System.panel_manager.player_upgrade_system.level == 0:
+            for _ in range(saved_upgrade_level):
+                Button_System.panel_manager.player_upgrade_system.purchase_upgrade()
+            print(f"[LOAD] Restored upgrade level: {saved_upgrade_level}")
 
     # Sync currency
     Button_System.panel_manager.global_pocket_money = Currency_System.pocket_money
@@ -268,6 +295,10 @@ while IsRunning:
     current_time = time.time()
     if current_time - last_auto_save >= auto_save_interval:
         inventory_state, shop_state, pet_data = Button_System.panel_manager.get_save_data()
+        upgrade_level = 0
+        if Button_System.panel_manager.player_upgrade_system:
+            upgrade_level = Button_System.panel_manager.player_upgrade_system.level
+        
         AFK_System.afk_system.save_game_data(
             pocket_money=Currency_System.pocket_money,
             monster_hp=current_monster.hp,
@@ -278,7 +309,8 @@ while IsRunning:
             stage=monster_manager.stage,
             inventory_items=inventory_state,
             shop_items_state=shop_state,
-            pet_data=pet_data
+            pet_data=pet_data,
+            upgrade_level=upgrade_level
         )
         AFK_System.afk_system.update_save_time()
 
@@ -398,6 +430,10 @@ pg.quit()
 #Link: None
 
 #7. Pet system (Pet_System.py)
+#Source code: Deepseek
+#Link: None
+
+#8. Link between Inventory_System and Gears_System
 #Source code: Deepseek
 #Link: None
 
