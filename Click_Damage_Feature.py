@@ -109,9 +109,9 @@ damage_per_click = 1
 crit_chance = 0.05       # 5% chance
 crit_multiplier = 2.0    # double damage on crit
 
-def calculate_damage(base_damage, gear_bonus=0):
+def calculate_damage(base_damage, equipment_bonus=0):
     # Return (final_damage, is_critical) with crit chance applied. 
-    final_damage = base_damage + gear_bonus
+    final_damage = base_damage + equipment_bonus
     is_critical = random.random() < crit_chance
     if is_critical:
         final_damage = int(final_damage * crit_multiplier)

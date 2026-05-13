@@ -1,6 +1,6 @@
 import pygame as pg
 import random 
-import Gear_System
+import Equipment_System
 
 pg.init()
 pg.font.init()

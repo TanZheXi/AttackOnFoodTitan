@@ -32,7 +32,7 @@ class InventorySystem:
         self.current_category = 0
         self.category_map = {
             0: "weapon",
-            1: "gear",
+            1: "equipment",
             2: "scraps"
         }
         
@@ -55,7 +55,7 @@ class InventorySystem:
         start_x = self.rect.centerx - total_width // 2
         y = self.rect.y + 8
         
-        categories = ["Weapon", "Gear", "Scraps"]
+        categories = ["Weapon", "Equipment", "Scraps"]
         for i, cat in enumerate(categories):
             btn_rect = pg.Rect(start_x + i * (btn_width + spacing), y, btn_width, btn_height)
             btn = CategoryButton(btn_rect, cat, i)
@@ -75,20 +75,20 @@ class InventorySystem:
 
     def _get_item_category(self, item_name):
         weapon_items = ["Rusty Spatula", "Golden Spatula", "Chef's Wok", "Mythic Pan", "OP WEAPON"]
-        gear_items = ["Master Chef Hat", "Titanium Apron", "Roasted Garlic Aroma", "Speed Boots", "Magic Ring"]
+        equipment_items = ["Master Chef Hat", "Titanium Apron", "Roasted Garlic Aroma", "Speed Boots", "Magic Ring"]
         scrap_items = ["Scrap Pack S", "Scrap Pack M", "Scrap Pack L", "Scrap Pack XL", "Scrap Pack XXL"]
         pet_items = ["Baby Slime", "Fire Spirit", "Fairy", "Dragon Whelp", "Phoenix"]
         
         if item_name in weapon_items:
             return "weapon"
-        elif item_name in gear_items:
-            return "gear"
+        elif item_name in equipment_items:
+            return "equipment"
         elif item_name in scrap_items:
             return "scraps"
         elif item_name in pet_items:
             return "pet"
         else:
-            return "gear"
+            return "equipment"
 
     def get_filtered_items(self):
         category = self.category_map.get(self.current_category, "weapon")

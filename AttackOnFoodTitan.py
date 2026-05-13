@@ -6,7 +6,7 @@ from Click_Damage_Feature import Monster, MonsterManager, DamageText, damage_per
 import Button_System
 import AFK_System
 import Currency_System
-import Gear_System
+import Equipment_System
 
 
 
@@ -39,8 +39,8 @@ pg.display.set_caption("Attack On Food Titan")
 # Load AFK rewards and saved game data
 afk_earnings, saved_monster_data, saved_money, saved_progression_index, saved_stage, saved_inventory, saved_shop_state, saved_pet_data = AFK_System.afk_system.load_and_calculate_afk_rewards()
 
-# Load saved gear data
-Gear_System.load_gear()
+# Load saved equipment data
+Equipment_System.load_equipment()
 
 # Reload saved money, then sum up with AFK rewards
 if saved_money > 0:
@@ -138,16 +138,16 @@ while IsRunning:
             break
         elif event.type == pg.KEYDOWN:
             if event.key == pg.K_g:
-                Gear_System.gain_gear("OP WEAPON") 
+                Equipment_System.gain_equipment("OP WEAPON") 
             # Press 'E' to wear the item 
             elif event.key == pg.K_e:
-                Gear_System.equip_gear("OP WEAPON")
+                Equipment_System.equip_equipment("OP WEAPON")
             # Press 'U' to unequip weapon
             elif event.key == pg.K_u:
-                Gear_System.unequip_gear("weapon")
+                Equipment_System.unequip_equipment("weapon")
             # Press 'C' to craft the item (Consumes scraps) - Placeholder for crafting system
             elif event.key == pg.K_c:
-                Gear_System.craft_item("Golden Spatula")
+                Equipment_System.craft_item("Golden Spatula")
 
             # --- DEV HACKS FOR TESTING ---
             # Press 'N' to instantly skip to the next stage
@@ -170,8 +170,8 @@ while IsRunning:
                 # 1. Base damage
                 base_damage = Click_Damage_Feature.damage_per_click 
                 
-                # 2. Gear Multiplier
-                gear_multi = Gear_System.total_damage_multiplier
+                # 2. Equipment Multiplier
+                equipment_multi = Equipment_System.total_damage_multiplier
                 
                 # 3. PRESTIGE MULTIPLIER (NEW!)
                 prestige_multi = Currency_System.get_prestige_multiplier()
@@ -180,7 +180,7 @@ while IsRunning:
                 calculated_base, is_critical = calculate_damage(base_damage, 0)
                 
                 # 5. Final God-Tier Math
-                final_damage = int(calculated_base * gear_multi * prestige_multi)
+                final_damage = int(calculated_base * equipment_multi * prestige_multi)
                 
                 # Apply damage
                 current_monster.take_damage(final_damage)
@@ -279,8 +279,8 @@ while IsRunning:
         )
         AFK_System.afk_system.update_save_time()
 
-        # Gear system auto save
-        Gear_System.save_gear()
+        # Equipment system auto save
+        Equipment_System.save_equipment()
 
         last_auto_save = current_time
 
@@ -398,7 +398,7 @@ pg.quit()
 
 ''' Tan Zhe Xi '''
 ## TZX_1. MINIGAME SYSTEM
-## TZX_2. GEAR & DATA DESIGN
+## TZX_2. EQUIPMENT & DATA DESIGN
 ## TZX_3. ABILITY TO CLICK TO DEAL DAMAGE
 #(Handled by Click_Damage_Feature.py)
 ## TZX_4. ADJUSTING STATS ACCORDING TO PRESTIGE LEVELS
@@ -415,7 +415,7 @@ pg.quit()
 ''' Chen Lik Shen '''
 ## CLS_1. GAME UI & SOUND EFFECT
 # (Handled by Currency_System.py)
-## CLS_2. GAIN & LOST OF GEAR & CURRENCY SYSTEM
+## CLS_2. GAIN & LOST OF EQUIPMENT & CURRENCY SYSTEM
 # (Handled by Currency_System.py)
 ## CLS_3. CRAFTING SYSTEM
-## CLS_4. SYSTEM TO ADD NEW GEAR, CHARACTER, AND RECIPES ACCORDING TO EACH PRESTIGE LEVELS
+## CLS_4. SYSTEM TO ADD NEW EQUIPMENT, CHARACTER, AND RECIPES ACCORDING TO EACH PRESTIGE LEVELS

@@ -422,7 +422,7 @@ class PanelManager:
         screen.blit(title_text, title_text.get_rect(center=(self.panel_rect.centerx, y_offset)))
         
         y_offset += 35
-        warn_text = font_small.render("WARNING: MONEY RESETS. GEAR KEPT.", False, (255, 50, 50))
+        warn_text = font_small.render("WARNING: MONEY RESETS. EQUIPMENT KEPT.", False, (255, 50, 50))
         screen.blit(warn_text, warn_text.get_rect(center=(self.panel_rect.centerx, y_offset)))
         
         # NEW: Display Current Buffs here!
