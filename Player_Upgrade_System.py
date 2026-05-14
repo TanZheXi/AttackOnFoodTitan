@@ -1,6 +1,6 @@
 import pygame as pg
 import Currency_System
-import Gear_System
+import Equipment_System
 
 pg.init()
 pg.font.init()
@@ -47,8 +47,8 @@ class PlayerUpgradeSystem:
         self.companion_cost = 100
 
         # init base_damage
-        if not hasattr(Gear_System, "base_damage"):
-            Gear_System.base_damage = 1
+        if not hasattr(Equipment_System, "base_damage"):
+            Equipment_System.base_damage = 1
 
     def _init_category_buttons(self):
         btn_width = 100
@@ -97,16 +97,16 @@ class PlayerUpgradeSystem:
             self.level += 1
 
             # Apply effect: +1 base damage each upgrade
-            Gear_System.base_damage += 1
+            Equipment_System.base_damage += 1
 
             # Milestone: every 50 upgrades multiply damage and spike cost
             if self.level % 50 == 0:
-                Gear_System.base_damage = int(Gear_System.base_damage * 1.2)
+                Equipment_System.base_damage = int(Equipment_System.base_damage * 1.2)
                 self.current_cost = int(self.current_cost * 1.5)
             else:
                 self.current_cost = self.current_cost * self.common_ratio
 
-            print(f"[UPGRADE] Base Damage Lv {self.level} → {Gear_System.base_damage}, Next Cost: {self.get_upgrade_cost()}")
+            print(f"[UPGRADE] Base Damage Lv {self.level} → {Equipment_System.base_damage}, Next Cost: {self.get_upgrade_cost()}")
 
     def draw(self, screen):
         # Panel background
@@ -157,7 +157,7 @@ class PlayerUpgradeSystem:
 
         # Current damage display
         dmg_text = self.font_text.render(
-            f"Current Base Damage: {Gear_System.base_damage}", True, (200, 200, 220)
+            f"Current Base Damage: {Equipment_System.base_damage}", True, (200, 200, 220)
         )
         screen.blit(dmg_text, (self.rect.x + 20, self.rect.y + 170))
 

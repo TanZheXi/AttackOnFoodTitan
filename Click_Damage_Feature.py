@@ -1,6 +1,6 @@
 import pygame as pg
 import random
-import Gear_System
+import Equipment_System
 
 class Monster:
     def __init__(self, name, max_hp, color):
@@ -104,8 +104,8 @@ class DamageText:
 
 
 # Damage System 
-# Use Gear_System.base_damage if available, otherwise fallback
-damage_per_click = getattr(Gear_System, "base_damage", 1)
+# Use Equipment_System.base_damage if available, otherwise fallback
+damage_per_click = getattr(Equipment_System, "base_damage", 1)
 
 # Critical hit settings
 crit_chance = 0.05       # 5% chance
