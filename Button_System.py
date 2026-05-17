@@ -209,12 +209,6 @@ class PanelManager:
         
         self.player_upgrade_system = None
 
-        try:
-            raw_scrap = pg.image.load("Icon/Scrap.png").convert_alpha()
-            self.scrap_icon = pg.transform.scale(raw_scrap, (32, 32)) # Nice large size
-        except:
-            self.scrap_icon = None
-
         # Load prestige sound effect
         try:
             self.prestige_sound = pg.mixer.Sound("Sound_Effects/prestige_sfx2.wav") 
