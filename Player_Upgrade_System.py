@@ -2,6 +2,12 @@ import pygame as pg
 import Currency_System
 import Equipment_System
 
+try:
+    GLOBAL_CLICK = pg.mixer.Sound("Sfx/click.wav")
+    GLOBAL_CLICK.set_volume(0.5)
+except Exception as e:
+    GLOBAL_CLICK = None
+
 pg.init()
 pg.font.init()
 
@@ -75,19 +81,23 @@ class PlayerUpgradeSystem:
         return int(self.current_cost)
 
     def handle_event(self, event):
-        if event.type == pg.MOUSEBUTTONDOWN and event.button == 1:
-            for btn in self.category_buttons:
-                if btn.rect.collidepoint(event.pos):
-                    self.set_category(btn.category_id)
-                    return
-        
+        # (Delete the example loop I gave you with 'upgrade_buttons')
+
         if self.current_category == 0:  # Player upgrade
             if event.type == pg.MOUSEBUTTONDOWN and event.button == 1:
+                # YOUR REAL BUTTON IS HERE:
                 if self.button_rect and self.button_rect.collidepoint(event.pos):
+                    
+                    if GLOBAL_CLICK: GLOBAL_CLICK.play
+                    
                     self.purchase_upgrade()
-        elif self.current_category == 1:  # Companion upgrade (placeholder, for future updates)
+                    
+        elif self.current_category == 1:  # Companion upgrade
             if event.type == pg.MOUSEBUTTONDOWN and event.button == 1:
                 if self.button_rect and self.button_rect.collidepoint(event.pos):
+                    
+                    if GLOBAL_CLICK: GLOBAL_CLICK.play() 
+                    
                     print("[COMPANION] Coming soon! Companion upgrade system is under development.")
 
     def purchase_upgrade(self):

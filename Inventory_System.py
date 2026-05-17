@@ -1,5 +1,11 @@
 import pygame as pg
 
+try:
+    GLOBAL_CLICK = pg.mixer.Sound("Sfx/click.wav")
+    GLOBAL_CLICK.set_volume(0.5)
+except Exception as e:
+    GLOBAL_CLICK = None
+
 pg.init()
 pg.font.init()
 
@@ -112,14 +118,19 @@ class InventorySystem:
 
     def handle_event(self, event):
         if event.type == pg.MOUSEBUTTONDOWN:
-            # Process category button clicks
-            for btn in self.category_buttons:
-                if btn.rect.collidepoint(event.pos):
-                    self.set_category(btn.category_id)
-                    return
             
-            # Scroll inventory with mouse wheel
-            if event.button == 4:
+            # 1. Left Mouse Button (Clicking the Category Tabs)
+            if event.button == 1:
+                for btn in self.category_buttons:
+                    if btn.rect.collidepoint(event.pos):
+                        
+                        if GLOBAL_CLICK: GLOBAL_CLICK.play() # <--- PLAY SOUND!
+                        
+                        self.set_category(btn.category_id)
+                        return
+            
+            # 2. Scroll inventory with mouse wheel (Buttons 4 and 5)
+            elif event.button == 4:
                 self.scroll_offset = max(0, self.scroll_offset - 1)
             elif event.button == 5:
                 items = self.get_filtered_items()
