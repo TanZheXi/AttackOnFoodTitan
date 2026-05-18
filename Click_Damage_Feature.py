@@ -77,27 +77,40 @@ class MonsterManager:
 
 class DamageText:
     def __init__(self, text, pos, is_critical=False):
-        self.text = text
-        self.pos = list(pos)   # [x, y]
+        self.text = str(text)
+        self.x, self.y = float(pos[0]), float(pos[1])
+        self.vy = -80.0                      # pixels per second upward
+        self.alpha = 255
+        self.lifetime_ms = 900               # visible time in ms
+        self.start_ms = pg.time.get_ticks()
+        # Color: black for normal, red for critical
+        self.color = (0, 0, 0) if not is_critical else (220, 40, 40)
+        # Larger font for critical hits
+        self.font = pg.font.SysFont(None, 28 if not is_critical else 36)
         self.is_critical = is_critical
-        # Critical hits: red color, larger font, bold
-        if is_critical:
-            self.color = (255, 0, 0)
-            self.font = pg.font.SysFont(None, 36, bold=True)  # larger font
-        else:
-            self.color = (0, 0, 0)
-            self.font = pg.font.SysFont(None, 28)
-        self.lifetime = 60     # frames (~1 second at 60fps)
 
-    def update(self):
-        self.pos[1] -= 1
-        self.lifetime -= 1
+    def update(self, dt_ms):
+        """Update position and alpha. Return True if expired."""
+        elapsed = pg.time.get_ticks() - self.start_ms
+        if elapsed >= self.lifetime_ms:
+            return True
+
+        # Move upward using dt
+        self.y += self.vy * (dt_ms / 1000.0)
+
+        # Fade out in the last 30% of lifetime
+        fade_start = self.lifetime_ms * 0.7
+        if elapsed > fade_start:
+            fade_ratio = (elapsed - fade_start) / (self.lifetime_ms - fade_start)
+            self.alpha = max(0, int(255 * (1 - fade_ratio)))
+
+        return False
 
     def draw(self, surface):
-        alpha = max(0, int((self.lifetime / 60) * 255))
-        render = self.font.render(self.text, True, self.color)
-        render.set_alpha(alpha)
-        surface.blit(render, self.pos)
+        txt_surf = self.font.render(self.text, True, self.color)
+        txt_surf.set_alpha(self.alpha)
+        rect = txt_surf.get_rect(center=(int(self.x), int(self.y)))
+        surface.blit(txt_surf, rect)
 
     def is_alive(self):
         return self.lifetime > 0
@@ -107,14 +120,28 @@ class DamageText:
 # Use Gear_System.base_damage if available, otherwise fallback
 damage_per_click = getattr(Gear_System, "base_damage", 1)
 
-# Critical hit settings
-crit_chance = 0.05       # 5% chance
-crit_multiplier = 2.0    # double damage on crit
+# Base critical values
+crit_chance = 0.05        # 5% default crit chance
+crit_multiplier = 2.0     # critical hits deal 200% damage
 
-def calculate_damage(base_damage, gear_bonus=0):
-    # Return (final_damage, is_critical) with crit chance applied. 
+def calculate_damage(base_damage, gear_bonus=0, extra_chance=0.0, extra_multi=1.0):
+    '''
+    Calculate final damage with critical hit logic.
+    - base_damage: raw damage before multipliers
+    - gear_bonus: extra flat damage from gear
+    - extra_chance: additional crit chance from abilities
+    - extra_multi: multiplier applied to crit damage from abilities
+    Returns: (final_damage, is_critical)
+    '''
     final_damage = base_damage + gear_bonus
-    is_critical = random.random() < crit_chance
+
+    # Effective crit chance and multiplier
+    effective_chance = crit_chance + extra_chance
+    effective_multi = crit_multiplier * extra_multi
+
+    # Critical check
+    is_critical = random.random() < effective_chance
     if is_critical:
-        final_damage = int(final_damage * crit_multiplier)
+        final_damage = int(final_damage * effective_multi)
+
     return final_damage, is_critical
