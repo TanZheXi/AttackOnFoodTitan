@@ -3,7 +3,7 @@ import time
 import random
 
 import Click_Damage_Feature
-from Click_Damage_Feature import Monster, MonsterManager, DamageText, damage_per_click, calculate_damage
+from Click_Damage_Feature import calculate_damage, DamageText
 import Button_System
 import AFK_System
 import Currency_System
@@ -131,47 +131,75 @@ while IsRunning:
             IsRunning = False
             break
 
+        elif event.type == pg.KEYDOWN:
+            if event.key == pg.K_g:
+                # Sync between Gear_System and Inventory_System when gaining new gear
+                Gear_System.gain_gear("OP WEAPON")
+                Button_System.panel_manager.add_to_inventory("OP WEAPON")
+                print("[DEBUG] Gained OP WEAPON and added to inventory")
+            # Press 'E' to wear the item (only if it's in inventory and valid gear)
+            elif event.key == pg.K_e:
+                # Get the currently selected item from Inventory_System which can be done by hover on the item and press 'E'
+                selected_item = Button_System.panel_manager.get_selected_inventory_item()
+                if selected_item and selected_item in Gear_System.gear_database:
+                    Gear_System.equip_gear(selected_item)
+                    print(f"[DEBUG] Equipped {selected_item}")
+                else:
+                    print("[DEBUG] No valid item selected to equip")
+            # Press 'U' to unequip weapon
+            elif event.key == pg.K_u:
+                Gear_System.unequip_gear("weapon")
+            # Press 'C' to craft the item (Consumes scraps)
+            elif event.key == pg.K_c:
+                if Gear_System.craft_item("Golden Spatula"):
+                    Button_System.panel_manager.add_to_inventory("Golden Spatula")
+                    print("[DEBUG] Crafted Golden Spatula and added to inventory")
+
+            # --- DEV HACKS FOR TESTING ---
+            # Press 'N' to instantly skip to the next stage
+            elif event.key == pg.K_n:
+                monster_manager.stage += 1
+                monster_manager.progression_index = (monster_manager.stage - 1) * 10
+                monster_manager.current_monster = monster_manager.spawn_monster()
+                print(f"[DEV CHEAT] Skipped to Stage {monster_manager.stage}")
+                
+            # Press 'P' to instantly trigger a Prestige
+            elif event.key == pg.K_p:
+                success = Currency_System.trigger_prestige(monster_manager)
+                if not success:
+                    print("[DEV WARNING] Prestige failed. Are you at least Stage 10?")
+
+            # --- Click event handling ---
         elif event.type == pg.MOUSEBUTTONDOWN:
-            if event.button == 1 and current_monster.rect.collidepoint(event.pos):
-                # Base damage
-                base_damage = getattr(Gear_System, "base_damage", damage_per_click)
-                gear_bonus = getattr(Gear_System, "bonus_damage", 0)
+              if event.button == 1 and current_monster.rect.collidepoint(event.pos):
+              # Get crit bonuses
+               extra_chance, extra_multi = crispy_precision.get_crit_bonus()
 
-                # Apply multipliers
-                gear_multi = getattr(Gear_System, "total_damage_multiplier", 1)
-                prestige_multi = Currency_System.get_prestige_multiplier()
-                spicy_multi = damage_boost.get_multiplier()
+               # Calculate damage (gear + upgrades + crit)
+               final_damage, is_critical = calculate_damage(
+               extra_chance=extra_chance,
+               extra_multi=extra_multi
+               )
 
-                # Abilities bonuses
-                spicy_multi = damage_boost.get_multiplier()
-                extra_chance, extra_multi = crispy_precision.get_crit_bonus()
+               # Apply ability multipliers last
+               final_damage *= damage_boost.get_multiplier()
+               final_damage *= Currency_System.get_prestige_multiplier()
 
-                # Calculate damage with crit logic
-                final_damage, is_critical = calculate_damage(
-                    base_damage,
-                    gear_bonus,
-                    extra_chance=extra_chance,
-                    extra_multi=extra_multi
-                )
+               #  Apply damage to monster
+               current_monster.take_damage(final_damage)
 
-                # Apply Spicy Surge multiplier
-                final_damage = int(final_damage * spicy_multi)
+               # Floating text popup
+               popup_x = current_monster.rect.x + random.randint(20, current_monster.rect.width - 40)
+               popup_y = current_monster.rect.y + random.randint(20, current_monster.rect.height - 40)
+               damage_texts.append(DamageText(final_damage, (popup_x, popup_y), is_critical=is_critical))
 
-                # Apply damage
-                current_monster.take_damage(final_damage)
-
-                # Damage popup
-                popup_x = current_monster.rect.x + random.randint(20, max(20, current_monster.rect.width - 40))
-                popup_y = current_monster.rect.y + random.randint(20, max(20, current_monster.rect.height - 40))
-                damage_texts.append(DamageText(str(final_damage), (popup_x, popup_y), is_critical=is_critical))
-
-                # Monster defeat check
-                if current_monster.is_defeated():
-                    Currency_System.update_economy(current_monster.hp, monster_manager.progression_index + 1)
-                    monster_manager.next_monster()
-                    current_monster = monster_manager.current_monster
-                    current_monster.rect.x = MIDDLE_CENTER_X - MONSTER_SIZE // 2
-                    current_monster.rect.y = 275
+               # Monster defeat check
+               if current_monster.is_defeated():
+                Currency_System.update_economy(current_monster.hp, monster_manager.progression_index + 1)
+                monster_manager.next_monster()
+                current_monster = monster_manager.current_monster
+                current_monster.rect.x = MIDDLE_CENTER_X - MONSTER_SIZE // 2
+                current_monster.rect.y = 275
 
         # Ability events
         damage_boost.handle_event(event)
@@ -192,38 +220,38 @@ while IsRunning:
     # Pet auto attack
     current_time = time.time()
     if current_time - last_pet_attack_time >= PET_ATTACK_INTERVAL:
-        pet_system = Button_System.panel_manager.pet_system
-        if pet_system:
-            base_pet_damage = pet_system.get_total_damage()
-            if base_pet_damage > 0 and current_monster.hp > 0:
-                gear_multi = getattr(Gear_System, "total_damage_multiplier", 1)
-                prestige_multi = Currency_System.get_prestige_multiplier()
-                spicy_multi = damage_boost.get_multiplier()
-                extra_chance, extra_multi = crispy_precision.get_crit_bonus()
+       pet_system = Button_System.panel_manager.pet_system
+       if pet_system:
+          base_pet_damage = pet_system.get_total_damage()
+          if base_pet_damage > 0 and current_monster.hp > 0:
+            extra_chance, extra_multi = crispy_precision.get_crit_bonus()
 
-                # Calculate pet damage with crit logic
-                final_pet_damage, is_critical = calculate_damage(
-                    base_pet_damage,
-                    gear_bonus=0,
-                    extra_chance=extra_chance,
-                    extra_multi=extra_multi
-                )
-                final_pet_damage = int(final_pet_damage * gear_multi * prestige_multi * spicy_multi)
+            # ✅ Calculate pet damage (gear + upgrades + crit)
+            final_pet_damage, is_critical = calculate_damage(
+            extra_chance=extra_chance,
+            extra_multi=extra_multi
+            ) 
 
-                current_monster.take_damage(final_pet_damage)
+            # ✅ Apply prestige + ability multipliers last
+            final_pet_damage *= Currency_System.get_prestige_multiplier()
+            final_pet_damage *= damage_boost.get_multiplier()
 
-                popup_x = current_monster.rect.x + random.randint(20, current_monster.rect.width - 40)
-                popup_y = current_monster.rect.y + random.randint(20, current_monster.rect.height - 40)
-                damage_texts.append(DamageText(str(final_pet_damage), (popup_x, popup_y), is_critical=is_critical))
+            # Apply prestige + Spicy Surge last
+            final_pet_damage *= Currency_System.get_prestige_multiplier()
+            final_pet_damage *= damage_boost.get_multiplier()
 
-                if current_monster.is_defeated():
-                    Currency_System.update_economy(current_monster.hp, monster_manager.progression_index)
-                    monster_manager.next_monster()
-                    current_monster = monster_manager.current_monster
-                    current_monster.rect.x = MIDDLE_CENTER_X - MONSTER_SIZE // 2
-                    current_monster.rect.y = 275
+            current_monster.take_damage(final_pet_damage)
 
-        last_pet_attack_time = current_time
+            damage_texts.append(DamageText(final_pet_damage, (popup_x, popup_y), is_critical=is_critical))
+
+            if current_monster.is_defeated():
+                Currency_System.update_economy(current_monster.hp, monster_manager.progression_index)
+                monster_manager.next_monster()
+                current_monster = monster_manager.current_monster
+                current_monster.rect.x = MIDDLE_CENTER_X - MONSTER_SIZE // 2
+                current_monster.rect.y = 275
+
+       last_pet_attack_time = current_time
 
 
     # Update damage texts safely using dt_ms

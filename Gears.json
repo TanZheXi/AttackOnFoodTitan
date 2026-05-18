@@ -1,6 +1,6 @@
 {
     "OP WEAPON": {
-        "owned": false,
+        "owned": true,
         "multiplier": 1000000.0,
         "cost": 999999,
         "scrap_value": 50000,
@@ -8,7 +8,7 @@
         "slot": "weapon"
     },
     "Rusty Spatula": {
-        "owned": false,
+        "owned": true,
         "multiplier": 1.5,
         "cost": 100,
         "scrap_value": 10,
@@ -64,7 +64,7 @@
         "slot": "aroma"
     },
     "Player_Data": {
-        "scraps": 0,
+        "scraps": 250000,
         "equipped": {
             "weapon": null,
             "hat": null,

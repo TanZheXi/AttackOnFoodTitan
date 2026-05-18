@@ -1,12 +1,10 @@
 import json
 import os
 
-# 1. Open the external file and load it into a dictionary
-with open('gears.json', 'r') as file:
-    gear_database = json.load(file)
-
-"""Variables"""
+# --- Player Stats ---
 total_damage_multiplier = 1.0
+base_damage = 1       # default click damage
+bonus_damage = 0      # extra flat damage from gear
 crafting_scraps = 0
 
 # --- The Player's Body ---
@@ -17,62 +15,61 @@ equipped_slots = {
     "aroma": None  
 }
 
-def recalculate_stats():
-    global total_damage_multiplier
-    # Reset back to 1.0 before checking gear
-    total_damage_multiplier = 1.0 
-    
-    for slot_name, item_name in equipped_slots.items():
-        if item_name is not None: 
-            # Multiply the current total by the gear's multiplier
-            total_damage_multiplier *= gear_database[item_name]["multiplier"]
-    print(f"[STATS] Total damage multiplier: {total_damage_multiplier}")
+# Load gear database
+with open('gears.json', 'r') as file:
+    gear_database = json.load(file)
 
+def recalculate_stats():
+    global total_damage_multiplier, base_damage, bonus_damage
+    total_damage_multiplier = 1.0
+    base_damage = 1
+    bonus_damage = 0
+
+    for slot_name, item_name in equipped_slots.items():
+        if item_name is not None:
+            gear = gear_database[item_name]
+
+            # Apply multiplier
+            total_damage_multiplier *= gear.get("multiplier", 1.0)
+
+            # If it's a weapon, set base/bonus damage
+            if gear["slot"] == "weapon":
+                base_damage = float(gear.get("base_damage", base_damage))
+                bonus_damage += float(gear.get("bonus_damage", 0))
+
+    print(f"[STATS] Base Damage: {base_damage}, Bonus Damage: {bonus_damage}, Multiplier: {total_damage_multiplier}")
+
+# --- Gear Management Functions (unchanged except they call recalc) ---
 def gain_gear(item_name):
-    """Call this when a player buys or crafts an item!"""
-    global crafting_scraps 
-    
+    global crafting_scraps
     if item_name in gear_database:
-        
         scrap_reward = gear_database[item_name]["scrap_value"]
-        rarity_tier = gear_database[item_name]["rarity"] 
-        
-        if gear_database[item_name].get("owned", False) == True:
+        rarity_tier = gear_database[item_name]["rarity"]
+        if gear_database[item_name].get("owned", False):
             crafting_scraps += scrap_reward
             print(f"Duplicate [{rarity_tier}] {item_name} found! Smashed into {scrap_reward} Scraps. (Total Scraps: {crafting_scraps})")
             save_gear()
             return True
-            
         else:
-            gear_database[item_name]["owned"] = True 
-            print(f"Loot Acquired: [{rarity_tier}] {item_name}!") 
+            gear_database[item_name]["owned"] = True
+            print(f"Loot Acquired: [{rarity_tier}] {item_name}!")
             recalculate_stats()
             save_gear()
             return True
-            
     return False
 
 def equip_gear(item_name):
-    """Takes an item from the backpack and puts it on the player's body."""
     print(f"[EQUIP] Trying to equip: {item_name}")
-    
-    if item_name in gear_database and gear_database[item_name].get("owned", False) == True:
-        
+    if item_name in gear_database and gear_database[item_name].get("owned", False):
         target_slot = gear_database[item_name]["slot"]
-        
         old_item = equipped_slots[target_slot]
         if old_item is not None:
             print(f"Removed {old_item} from {target_slot} and put it back in backpack.")
-            
         equipped_slots[target_slot] = item_name
         print(f"Equipped [{gear_database[item_name]['rarity']}] {item_name} to {target_slot}!")
-        
         recalculate_stats()
-        save_gear()  # save immediately after equipping
-        print(f"[EQUIP] Saved to JSON - equipped weapon: {equipped_slots['weapon']}")
-        
+        save_gear()
         return True
-        
     else:
         print(f"You cannot equip {item_name} because you don't own it!")
         return False
