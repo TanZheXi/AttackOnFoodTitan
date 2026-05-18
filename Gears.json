@@ -16,7 +16,7 @@
         "slot": "weapon"
     },
     "Golden Spatula": {
-        "owned": true,
+        "owned": false,
         "multiplier": 3.0,
         "cost": 500,
         "scrap_value": 50,
@@ -32,7 +32,7 @@
         "slot": "weapon"
     },
     "Mythic Pan": {
-        "owned": true,
+        "owned": false,
         "multiplier": 20.0,
         "cost": 10000,
         "scrap_value": 1000,
@@ -64,9 +64,9 @@
         "slot": "aroma"
     },
     "Player_Data": {
-        "scraps": 2250000,
+        "scraps": 950000,
         "equipped": {
-            "weapon": null,
+            "weapon": "OP WEAPON",
             "hat": null,
             "armor": null,
             "aroma": null
