@@ -188,21 +188,16 @@ while IsRunning:
           if event.button == 1:
             if current_monster.rect.collidepoint(event.pos):
                 
-                # --- MERGED DAMAGE CALCULATION ---
-                # 1. Base damage
+                # --- FIXED DAMAGE CALCULATION ---
+                # 1. Base damage (gear fallback)
                 base_damage = getattr(Gear_System, "base_damage", damage_per_click)
-                final_damage, is_critical = calculate_damage(base_damage) 
-                
-                # 2. Gear Multiplier
-                gear_multi = Gear_System.total_damage_multiplier
-                
-                # 3. PRESTIGE MULTIPLIER (NEW!)
+
+                # 2. Critical roll (only once)
+                calculated_base, is_critical = calculate_damage(base_damage)
+
+                # 3. Apply multipliers
+                gear_multi = getattr(Gear_System, "total_damage_multiplier", 1)
                 prestige_multi = Currency_System.get_prestige_multiplier()
-                
-                # 4. Main branch's critical hit logic   
-                calculated_base, is_critical = calculate_damage(base_damage, 0)
-                
-                # 5. Final God-Tier Math
                 final_damage = int(calculated_base * gear_multi * prestige_multi)
                 
                 # Apply damage
