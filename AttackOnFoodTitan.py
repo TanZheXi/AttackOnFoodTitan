@@ -1,12 +1,14 @@
 import pygame as pg
 import time
 import random
+
 import Click_Damage_Feature
 from Click_Damage_Feature import Monster, MonsterManager, DamageText, damage_per_click, calculate_damage
 import Button_System
 import AFK_System
 import Currency_System
 import Gear_System
+from DailyQuest_System import DailyQuestSystem
 
 
 '''General'''
@@ -18,15 +20,12 @@ LEFT_WIDTH = 300        # Stats section
 MIDDLE_WIDTH = 550      # Monster UI section
 RIGHT_WIDTH = WINDOW_WIDTH - LEFT_WIDTH - MIDDLE_WIDTH  # 450px, Player interaction section
 
-# Origin points for each section
 LEFT_AREA_X = 0
 MIDDLE_AREA_X = LEFT_WIDTH
 RIGHT_AREA_X = LEFT_WIDTH + MIDDLE_WIDTH
 
-# Origin x for centering elements in the middle area
 MIDDLE_CENTER_X = MIDDLE_AREA_X + MIDDLE_WIDTH // 2
 
-# Transfer MIDDLE_CENTER_X to Currency_System for drawing money UI
 Currency_System.MIDDLE_CENTER_X = MIDDLE_CENTER_X
 # =================================================================
 
@@ -35,8 +34,8 @@ pg.mixer.init()
 window = pg.display.set_mode((WINDOW_WIDTH, WINDOW_HEIGHT)) 
 pg.display.set_caption("Attack On Food Titan") 
 
-# Load AFK rewards and saved game data
-afk_earnings, saved_monster_data, saved_money, saved_progression_index, saved_stage, saved_inventory, saved_shop_state, saved_pet_data, saved_upgrade_level = AFK_System.afk_system.load_and_calculate_afk_rewards()
+# Load AFK rewards and saved game data (returns 10 values including daily_data)
+afk_earnings, saved_monster_data, saved_money, saved_progression_index, saved_stage, saved_inventory, saved_shop_state, saved_pet_data, saved_upgrade_level, saved_daily_data = AFK_System.afk_system.load_and_calculate_afk_rewards()
 
 # Load saved gear data
 Gear_System.load_gear()
@@ -52,23 +51,18 @@ if afk_earnings > 0:
 # Initialize Monster Manager
 monster_manager = Click_Damage_Feature.MonsterManager()
 
-# Monster size
 MONSTER_SIZE = 200
 
-# if status of monster was saved, then load it
 if saved_monster_data:
-    # Restore waves of monster
     monster_manager.progression_index = saved_progression_index
     monster_manager.stage = saved_stage
     
-    # Save monster's data
     current_monster = Click_Damage_Feature.Monster(
         saved_monster_data["name"],
         saved_monster_data["max_hp"],
         tuple(saved_monster_data["color"])
     )
     current_monster.hp = saved_monster_data["hp"]
-    # Adjust monster position to the middle area center
     current_monster.rect.x = MIDDLE_CENTER_X - MONSTER_SIZE // 2
     current_monster.rect.y = 275
     monster_manager.current_monster = current_monster
@@ -76,7 +70,6 @@ if saved_monster_data:
     print(f"[LOAD] Restored progress: {saved_progression_index}/10, Stage: {saved_stage}, Monster HP: {current_monster.hp}/{current_monster.max_hp}")
 else:
     current_monster = monster_manager.current_monster
-    # Adjust monster position to the middle area center
     current_monster.rect.x = MIDDLE_CENTER_X - MONSTER_SIZE // 2
     current_monster.rect.y = 275
 
@@ -84,23 +77,20 @@ IsRunning = True
 last_auto_save = time.time()
 auto_save_interval = 5
 
-# ========== PET ATTACK INTERVAL TIMER ==========
-PET_ATTACK_INTERVAL = 1.0  # Attack every 1 second
+PET_ATTACK_INTERVAL = 1.0
 last_pet_attack_time = time.time()
-# ===============================================
 
-# Set data that will be restore
+# Set data that will be restored
 Button_System.panel_manager.pending_inventory = saved_inventory if saved_inventory else []
 Button_System.panel_manager.pending_shop_state = saved_shop_state if saved_shop_state else []
 Button_System.panel_manager.pending_pet_data = saved_pet_data if saved_pet_data else []
+Button_System.panel_manager.pending_daily_data = saved_daily_data if saved_daily_data else {}
 Button_System.panel_manager.pending_money = Currency_System.pocket_money
 
-data_restored = False   # Shows data restore state
-
+data_restored = False
 damage_texts = []
 
 def on_prestige_reset():
-    """Reset or clear every system when prestige"""
     if Button_System.panel_manager.shop_system:
         Button_System.panel_manager.shop_system.reset_shop()
         print("[PRESTIGE] Shop restocked.")
@@ -115,16 +105,23 @@ def on_prestige_reset():
     
     Gear_System.lose_all_gear()
     print("[PRESTIGE] Equipment reset")
-
+    
     damage_texts.clear()
 
 Currency_System.register_prestige_callback(on_prestige_reset)
 
+# ========== 在这里添加 daily_system 创建代码 ==========
+# 创建 daily_system 以恢复 bottle caps 数量（无需打开面板即可显示）
+Button_System.panel_manager.daily_system = DailyQuestSystem(0, 0, 1, 1)
+if saved_daily_data:
+    Button_System.panel_manager.daily_system.restore_save_data(saved_daily_data)
+    Currency_System.set_bottle_caps(Button_System.panel_manager.daily_system.get_bottle_caps())
+# ====================================================
+
 while IsRunning:
     for event in pg.event.get():
         if event.type == pg.QUIT:
-            inventory_state, shop_state, pet_data = Button_System.panel_manager.get_save_data()
-            # Get upgrade level
+            inventory_state, shop_state, pet_data, daily_data = Button_System.panel_manager.get_save_data()
             upgrade_level = 0
             if Button_System.panel_manager.player_upgrade_system:
                 upgrade_level = Button_System.panel_manager.player_upgrade_system.level
@@ -140,17 +137,16 @@ while IsRunning:
                 inventory_items=inventory_state,
                 shop_items_state=shop_state,
                 pet_data=pet_data,
-                upgrade_level=upgrade_level
+                upgrade_level=upgrade_level,
+                daily_data=daily_data
             )
             IsRunning = False
             break
         elif event.type == pg.KEYDOWN:
             if event.key == pg.K_g:
-                # Gain equipment and sync to inventory
                 Gear_System.gain_gear("OP WEAPON")
                 Button_System.panel_manager.add_to_inventory("OP WEAPON")
                 print("[DEBUG] Gained OP WEAPON and added to inventory")
-            # Press 'E' to equip currently selected item (for backward compatibility)
             elif event.key == pg.K_e:
                 selected_item = Button_System.panel_manager.get_selected_inventory_item()
                 if selected_item and selected_item in Gear_System.gear_database:
@@ -158,131 +154,105 @@ while IsRunning:
                     print(f"[DEBUG] Equipped {selected_item}")
                 else:
                     print("[DEBUG] No valid item selected to equip")
-            # Press 'U' to unequip weapon
             elif event.key == pg.K_u:
                 Gear_System.unequip_gear("weapon")
-            # Press 'C' to craft the item (Consumes scraps)
             elif event.key == pg.K_c:
                 if Gear_System.craft_item("Golden Spatula"):
                     Button_System.panel_manager.add_to_inventory("Golden Spatula")
                     print("[DEBUG] Crafted Golden Spatula and added to inventory")
 
-            # --- DEV HACKS FOR TESTING ---
-            # Press 'N' to instantly skip to the next stage
             elif event.key == pg.K_n:
                 monster_manager.stage += 1
                 monster_manager.progression_index = (monster_manager.stage - 1) * 10
                 monster_manager.current_monster = monster_manager.spawn_monster()
                 print(f"[DEV CHEAT] Skipped to Stage {monster_manager.stage}")
                 
-            # Press 'P' to instantly trigger a Prestige
             elif event.key == pg.K_p:
                 success = Currency_System.trigger_prestige(monster_manager)
                 if not success:
                     print("[DEV WARNING] Prestige failed. Are you at least Stage 10?")
 
         elif event.type == pg.MOUSEBUTTONDOWN:
-            # Check for Guide button click
             if hasattr(Button_System.panel_manager, 'guide_button_rect'):
                 if Button_System.panel_manager.guide_button_rect.collidepoint(event.pos):
                     Button_System.panel_manager.toggle_guide()
             
             if event.button == 1:
                 if current_monster.rect.collidepoint(event.pos):
-                    
-                    # --- MERGED DAMAGE CALCULATION ---
-                    # 1. Base damage
                     base_damage = getattr(Gear_System, "base_damage", damage_per_click)
-                    
-                    # 2. Gear Multiplier
                     gear_multi = Gear_System.total_damage_multiplier
-                    
-                    # 3. PRESTIGE MULTIPLIER
                     prestige_multi = Currency_System.get_prestige_multiplier()
-                    
-                    # 4. Main branch's critical hit logic   
                     calculated_base, is_critical = calculate_damage(base_damage, 0)
-                    
-                    # 5. Final damage calculation
                     final_damage = int(calculated_base * gear_multi * prestige_multi)
                     
-                    # Apply damage
                     current_monster.take_damage(final_damage)
 
-                    # Spawn floating damage text
                     popup_x = current_monster.rect.x + random.randint(20, max(20, current_monster.rect.width - 40))
                     popup_y = current_monster.rect.y + random.randint(20, max(20, current_monster.rect.height - 40))
                     damage_texts.append(DamageText(str(final_damage), (popup_x, popup_y), is_critical=is_critical))
 
                     if current_monster.is_defeated():
-                        # Trigger economy system
                         Currency_System.update_economy(current_monster.hp, monster_manager.progression_index + 1)
                         
-                        # Spawn next monster
+                        if Button_System.panel_manager.daily_system:
+                            Button_System.panel_manager.daily_system.on_defeat_titan()
+                        
                         monster_manager.next_monster()
                         current_monster = monster_manager.current_monster
-                        # Set monster to middle area center
                         current_monster.rect.x = MIDDLE_CENTER_X - MONSTER_SIZE // 2
                         current_monster.rect.y = 275
 
         Button_System.panel_manager.monster_manager = monster_manager
-
         Button_System.panel_manager.handle_event(event)
         for button in Button_System.buttons:
             button.handle_event(event)
 
-    # ========== PET AUTO ATTACK ==========
     current_time = time.time()
     if current_time - last_pet_attack_time >= PET_ATTACK_INTERVAL:
         pet_system = Button_System.panel_manager.pet_system
         if pet_system:
-            # 1. Get base pet damage
             base_pet_damage = pet_system.get_total_damage()
-            
             if base_pet_damage > 0 and current_monster.hp > 0:
-                # 2. Apply the Prestige Multiplier
                 prestige_multi = Currency_System.get_prestige_multiplier()
                 total_pet_damage = int(base_pet_damage * prestige_multi)
-
-                # Pet damage application
                 current_monster.take_damage(total_pet_damage)
                 
-                # Pop damage text for pet attack
                 popup_x = current_monster.rect.x + random.randint(20, current_monster.rect.width - 40)
                 popup_y = current_monster.rect.y + random.randint(20, current_monster.rect.height - 40)
                 damage_texts.append(DamageText(str(total_pet_damage), (popup_x, popup_y), is_critical=False))
                 
-                # Check if monster is defeated after pet attack
                 if current_monster.is_defeated():
                     Currency_System.update_economy(current_monster.hp, monster_manager.progression_index)
+                    
+                    if Button_System.panel_manager.daily_system:
+                        Button_System.panel_manager.daily_system.on_defeat_with_pet()
+                    
                     monster_manager.next_monster()
                     current_monster = monster_manager.current_monster
                     current_monster.rect.x = MIDDLE_CENTER_X - MONSTER_SIZE // 2
                     current_monster.rect.y = 275
         last_pet_attack_time = current_time
-    # =================================
 
-    # Load Inventory or Shop data when activated
     if not data_restored and (Button_System.panel_manager.active_panel == "Shop" or Button_System.panel_manager.active_panel == "Inventory" or Button_System.panel_manager.active_panel == "Pet"):
         Button_System.panel_manager.load_saved_data(
             Currency_System.pocket_money,
             saved_inventory,
             saved_shop_state,
-            saved_pet_data
+            saved_pet_data,
+            saved_daily_data
         )
         data_restored = True
     
-    # Restore upgrade level
     if Button_System.panel_manager.player_upgrade_system and saved_upgrade_level > 0:
         if Button_System.panel_manager.player_upgrade_system.level == 0:
             for _ in range(saved_upgrade_level):
                 Button_System.panel_manager.player_upgrade_system.purchase_upgrade()
             print(f"[LOAD] Restored upgrade level: {saved_upgrade_level}")
 
-    # Sync currency
     Button_System.panel_manager.global_pocket_money = Currency_System.pocket_money
+    if Button_System.panel_manager.daily_system:
+        Currency_System.set_bottle_caps(Button_System.panel_manager.daily_system.get_bottle_caps())
 
-    # Sync Stage & Check for Prestige
     Button_System.panel_manager.current_stage = monster_manager.stage
     
     if getattr(Button_System.panel_manager, 'wants_to_prestige', False):
@@ -290,11 +260,9 @@ while IsRunning:
         if success:
             Button_System.panel_manager.active_panel = None
         Button_System.panel_manager.wants_to_prestige = False
-
-    # Auto save system for AFK
-    current_time = time.time()
+        current_time = time.time()
     if current_time - last_auto_save >= auto_save_interval:
-        inventory_state, shop_state, pet_data = Button_System.panel_manager.get_save_data()
+        inventory_state, shop_state, pet_data, daily_data = Button_System.panel_manager.get_save_data()
         upgrade_level = 0
         if Button_System.panel_manager.player_upgrade_system:
             upgrade_level = Button_System.panel_manager.player_upgrade_system.level
@@ -310,33 +278,26 @@ while IsRunning:
             inventory_items=inventory_state,
             shop_items_state=shop_state,
             pet_data=pet_data,
-            upgrade_level=upgrade_level
+            upgrade_level=upgrade_level,
+            daily_data=daily_data
         )
         AFK_System.afk_system.update_save_time()
-
-        # Gear system auto save
         Gear_System.save_gear()
-
         last_auto_save = current_time
 
     for button in Button_System.buttons:
         button.update()
 
-    # Update damage texts
     for dt in damage_texts[:]:
         dt.update()
         if not dt.is_alive():
             damage_texts.remove(dt)
 
-    # Draw everything
     window.fill((227, 227, 227))
     
-    # ========== Draw partition lines ==========
     pg.draw.line(window, (0, 0, 0), (MIDDLE_AREA_X, 0), (MIDDLE_AREA_X, WINDOW_HEIGHT), 3)
     pg.draw.line(window, (0, 0, 0), (RIGHT_AREA_X, 0), (RIGHT_AREA_X, WINDOW_HEIGHT), 3)
-    # ==========================================
     
-    # ========== Draw top UI ==========
     font_counter = pg.font.SysFont(None, 36)
     counter_value = (monster_manager.progression_index % 10) + 1
     counter_surface = font_counter.render(f"Monster {counter_value}/10", True, (0, 0, 0))
@@ -347,11 +308,9 @@ while IsRunning:
     stage_surface = font_stage.render(f"Stage {monster_manager.stage}", True, (0, 0, 0))
     stage_rect = stage_surface.get_rect(center=(MIDDLE_CENTER_X, 70))
     window.blit(stage_surface, stage_rect)
-    # =================================
     
     current_monster.draw(window)
 
-    # ========== Draw equipped pets as squares ==========
     pet_system = Button_System.panel_manager.pet_system
     if pet_system:
         equipped_pets = pet_system.get_equipped_pets()
@@ -365,18 +324,14 @@ while IsRunning:
         for idx, pet in enumerate(equipped_pets):
             pet_x = start_x + idx * (pet_size + pet_spacing)
             pet_rect = pg.Rect(pet_x, pet_y, pet_size, pet_size)
-            
             pg.draw.rect(window, pet.color, pet_rect)
             pg.draw.rect(window, (200, 200, 200), pet_rect, 2)
-            
             name_text = font_pet.render(pet.name, True, (0, 0, 0))
             name_rect = name_text.get_rect(center=(pet_rect.centerx, pet_rect.centery))
-            window.blit(name_text, name_rect)   
-    # ====================================================
+            window.blit(name_text, name_rect)
 
     Currency_System.draw_ui(window)
     
-    # ========== List equipped pets on left side ==========
     if Button_System.panel_manager.pet_system:
         equipped_pets = Button_System.panel_manager.pet_system.get_equipped_pets()
         font_left = pg.font.SysFont(None, 20)
@@ -385,9 +340,7 @@ while IsRunning:
             pet_text = font_left.render(f"Equipped: {pet.name}", True, (80, 80, 80))
             window.blit(pet_text, (10, y))
             y += 25
-    # ======================================================
 
-    # Draw damage texts
     for dt in damage_texts:
         dt.draw(window)
 
@@ -428,6 +381,10 @@ pg.quit()
 #Link: None
 
 #7. Pet system (Pet_System.py)
+#Source code: Deepseek
+#Link: None
+
+#8. Daily Quest system (DailyQuest_System.py)
 #Source code: Deepseek
 #Link: None
 

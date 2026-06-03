@@ -1,6 +1,6 @@
 {
     "OP WEAPON": {
-        "owned": false,
+        "owned": true,
         "multiplier": 1000000.0,
         "cost": 999999,
         "scrap_value": 50000,
@@ -66,7 +66,7 @@
     "Player_Data": {
         "scraps": 50000,
         "equipped": {
-            "weapon": null,
+            "weapon": "OP WEAPON",
             "hat": null,
             "armor": null,
             "aroma": null
