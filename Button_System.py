@@ -41,7 +41,34 @@ class Main_button:
 
 
 class ToolbarButton:
-    """Toolbar button (smaller, for the top toolbar)"""
+    def __init__(self, x, y, width, height, text, callback):
+        self.rect = pg.Rect(x, y, width, height)
+        self.text = text
+        self.callback = callback
+        self.font = pg.font.SysFont(None, 14)
+        self.is_hovered = False
+
+    def handle_event(self, event):
+        if event.type == pg.MOUSEBUTTONDOWN and event.button == 1:
+            if self.rect.collidepoint(event.pos):
+                if self.callback:
+                    self.callback()
+                return True
+        return False
+
+    def update(self, mouse_pos):
+        self.is_hovered = self.rect.collidepoint(mouse_pos)
+
+    def draw(self, screen):
+        color = (100, 100, 120) if self.is_hovered else (60, 60, 80)
+        pg.draw.rect(screen, color, self.rect)
+        pg.draw.rect(screen, (200, 200, 200), self.rect, 1)
+        text_surf = self.font.render(self.text, True, (255, 255, 255))
+        text_rect = text_surf.get_rect(center=self.rect.center)
+        screen.blit(text_surf, text_rect)
+
+
+class VerticalScrollButton:
     def __init__(self, x, y, width, height, text, callback):
         self.rect = pg.Rect(x, y, width, height)
         self.text = text
@@ -83,7 +110,7 @@ class GuideSystem:
             "[CONTROLS]",
             "Click on Monster - Deal damage",
             "G Key - Gain OP WEAPON (Test)",
-            "E Key - Equip weapon (hover over item in Inv first)",
+            "E Key - Equip weapon (Legacy)",
             "U Key - Unequip weapon",
             "C Key - Craft Golden Spatula",
             "N Key - Next Stage (Dev)",
@@ -96,7 +123,8 @@ class GuideSystem:
             "[INVENTORY]",
             "Click Inv button to open inventory",
             "Use category tabs to filter items",
-            "HOVER over an item, then press E to equip!",
+            "Click EQUIP button on item card to equip",
+            "Click UNEQUIP button to remove",
             "",
             "[PET SYSTEM]",
             "Click Pet button to manage pets",
@@ -186,11 +214,8 @@ class GuideSystem:
 class PanelManager:
     def __init__(self, screen_width, screen_height):
         self.active_panel = None
-        self.toolbar_buttons = []
-        self.toolbar_offset = 0
-        self.toolbar_dragging = False
-        self.toolbar_drag_start_x = 0
-        self.toolbar_drag_start_offset = 0
+        self.left_column_buttons = []
+        self.right_column_buttons = []
         
         self.player_upgrade_system = None
 
@@ -202,24 +227,16 @@ class PanelManager:
             print("[AUDIO WARN] prestige_sfx2.wav not found. Running without sound.")
             self.prestige_sound = None
 
+        # ========== Right Area (for panels) ==========
         RIGHT_AREA_X = 850
         RIGHT_AREA_WIDTH = 450
         RIGHT_AREA_HEIGHT = screen_height
         
-        # Toolbar area (top of right area)
-        toolbar_height = 45
-        toolbar_y = 10
-        self.toolbar_rect = pg.Rect(RIGHT_AREA_X + 5, toolbar_y, RIGHT_AREA_WIDTH - 10, toolbar_height)
-        
-        # Scrollbar area (above toolbar, for dragging)
-        self.scrollbar_rect = pg.Rect(self.toolbar_rect.x, self.toolbar_rect.y - 8, self.toolbar_rect.width, 6)
-        self.scrollbar_dragging = False
-        
-        # Panel size (smaller, located below toolbar)
+        # Panel fills the entire right area
         panel_width = RIGHT_AREA_WIDTH - 20
-        panel_height = RIGHT_AREA_HEIGHT - toolbar_height - 60
+        panel_height = RIGHT_AREA_HEIGHT - 20
         panel_x = RIGHT_AREA_X + 10
-        panel_y = toolbar_y + toolbar_height + 10
+        panel_y = 10
         
         self.panel_rect = pg.Rect(panel_x, panel_y, panel_width, panel_height)
         self.panel_color = (50, 50, 50, 220)
@@ -248,38 +265,79 @@ class PanelManager:
         self.current_stage = 1
         self.wants_to_prestige = False
         
-        # Initialize toolbar buttons
-        self._init_toolbar_buttons()
-
-    def _init_toolbar_buttons(self):
-        """Initialize toolbar buttons"""
-        button_width = 65
-        button_height = 32
-        spacing = 5
+        # ========== Middle Area Right Side Buttons ==========
+        # Middle area ends at X = 850 (MIDDLE_AREA_X + MIDDLE_WIDTH = 300 + 550 = 850)
+        MIDDLE_RIGHT_BORDER = 850
+        BUTTON_WIDTH = 30
+        BUTTON_HEIGHT = 30
+        SPACING = 5
+        BUTTON_START_Y = 12
         
-        button_texts = ["Upgrade", "Crafting", "Raids", "Shop", "Prestige", "Inv", "Pet"]
-        button_callbacks = [
+        # Right-aligned, leave 5px margin from the border
+        BUTTON_AREA_X = MIDDLE_RIGHT_BORDER - BUTTON_WIDTH - 5  # 850 - 30 - 5 = 815
+        
+        # Left column buttons (Upgrade, Pet, Crafting, Inv)
+        left_column_texts = ["U", "P", "C", "I"]
+        left_column_callbacks = [
             lambda: self.toggle_panel("Upgrade"),
+            lambda: self.toggle_panel("Pet"),
             lambda: self.toggle_panel("Crafting"),
-            lambda: self.toggle_panel("Raids"),
-            lambda: self.toggle_panel("Shop"),
-            lambda: self.toggle_panel("Prestige"),
-            lambda: self.toggle_panel("Inventory"),
-            lambda: self.toggle_panel("Pet")
+            lambda: self.toggle_panel("Inventory")
         ]
         
-        x = self.toolbar_rect.x + 5
-        y = self.toolbar_rect.y + 7
+        # Right column buttons (Shop, Raids, Prestige) - 5px gap between columns
+        right_col_x = BUTTON_AREA_X - BUTTON_WIDTH - 5  # 815 - 30 - 5 = 780
         
-        self.toolbar_buttons = []
-        for text, callback in zip(button_texts, button_callbacks):
-            btn = ToolbarButton(x, y, button_width, button_height, text, callback)
-            self.toolbar_buttons.append(btn)
-            x += button_width + spacing
+        # Create left column buttons
+        self.left_column_buttons = []
+        for i, (text, callback) in enumerate(zip(left_column_texts, left_column_callbacks)):
+            y = BUTTON_START_Y + i * (BUTTON_HEIGHT + SPACING)
+            btn = VerticalScrollButton(BUTTON_AREA_X, y, BUTTON_WIDTH, BUTTON_HEIGHT, text, callback)
+            self.left_column_buttons.append(btn)
         
-        # Calculate total width and max scroll offset
-        total_width = len(self.toolbar_buttons) * (button_width + spacing) - spacing
-        self.max_toolbar_offset = max(0, total_width - (self.toolbar_rect.width - 10))
+        # Create right column buttons
+        right_column_texts = ["S", "R", "Pr"]
+        right_column_callbacks = [
+            lambda: self.toggle_panel("Shop"),
+            lambda: self.toggle_panel("Raids"),
+            lambda: self.toggle_panel("Prestige")
+        ]
+        
+        self.right_column_buttons = []
+        for i, (text, callback) in enumerate(zip(right_column_texts, right_column_callbacks)):
+            y = BUTTON_START_Y + i * (BUTTON_HEIGHT + SPACING)
+            btn = VerticalScrollButton(right_col_x, y, BUTTON_WIDTH, BUTTON_HEIGHT, text, callback)
+            self.right_column_buttons.append(btn)
+        # ====================================================
+
+    def handle_button_events(self, event):
+        """Handle button click events"""
+        if event.type == pg.MOUSEBUTTONDOWN and event.button == 1:
+            # Check left column buttons
+            for btn in self.left_column_buttons:
+                if btn.rect.collidepoint(event.pos):
+                    btn.callback()
+                    return True
+            
+            # Check right column buttons
+            for btn in self.right_column_buttons:
+                if btn.rect.collidepoint(event.pos):
+                    btn.callback()
+                    return True
+        
+        return False
+
+    def draw_buttons(self, screen):
+        """Draw the vertical button columns"""
+        # Draw left column buttons
+        for btn in self.left_column_buttons:
+            btn.update(pg.mouse.get_pos())
+            btn.draw(screen)
+        
+        # Draw right column buttons
+        for btn in self.right_column_buttons:
+            btn.update(pg.mouse.get_pos())
+            btn.draw(screen)
 
     def toggle_panel(self, button_name):
         if self.active_panel == button_name:
@@ -289,39 +347,6 @@ class PanelManager:
     
     def toggle_guide(self):
         self.guide_system.toggle()
-
-    def handle_toolbar_event(self, event):
-        """Handle toolbar mouse drag events (both scrollbar and toolbar area)"""
-        # Handle scrollbar dragging (white semi-transparent bar above toolbar)
-        if event.type == pg.MOUSEBUTTONDOWN and event.button == 1:
-            if self.scrollbar_rect.collidepoint(event.pos):
-                self.scrollbar_dragging = True
-                self.toolbar_drag_start_x = event.pos[0]
-                self.toolbar_drag_start_offset = self.toolbar_offset
-                return True
-            
-            if self.toolbar_rect.collidepoint(event.pos):
-                # Check if a button was clicked
-                for btn in self.toolbar_buttons:
-                    btn_screen_rect = btn.rect.copy()
-                    btn_screen_rect.x -= self.toolbar_offset
-                    if btn_screen_rect.collidepoint(event.pos):
-                        return False
-                # Start dragging on blank area
-                self.toolbar_dragging = True
-                self.toolbar_drag_start_x = event.pos[0]
-                self.toolbar_drag_start_offset = self.toolbar_offset
-        
-        elif event.type == pg.MOUSEBUTTONUP and event.button == 1:
-            self.toolbar_dragging = False
-            self.scrollbar_dragging = False
-        
-        elif event.type == pg.MOUSEMOTION and (self.toolbar_dragging or self.scrollbar_dragging):
-            dx = event.pos[0] - self.toolbar_drag_start_x
-            new_offset = self.toolbar_drag_start_offset - dx
-            self.toolbar_offset = max(0, min(self.max_toolbar_offset, new_offset))
-        
-        return True
 
     def load_saved_data(self, pocket_money, inventory_items, shop_state, pet_data=None):
         self.global_pocket_money = pocket_money
@@ -363,17 +388,8 @@ class PanelManager:
             self.guide_system.handle_event(event)
             return
         
-        # Handle toolbar events (drag and button clicks)
-        self.handle_toolbar_event(event)
-        
-        # Handle toolbar button clicks
-        if event.type == pg.MOUSEBUTTONDOWN and event.button == 1:
-            for btn in self.toolbar_buttons:
-                btn_screen_rect = btn.rect.copy()
-                btn_screen_rect.x -= self.toolbar_offset
-                if btn_screen_rect.collidepoint(event.pos):
-                    btn.callback()
-                    return
+        # Handle button clicks
+        self.handle_button_events(event)
         
         # Handle active panel events
         if self.active_panel == "Shop" and self.shop_system:
@@ -434,76 +450,23 @@ class PanelManager:
             return self.inventory_system.selected_item
         return None
     
-    def draw_toolbar(self, screen):
-        """Draw the scrollable toolbar with a white semi-transparent scrollbar above"""
-        # Draw toolbar background
-        pg.draw.rect(screen, (35, 35, 45), self.toolbar_rect)
-        pg.draw.rect(screen, (100, 100, 120), self.toolbar_rect, 1)
-        
-        # Draw white semi-transparent scrollbar above toolbar
-        scrollbar_surface = pg.Surface((self.scrollbar_rect.width, self.scrollbar_rect.height))
-        scrollbar_surface.set_alpha(180)
-        scrollbar_surface.fill((255, 255, 255))
-        screen.blit(scrollbar_surface, (self.scrollbar_rect.x, self.scrollbar_rect.y))
-        pg.draw.rect(screen, (180, 180, 200), self.scrollbar_rect, 1)
-        
-        # Calculate scroll indicator width based on visible area proportion
-        total_width = len(self.toolbar_buttons) * (self.toolbar_buttons[0].rect.width + 5) - 5 if self.toolbar_buttons else 1
-        visible_ratio = self.toolbar_rect.width / total_width if total_width > 0 else 1
-        indicator_width = max(30, int(self.scrollbar_rect.width * visible_ratio))
-        
-        # Calculate scroll indicator position
-        max_indicator_x = self.scrollbar_rect.x + self.scrollbar_rect.width - indicator_width
-        indicator_x = self.scrollbar_rect.x + (self.toolbar_offset / self.max_toolbar_offset) * (self.scrollbar_rect.width - indicator_width) if self.max_toolbar_offset > 0 else self.scrollbar_rect.x
-        indicator_x = max(self.scrollbar_rect.x, min(max_indicator_x, indicator_x))
-        
-        # Draw scroll indicator (darker bar showing current scroll position)
-        indicator_rect = pg.Rect(indicator_x, self.scrollbar_rect.y, indicator_width, self.scrollbar_rect.height)
-        pg.draw.rect(screen, (100, 100, 140), indicator_rect)
-        pg.draw.rect(screen, (150, 150, 200), indicator_rect, 1)
-        
-        # Create clip region for buttons
-        clip_rect = self.toolbar_rect.inflate(-4, -4)
-        old_clip = screen.get_clip()
-        screen.set_clip(clip_rect)
-        
-        # Draw buttons with offset
-        for btn in self.toolbar_buttons:
-            btn_screen_x = btn.rect.x - self.toolbar_offset
-            temp_rect = btn.rect.copy()
-            temp_rect.x = btn_screen_x
-            
-            # Only draw buttons visible in the clip region
-            if temp_rect.x + temp_rect.width > clip_rect.x and temp_rect.x < clip_rect.x + clip_rect.width:
-                original_x = btn.rect.x
-                btn.rect.x = btn_screen_x
-                btn.update(pg.mouse.get_pos())
-                btn.draw(screen)
-                btn.rect.x = original_x
-        
-        screen.set_clip(old_clip)
-        
-        # Draw edge shadows if scrollable
-        if self.toolbar_offset > 0:
-            left_shadow = pg.Surface((15, self.toolbar_rect.height))
-            left_shadow.set_alpha(100)
-            left_shadow.fill((0, 0, 0))
-            screen.blit(left_shadow, (self.toolbar_rect.x, self.toolbar_rect.y))
-        
-        if self.toolbar_offset < self.max_toolbar_offset:
-            right_shadow = pg.Surface((15, self.toolbar_rect.height))
-            right_shadow.set_alpha(100)
-            right_shadow.fill((0, 0, 0))
-            screen.blit(right_shadow, (self.toolbar_rect.x + self.toolbar_rect.width - 15, self.toolbar_rect.y))
-
     def draw(self, screen):
         # Draw right area background
         right_area_rect = pg.Rect(850, 0, 450, 750)
         pg.draw.rect(screen, (45, 45, 55), right_area_rect)
         pg.draw.rect(screen, (150, 150, 170), right_area_rect, 2)
         
-        # Draw scrollable toolbar
-        self.draw_toolbar(screen)
+        # Draw middle area right side buttons
+        self.draw_buttons(screen)
+        
+        # Draw the "?" guide button in top-left of middle area
+        font = pg.font.SysFont(None, 20)
+        guide_text = font.render("?", True, (255, 255, 255))
+        guide_rect = pg.Rect(310, 12, 30, 30)
+        pg.draw.rect(screen, (80, 80, 100), guide_rect)
+        pg.draw.rect(screen, (200, 200, 200), guide_rect, 1)
+        screen.blit(guide_text, guide_text.get_rect(center=guide_rect.center))
+        self.guide_button_rect = guide_rect
         
         # If Guide panel is visible, draw it
         if self.guide_system.visible:
@@ -518,7 +481,7 @@ class PanelManager:
             screen.blit(hint_text, hint_rect)
             
             font_small = pg.font.SysFont(None, 20)
-            hint_text2 = font_small.render("Upgrade | Crafting | Raids | Shop | Prestige | Inv | Pet", True, (150, 150, 170))
+            hint_text2 = font_small.render("U | P | C | I | S | R | Pr", True, (150, 150, 170))
             hint_rect2 = hint_text2.get_rect(center=(850 + 225, 420))
             screen.blit(hint_text2, hint_rect2)
             return
@@ -532,7 +495,6 @@ class PanelManager:
             screen.blit(panel_surface, (self.panel_rect.x, self.panel_rect.y))
             pg.draw.rect(screen, self.border_color, self.panel_rect, 3)
             
-            # Draw description panel background (except for Prestige)
             if self.active_panel != "Prestige":
                 desc_surface = pg.Surface((self.desc_panel_rect.width, self.desc_panel_rect.height))
                 desc_surface.set_alpha(self.panel_color[3])
@@ -540,7 +502,6 @@ class PanelManager:
                 screen.blit(desc_surface, (self.desc_panel_rect.x, self.desc_panel_rect.y))
                 pg.draw.rect(screen, self.border_color, self.desc_panel_rect, 3)
             
-            # Draw separator line
             pg.draw.line(screen, (100, 100, 100), 
                         (self.panel_rect.x, self.panel_rect.y + self.panel_rect.height),
                         (self.panel_rect.x + self.panel_rect.width, self.panel_rect.y + self.panel_rect.height), 2)
@@ -654,19 +615,19 @@ class PanelManager:
         screen.blit(lbl, lbl_rect)
 
 
-# ========== Panel Manager ==========
+# ========== Global instance ==========
 panel_manager = PanelManager(1300, 750)
 
-# ========== Button callback ==========
+# ========== Button callback for guide ==========
 def guide_callback():
     panel_manager.toggle_guide()
 
-# ========== Button list (only Guide button in the middle area) ==========
+# ========== Button list (only Guide button) ==========
 buttons = []
 
-GUIDE_BUTTON_X = 305
+GUIDE_BUTTON_X = 310
 GUIDE_BUTTON_Y = 12
-guide_button = Main_button(GUIDE_BUTTON_X, GUIDE_BUTTON_Y, 40, 40, "?", (80, 80, 100), (120, 120, 140), guide_callback)
+guide_button = Main_button(GUIDE_BUTTON_X, GUIDE_BUTTON_Y, 30, 30, "?", (80, 80, 100), (120, 120, 140), guide_callback)
 buttons.append(guide_button)
 
 # ========== Assign button list to panel_manager ==========
