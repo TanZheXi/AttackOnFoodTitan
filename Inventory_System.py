@@ -124,19 +124,20 @@ class InventorySystem:
         if event.type == pg.MOUSEBUTTONDOWN and event.button == 1:
             for key, rect in self.equip_buttons.items():
                 if rect.collidepoint(event.pos):
-                    item_name = key.replace("equip_", "").replace("unequip_", "")
+                    # Extract item name correctly
+                    if key.startswith("unequip_"):
+                        item_name = key[8:]  # Remove "unequip_" prefix
+                    elif key.startswith("equip_"):
+                        item_name = key[6:]  # Remove "equip_" prefix
+                    else:
+                        continue
                     
                     if key.startswith("unequip_"):
-                        # Find the slot where this item is equipped
                         if item_name in Gear_System.gear_database:
                             slot = Gear_System.gear_database[item_name]["slot"]
                             Gear_System.unequip_gear(slot)
-                            print(f"[INVENTORY] Unequipped {item_name} from {slot}")
-                        else:
-                            print(f"[INVENTORY] Cannot unequip {item_name}: not in gear database")
                     elif key.startswith("equip_"):
                         Gear_System.equip_gear(item_name)
-                        print(f"[INVENTORY] Equipped {item_name}")
                     return
         
         # Process category button clicks
@@ -161,14 +162,14 @@ class InventorySystem:
             self.selected_item = None
             mouse_pos = event.pos
             
-            # Card positions - same as Pet system, but adjusted Y
+            # Card positions
             cards_per_row = 2
             card_width = self.item_width
             card_height = self.item_height
             card_spacing_x = 12
             card_spacing_y = 10
             start_x = self.rect.x + 18
-            start_y = self.rect.y + 65  # Moved up for better fit
+            start_y = self.rect.y + 65
             
             items = self.get_filtered_items()
             visible_items = items[self.scroll_offset:self.scroll_offset + 6]
