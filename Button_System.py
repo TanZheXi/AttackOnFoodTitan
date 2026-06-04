@@ -420,8 +420,9 @@ class PanelManager:
             if event.type == pg.MOUSEBUTTONDOWN and event.button == 1:
                 if hasattr(self, 'prestige_btn_rect') and self.prestige_btn_rect.collidepoint(event.pos):
                     if stars_to_gain > 0:
-                        if getattr(self, 'confirm_prestige', False) == False:
+                        if not getattr(self, 'confirm_prestige', False):
                             self.confirm_prestige = True  
+                            print("[PRESTIGE] Click again to confirm prestige!")
                         else:
                             if Currency_System.trigger_prestige(self.monster_manager):
                                 print("Prestige Successful!")
@@ -429,7 +430,10 @@ class PanelManager:
                                     self.prestige_sound.play()
                                 self.active_panel = None
                                 self.confirm_prestige = False
-            if event.type == pg.MOUSEBUTTONDOWN:
+                    else:
+                            print(f"[PRESTIGE] Need to reach Stage 10 to prestige. Current Stage: {self.current_stage}")
+
+            elif event.type == pg.MOUSEBUTTONDOWN:
                 self.confirm_prestige = False
             return
 

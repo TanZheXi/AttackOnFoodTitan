@@ -1,7 +1,6 @@
 import pygame as pg
 import time
 import random
-
 import Click_Damage_Feature
 from Click_Damage_Feature import Monster, MonsterManager, DamageText, damage_per_click, calculate_damage
 import Button_System
