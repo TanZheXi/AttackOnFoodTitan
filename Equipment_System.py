@@ -51,6 +51,35 @@ def gain_equipment(item_name):
 
     return False
 
+def upgrade_equipment(item_name):
+    global crafting_scraps
+
+    item = equipment_database.get(item_name)
+
+    if not item or not item.get("owned", False):
+        return  False 
+    
+    if "level" not in item:
+        item["level"] = 1
+
+    base_scrap_cost = item.get("scrap_value", 10)
+    upgrade_cost = base_scrap_cost * item["level"]
+
+    if crafting_scraps >= upgrade_cost:
+        crafting_scraps -= upgrade_cost
+
+        item["level"] += 1
+        item["multiplier"] *= 1.10  # Increase multiplier by 10% per level
+
+        recalculate_stats()
+        print(f"Upgraded {item_name} to level {item['level']}! New multiplier: {item['multiplier']:.2f}. (Scraps left: {crafting_scraps})")
+
+        return True
+    else:
+        print(f"Not enough Scraps to upgrade {item_name}! Upgrade cost: {upgrade_cost}, Scraps available: {crafting_scraps}")
+        return False
+
+
 def equip_equipment(item_name):
     """Takes an item from the backpack and puts it on the player's body."""
     if item_name in equipment_database and equipment_database[item_name].get("owned", False) is True:
@@ -202,3 +231,28 @@ def load_equipment():
     print("Equipment System Loaded Successfully!")
     recalculate_stats()
     return True
+
+def upgrade_weapon_by_name(weapon_name):
+    """Upgrades whatever weapon name is passed to it from the Forge!"""
+    global crafting_scraps
+    
+    item = equipment_database.get(weapon_name)
+    if not item or not item.get("owned", False): 
+        return False
+        
+    if "level" not in item:
+        item["level"] = 1
+        
+    cost = item.get("scrap_value", 10) * item["level"]
+    
+    if crafting_scraps >= cost:
+        crafting_scraps -= cost
+        item["level"] += 1
+        item["multiplier"] += 0.5 
+        
+        recalculate_stats()
+        save_equipment() 
+        print(f"[FORGE] Upgraded {weapon_name} to Level {item['level']}!")
+        return True
+        
+    return False

@@ -81,7 +81,7 @@ def update_economy(monster_hp, progression_index):
 def format_money(amount):
     # 1. Less than 1,000 stays normal
     if amount < 1000:
-        return f"${int(amount)}"
+        return f"{int(amount)}"
 
     # You can add as many as you want here manually. It's super easy to read.
     suffixes = [
@@ -98,10 +98,10 @@ def format_money(amount):
 
     # We switch them to scientific notation so the game doesn't crash.
     if temp_amount >= 1000 and magnitude == len(suffixes) - 1:
-        return f"${float(amount):.2e}"
+        return f"{float(amount):.2e}"
 
     # 5. Return the formatted number
-    return f"${temp_amount:.2f}{suffixes[magnitude]}"
+    return f"{temp_amount:.2f}{suffixes[magnitude]}"
         
 def draw_ui(window):
     # 1. Render the text

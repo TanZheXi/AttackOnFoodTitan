@@ -5,10 +5,11 @@ import Currency_System
 from Pet_System import PetSystem
 from Player_Upgrade_System import PlayerUpgradeSystem
 import Equipment_System
+from Crafting_System import CraftingSystem
 
 # --- NEW: GLOBAL SOUND SYSTEM (CLS_1) ---
 try:
-    # We load it ONCE here at the top of the file
+    # load it ONCE here at the top of the file
     GLOBAL_CLICK = pg.mixer.Sound("Sound_Effects/Click_sfx.wav")
     GLOBAL_CLICK.set_volume(0.3) # 50% volume
 except Exception as e:
@@ -251,6 +252,7 @@ class PanelManager:
         self.inventory_system = None
         self.pet_system = None
         self.global_pocket_money = Currency_System.pocket_money
+        self.crafting_system = None
         
         self.current_shop_category = 0
         self.current_inv_category = 0
@@ -397,6 +399,8 @@ class PanelManager:
         if self.active_panel == "Shop" and self.shop_system:
             self.shop_system.handle_event(event, self.add_to_inventory)
             self.global_pocket_money = Currency_System.pocket_money
+        elif self.active_panel == "Crafting" and getattr(self, 'crafting_system', None):
+            self.crafting_system.handle_event(event)
         elif self.active_panel == "Inventory" and self.inventory_system:
             self.inventory_system.handle_event(event)
         elif self.active_panel == "Pet" and self.pet_system:
@@ -593,6 +597,17 @@ class PanelManager:
                         self.shop_system.restore_shop_state(self.pending_shop_state)
                 self.shop_system.update()
                 self.shop_system.draw(screen)
+
+            elif self.active_panel == "Crafting":
+                if getattr(self, 'crafting_system', None) is None:
+                    # Set the dimensions perfectly inside the panel
+                    craft_x = self.panel_rect.x + 10
+                    craft_y = self.panel_rect.y + 50
+                    craft_width = self.panel_rect.width - 20
+                    craft_height = self.panel_rect.height - 80
+                    self.crafting_system = CraftingSystem(craft_x, craft_y, craft_width, craft_height)
+                self.crafting_system.draw(screen)
+            
             elif self.active_panel == "Inventory":
                 if self.inventory_system is None:
                     inv_x = self.panel_rect.x + 10
