@@ -469,7 +469,7 @@ class PanelManager:
         return None
     
     def draw(self, screen):
-            # ========== 确保 daily_system 存在（用于 BC 显示，不影响位置） ==========
+            # ========== Make sure daily_system exists ==========
             if self.daily_system is None:
                 self.daily_system = DailyQuestSystem(0, 0, 1, 1)
                 if self.pending_daily_data:
@@ -566,7 +566,7 @@ class PanelManager:
                     self.pet_system.update()
                     self.pet_system.draw(screen, self.panel_rect, self.desc_panel_rect)
                 elif self.active_panel == "Daily":
-                    # 只更新位置，不重新创建 daily_system
+                    # Refresh position only for daily quest
                     if self.daily_system:
                         self.daily_system.rect = pg.Rect(
                             self.panel_rect.x + 10,

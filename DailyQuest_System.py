@@ -103,7 +103,7 @@ class QuestManager:
                 last_date = self.last_reset_date
             if last_date != today:
                 self.reset_daily_quests()
-                # 每日重置时扣除超出上限的 bottle caps
+                # Deduct exceed value of bottle caps when reset happens
                 self._apply_bottle_cap_limit()
         self.last_reset_date = today.isoformat()
 

@@ -109,8 +109,7 @@ def on_prestige_reset():
 
 Currency_System.register_prestige_callback(on_prestige_reset)
 
-# ========== 在这里添加 daily_system 创建代码 ==========
-# 创建 daily_system 以恢复 bottle caps 数量（无需打开面板即可显示）
+# ========== Load Daily System ==========
 Button_System.panel_manager.daily_system = DailyQuestSystem(0, 0, 1, 1)
 if saved_daily_data:
     Button_System.panel_manager.daily_system.restore_save_data(saved_daily_data)
