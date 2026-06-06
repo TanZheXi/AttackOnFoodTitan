@@ -1,5 +1,11 @@
 import pygame as pg
 
+try:
+    GLOBAL_CLICK = pg.mixer.Sound("Sfx/click.wav")
+    GLOBAL_CLICK.set_volume(0.5)
+except Exception as e:
+    GLOBAL_CLICK = None
+
 pg.init()
 pg.font.init()
 
@@ -32,7 +38,7 @@ class InventorySystem:
         self.current_category = 0
         self.category_map = {
             0: "weapon",
-            1: "gear",
+            1: "equipment",
             2: "scraps"
         }
         
@@ -55,7 +61,7 @@ class InventorySystem:
         start_x = self.rect.centerx - total_width // 2
         y = self.rect.y + 8
         
-        categories = ["Weapon", "Gear", "Scraps"]
+        categories = ["Weapon", "Equipment", "Scraps"]
         for i, cat in enumerate(categories):
             btn_rect = pg.Rect(start_x + i * (btn_width + spacing), y, btn_width, btn_height)
             btn = CategoryButton(btn_rect, cat, i)
@@ -75,20 +81,20 @@ class InventorySystem:
 
     def _get_item_category(self, item_name):
         weapon_items = ["Rusty Spatula", "Golden Spatula", "Chef's Wok", "Mythic Pan", "OP WEAPON"]
-        gear_items = ["Master Chef Hat", "Titanium Apron", "Roasted Garlic Aroma", "Speed Boots", "Magic Ring"]
+        equipment_items = ["Master Chef Hat", "Titanium Apron", "Roasted Garlic Aroma", "Speed Boots", "Magic Ring"]
         scrap_items = ["Scrap Pack S", "Scrap Pack M", "Scrap Pack L", "Scrap Pack XL", "Scrap Pack XXL"]
         pet_items = ["Baby Slime", "Fire Spirit", "Fairy", "Dragon Whelp", "Phoenix"]
         
         if item_name in weapon_items:
             return "weapon"
-        elif item_name in gear_items:
-            return "gear"
+        elif item_name in equipment_items:
+            return "equipment"
         elif item_name in scrap_items:
             return "scraps"
         elif item_name in pet_items:
             return "pet"
         else:
-            return "gear"
+            return "equipment"
 
     def get_filtered_items(self):
         category = self.category_map.get(self.current_category, "weapon")
@@ -112,14 +118,19 @@ class InventorySystem:
 
     def handle_event(self, event):
         if event.type == pg.MOUSEBUTTONDOWN:
-            # Process category button clicks
-            for btn in self.category_buttons:
-                if btn.rect.collidepoint(event.pos):
-                    self.set_category(btn.category_id)
-                    return
             
-            # Scroll inventory with mouse wheel
-            if event.button == 4:
+            # 1. Left Mouse Button (Clicking the Category Tabs)
+            if event.button == 1:
+                for btn in self.category_buttons:
+                    if btn.rect.collidepoint(event.pos):
+                        
+                        if GLOBAL_CLICK: GLOBAL_CLICK.play() # <--- PLAY SOUND!
+                        
+                        self.set_category(btn.category_id)
+                        return
+            
+            # 2. Scroll inventory with mouse wheel (Buttons 4 and 5)
+            elif event.button == 4:
                 self.scroll_offset = max(0, self.scroll_offset - 1)
             elif event.button == 5:
                 items = self.get_filtered_items()
