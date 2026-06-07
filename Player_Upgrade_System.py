@@ -1,6 +1,12 @@
 import pygame as pg
 import Currency_System
-import Gear_System
+import Equipment_System
+
+try:
+    GLOBAL_CLICK = pg.mixer.Sound("Sfx/click.wav")
+    GLOBAL_CLICK.set_volume(0.5)
+except Exception as e:
+    GLOBAL_CLICK = None
 
 pg.init()
 pg.font.init()
@@ -47,8 +53,8 @@ class PlayerUpgradeSystem:
         self.companion_cost = 100
 
         # init base_damage
-        if not hasattr(Gear_System, "base_damage"):
-            Gear_System.base_damage = 1
+        if not hasattr(Equipment_System, "base_damage"):
+            Equipment_System.base_damage = 1
 
     def _init_category_buttons(self):
         btn_width = 100
@@ -75,19 +81,23 @@ class PlayerUpgradeSystem:
         return int(self.current_cost)
 
     def handle_event(self, event):
-        if event.type == pg.MOUSEBUTTONDOWN and event.button == 1:
-            for btn in self.category_buttons:
-                if btn.rect.collidepoint(event.pos):
-                    self.set_category(btn.category_id)
-                    return
-        
+        # (Delete the example loop I gave you with 'upgrade_buttons')
+
         if self.current_category == 0:  # Player upgrade
             if event.type == pg.MOUSEBUTTONDOWN and event.button == 1:
+                # YOUR REAL BUTTON IS HERE:
                 if self.button_rect and self.button_rect.collidepoint(event.pos):
+                    
+                    if GLOBAL_CLICK: GLOBAL_CLICK.play
+                    
                     self.purchase_upgrade()
-        elif self.current_category == 1:  # Companion upgrade (placeholder, for future updates)
+                    
+        elif self.current_category == 1:  # Companion upgrade
             if event.type == pg.MOUSEBUTTONDOWN and event.button == 1:
                 if self.button_rect and self.button_rect.collidepoint(event.pos):
+                    
+                    if GLOBAL_CLICK: GLOBAL_CLICK.play() 
+                    
                     print("[COMPANION] Coming soon! Companion upgrade system is under development.")
 
     def purchase_upgrade(self):
@@ -97,16 +107,16 @@ class PlayerUpgradeSystem:
             self.level += 1
 
             # Apply effect: +1 base damage each upgrade
-            Gear_System.base_damage += 1
+            Equipment_System.base_damage += 1
 
             # Milestone: every 50 upgrades multiply damage and spike cost
             if self.level % 50 == 0:
-                Gear_System.base_damage = int(Gear_System.base_damage * 1.2)
+                Equipment_System.base_damage = int(Equipment_System.base_damage * 1.2)
                 self.current_cost = int(self.current_cost * 1.5)
             else:
                 self.current_cost = self.current_cost * self.common_ratio
 
-            print(f"[UPGRADE] Base Damage Lv {self.level} → {Gear_System.base_damage}, Next Cost: {self.get_upgrade_cost()}")
+            print(f"[UPGRADE] Base Damage Lv {self.level} → {Equipment_System.base_damage}, Next Cost: {self.get_upgrade_cost()}")
 
     def draw(self, screen):
         # Panel background
@@ -157,7 +167,7 @@ class PlayerUpgradeSystem:
 
         # Current damage display
         dmg_text = self.font_text.render(
-            f"Current Base Damage: {Gear_System.base_damage}", True, (200, 200, 220)
+            f"Current Base Damage: {Equipment_System.base_damage}", True, (200, 200, 220)
         )
         screen.blit(dmg_text, (self.rect.x + 20, self.rect.y + 170))
 

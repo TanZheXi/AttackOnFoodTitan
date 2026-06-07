@@ -1,30 +1,33 @@
 {
     "OP WEAPON": {
         "owned": true,
-        "multiplier": 1000000.0,
+        "multiplier": 1000001.5,
         "cost": 999999,
         "scrap_value": 50000,
         "rarity": "Mythic",
-        "slot": "weapon"
+        "slot": "weapon",
+        "level": 4
     },
     "Rusty Spatula": {
-        "owned": false,
-        "multiplier": 1.5,
+        "owned": true,
+        "multiplier": 3.0,
         "cost": 100,
         "scrap_value": 10,
         "rarity": "Common",
-        "slot": "weapon"
+        "slot": "weapon",
+        "level": 4
     },
     "Golden Spatula": {
-        "owned": false,
-        "multiplier": 3.0,
+        "owned": true,
+        "multiplier": 7.5,
         "cost": 500,
         "scrap_value": 50,
         "rarity": "Rare",
-        "slot": "weapon"
+        "slot": "weapon",
+        "level": 10
     },
     "Chef's Wok": {
-        "owned": false,
+        "owned": true,
         "multiplier": 8.0,
         "cost": 2000,
         "scrap_value": 200,
@@ -32,7 +35,7 @@
         "slot": "weapon"
     },
     "Mythic Pan": {
-        "owned": false,
+        "owned": true,
         "multiplier": 20.0,
         "cost": 10000,
         "scrap_value": 1000,
@@ -41,30 +44,33 @@
     },
     "Master Chef Hat": {
         "owned": false,
-        "multiplier": 5.0,
+        "multiplier": 6.0,
         "cost": 1500,
         "scrap_value": 150,
         "rarity": "Rare",
-        "slot": "hat"
+        "slot": "hat",
+        "level": 3
     },
     "Titanium Apron": {
         "owned": false,
-        "multiplier": 12.0,
+        "multiplier": 15.5,
         "cost": 4000,
         "scrap_value": 400,
         "rarity": "Epic",
-        "slot": "armor"
+        "slot": "armor",
+        "level": 8
     },
     "Roasted Garlic Aroma": {
         "owned": false,
-        "multiplier": 10.0,
+        "multiplier": 11.0,
         "cost": 5000,
         "scrap_value": 500,
         "rarity": "Epic",
-        "slot": "aroma"
+        "slot": "aroma",
+        "level": 3
     },
     "Player_Data": {
-        "scraps": 950000,
+        "scraps": 134540,
         "equipped": {
             "weapon": "OP WEAPON",
             "hat": null,
