@@ -1,6 +1,6 @@
 import pygame as pg
 import random 
-import Gear_System
+import Equipment_System
 
 pg.init()
 pg.font.init()
@@ -82,16 +82,23 @@ def update_economy(monster_hp, progression_index):
 
 def format_money(amount):
     if amount < 1000:
-        return f"${int(amount)}"
-    suffixes = ["", "K", "M", "B", "T", "Qa", "Qi"]
+        return f"{int(amount)}"
+
+    # You can add as many as you want here manually. It's super easy to read.
+    suffixes = [
+        "", "K", "M", "B", "T", "Qa", "Qi",   # The Classics     
+    ]
+    
     magnitude = 0
     temp_amount = float(amount)
     while temp_amount >= 1000 and magnitude < len(suffixes) - 1:
         magnitude += 1
         temp_amount /= 1000.0
     if temp_amount >= 1000 and magnitude == len(suffixes) - 1:
-        return f"${float(amount):.2e}"
-    return f"${temp_amount:.2f}{suffixes[magnitude]}"
+        return f"{float(amount):.2e}"
+
+    # 5. Return the formatted number
+    return f"{temp_amount:.2f}{suffixes[magnitude]}"
         
 def draw_ui(window):
     global michelin_stars, bottle_caps

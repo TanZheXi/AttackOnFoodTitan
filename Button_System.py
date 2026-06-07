@@ -4,8 +4,18 @@ from Inventory_System import InventorySystem
 import Currency_System
 from Pet_System import PetSystem
 from Player_Upgrade_System import PlayerUpgradeSystem
-import Gear_System
+import Equipment_System
+from Crafting_System import CraftingSystem
 from DailyQuest_System import DailyQuestSystem
+
+# --- NEW: GLOBAL SOUND SYSTEM (CLS_1) ---
+try:
+    # load it ONCE here at the top of the file
+    GLOBAL_CLICK = pg.mixer.Sound("Sound_Effects/Click_sfx.wav")
+    GLOBAL_CLICK.set_volume(0.3) # 50% volume
+except Exception as e:
+    GLOBAL_CLICK = None
+    print(f"Warning: Could not load click sound: {e}")
 
 pg.init()
 pg.font.init()  
@@ -23,6 +33,12 @@ class Main_button:
     def handle_event(self, event):
         if event.type == pg.MOUSEBUTTONDOWN and event.button == 1:
             if self.rect.collidepoint(event.pos):
+                
+                # 1. Play the global sound!
+                if GLOBAL_CLICK:
+                    GLOBAL_CLICK.play()
+                
+                # 2. Run the button's normal code
                 if self.callback:
                     self.callback()
                 return True
@@ -256,6 +272,7 @@ class PanelManager:
         self.pet_system = None
         self.daily_system = None
         self.global_pocket_money = Currency_System.pocket_money
+        self.crafting_system = None
         
         self.current_shop_category = 0
         self.current_inv_category = 0
@@ -404,9 +421,24 @@ class PanelManager:
         # Normal event handling when Guide is not visible
         self.handle_button_events(event)
         
+        # Handle toolbar button clicks
+        if event.type == pg.MOUSEBUTTONDOWN and event.button == 1:
+            for btn in self.toolbar_buttons:
+                btn_screen_rect = btn.rect.copy()
+                btn_screen_rect.x -= self.toolbar_offset
+                if btn_screen_rect.collidepoint(event.pos):
+                    
+                    if GLOBAL_CLICK: GLOBAL_CLICK.play() # <--- PLAY SOUND FOR TOOLBAR!
+                    
+                    btn.callback()
+                    return
+        
+        # Handle active panel events
         if self.active_panel == "Shop" and self.shop_system:
             self.shop_system.handle_event(event, self.add_to_inventory)
             self.global_pocket_money = Currency_System.pocket_money
+        elif self.active_panel == "Crafting" and getattr(self, 'crafting_system', None):
+            self.crafting_system.handle_event(event)
         elif self.active_panel == "Inventory" and self.inventory_system:
             self.inventory_system.handle_event(event)
         elif self.active_panel == "Pet" and self.pet_system:
@@ -417,8 +449,16 @@ class PanelManager:
             self.daily_system.handle_event(event)
         elif self.active_panel == "Prestige":
             stars_to_gain = Currency_System.calculate_prestige_rewards(self.current_stage)
+            
             if event.type == pg.MOUSEBUTTONDOWN and event.button == 1:
+                # 1. Did they click the button?
                 if hasattr(self, 'prestige_btn_rect') and self.prestige_btn_rect.collidepoint(event.pos):
+                    
+                    # --- PLAY SOUND ONCE HERE! ---
+                    if GLOBAL_CLICK: 
+                        GLOBAL_CLICK.play()
+
+                    # --- RUN THE PRESTIGE LOGIC ---
                     if stars_to_gain > 0:
                         if not getattr(self, 'confirm_prestige', False):
                             self.confirm_prestige = True  
@@ -430,11 +470,10 @@ class PanelManager:
                                     self.prestige_sound.play()
                                 self.active_panel = None
                                 self.confirm_prestige = False
-                    else:
-                            print(f"[PRESTIGE] Need to reach Stage 10 to prestige. Current Stage: {self.current_stage}")
-
-            elif event.type == pg.MOUSEBUTTONDOWN:
-                self.confirm_prestige = False
+                
+                # 2. Did they click anywhere ELSE on the screen?
+                else:
+                    self.confirm_prestige = False # Only cancel if they clicked away!
             return
 
     def add_to_inventory(self, item_name):
@@ -459,9 +498,9 @@ class PanelManager:
         if self.pet_system:
             self.pet_system.add_pet(item_name)
         
-        if item_name in Gear_System.gear_database:
-            Gear_System.gain_gear(item_name)
-            print(f"[SYNC] Equipment '{item_name}' added to Gear_System")
+        if item_name in Equipment_System.equipment_database:
+            Equipment_System.gain_equipment(item_name)
+            print(f"[SYNC] Equipment '{item_name}' added to Equipment_System")
 
     def get_selected_inventory_item(self):
         if self.inventory_system:
@@ -546,6 +585,17 @@ class PanelManager:
                             self.shop_system.restore_shop_state(self.pending_shop_state)
                     self.shop_system.update()
                     self.shop_system.draw(screen)
+
+                elif self.active_panel == "Crafting":
+                    if getattr(self, 'crafting_system', None) is None:
+                        # Set the dimensions perfectly inside the panel
+                        craft_x = self.panel_rect.x + 10
+                        craft_y = self.panel_rect.y + 50
+                        craft_width = self.panel_rect.width - 20
+                        craft_height = self.panel_rect.height - 80
+                        self.crafting_system = CraftingSystem(craft_x, craft_y, craft_width, craft_height)
+                    self.crafting_system.draw(screen)
+
                 elif self.active_panel == "Inventory":
                     if self.inventory_system is None:
                         inv_x = self.panel_rect.x + 10
@@ -558,6 +608,7 @@ class PanelManager:
                         if self.pending_inventory:
                             self.inventory_system.restore_inventory(self.pending_inventory)
                     self.inventory_system.draw(screen)
+
                 elif self.active_panel == "Pet":
                     if self.pet_system is None:
                         self.pet_system = PetSystem()
@@ -565,6 +616,7 @@ class PanelManager:
                             self.pet_system.restore_save_data(self.pending_pet_data)
                     self.pet_system.update()
                     self.pet_system.draw(screen, self.panel_rect, self.desc_panel_rect)
+                    
                 elif self.active_panel == "Daily":
                     # Refresh position only for daily quest
                     if self.daily_system:
@@ -597,8 +649,69 @@ class PanelManager:
                     self.player_upgrade_system.draw(screen)
 
     def _draw_prestige_panel(self, screen):
-            stars_to_gain = Currency_System.calculate_prestige_rewards(self.current_stage)
-            new_start = Currency_System.get_advanced_start(self.current_stage)
+        stars_to_gain = Currency_System.calculate_prestige_rewards(self.current_stage)
+        new_start = Currency_System.get_advanced_start(self.current_stage)
+        
+        current_stars = Currency_System.michelin_stars
+        current_mult = Currency_System.get_prestige_multiplier()
+        
+        pg.draw.rect(screen, (20, 20, 40), self.panel_rect)
+        pg.draw.rect(screen, (0, 0, 0), self.panel_rect, 6) 
+        pg.draw.rect(screen, (200, 200, 200), self.panel_rect.inflate(-12, -12), 4)
+
+        try:
+            badge_img = pg.image.load("Icon/Prestige_icon.png").convert_alpha()
+            
+            # Optional: Scale it if it's too big! Change (150, 150) to whatever fits.
+            badge_img = pg.transform.scale(badge_img, (350, 450))
+            
+            # 2. Find the perfect center of your panel
+            badge_rect = badge_img.get_rect(center=(self.panel_rect.centerx, self.panel_rect.centery + 30))
+            
+            # 3. Draw it!
+            screen.blit(badge_img, badge_rect)
+        except Exception as e:
+            print(f"Could not load badge: {e}")
+            
+        font_title = pg.font.SysFont("courier", 36, bold=True)
+        font_med = pg.font.SysFont("courier", 16, bold=True)
+        font_small = pg.font.SysFont("courier", 16, bold=True)
+        
+        y_offset = self.panel_rect.y + 30
+        
+        title_text = font_title.render("- PRESTIGE -", False, (255, 255, 0))
+        screen.blit(title_text, title_text.get_rect(center=(self.panel_rect.centerx, y_offset)))
+
+        y_offset += 30
+        warn_text = font_small.render("WARNING: MONEY RESETS. GEAR KEPT.", False, (255, 50, 50))
+        screen.blit(warn_text, warn_text.get_rect(center=(self.panel_rect.centerx, y_offset)))
+        
+        y_offset += 22
+        if current_stars > 0:
+            buff_text = font_small.render(f"CURRENT BUFF: {current_stars} STARS (x{current_mult:.1f} DMG)", False, (255, 215, 0))
+            screen.blit(buff_text, buff_text.get_rect(center=(self.panel_rect.centerx, y_offset)))
+        
+        y_offset += 22
+        inner_screen_rect = pg.Rect(self.panel_rect.x + 30, y_offset, self.panel_rect.width - 60, 90)
+        pg.draw.rect(screen, (10, 10, 20), inner_screen_rect) 
+        pg.draw.rect(screen, (100, 255, 100), inner_screen_rect, 2) 
+        
+        gain_text = font_med.render(f"STARS TO GAIN: +{stars_to_gain}", False, (255, 255, 255))
+        screen.blit(gain_text, gain_text.get_rect(center=(self.panel_rect.centerx, y_offset + 30)))
+        
+        start_text = font_med.render(f"NEXT START: LVL {new_start}", False, (100, 255, 255))
+        screen.blit(start_text, start_text.get_rect(center=(self.panel_rect.centerx, y_offset + 55)))
+        
+        self.prestige_btn_rect = pg.Rect(self.panel_rect.centerx - 100, self.panel_rect.bottom - 75, 200, 50)
+        
+        if stars_to_gain > 0:
+            btn_color = (200, 150, 0) if self.prestige_btn_rect.collidepoint(pg.mouse.get_pos()) else (150, 100, 0)
+            btn_text = "CONFIRM PRESTIGE"
+            if getattr(self, 'confirm_prestige', False):
+                btn_text = "ARE YOU SURE?"
+        else:
+            btn_color = (100, 100, 100)
+            btn_text = "REACH STAGE 10"
             
             current_stars = Currency_System.michelin_stars
             current_mult = Currency_System.get_prestige_multiplier()

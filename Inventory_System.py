@@ -1,4 +1,11 @@
 import pygame as pg
+import Equipment_System
+
+try:
+    GLOBAL_CLICK = pg.mixer.Sound("Sfx/click.wav")
+    GLOBAL_CLICK.set_volume(0.5)
+except Exception as e:
+    GLOBAL_CLICK = None
 
 pg.init()
 pg.font.init()
@@ -33,7 +40,7 @@ class InventorySystem:
         self.current_category = 0
         self.category_map = {
             0: "weapon",
-            1: "gear",
+            1: "equipment",
             2: "scraps"
         }
         
@@ -58,7 +65,7 @@ class InventorySystem:
         start_x = self.rect.centerx - total_width // 2
         y = self.rect.y + 8
         
-        categories = ["Weapon", "Gear", "Scraps"]
+        categories = ["Weapon", "Equipment", "Scraps"]
         for i, cat in enumerate(categories):
             btn_rect = pg.Rect(start_x + i * (btn_width + spacing), y, btn_width, btn_height)
             btn = CategoryButton(btn_rect, cat, i)
@@ -82,20 +89,20 @@ class InventorySystem:
 
     def _get_item_category(self, item_name):
         weapon_items = ["Rusty Spatula", "Golden Spatula", "Chef's Wok", "Mythic Pan", "OP WEAPON"]
-        gear_items = ["Master Chef Hat", "Titanium Apron", "Roasted Garlic Aroma", "Speed Boots", "Magic Ring"]
+        equipment_items = ["Master Chef Hat", "Titanium Apron", "Roasted Garlic Aroma", "Speed Boots", "Magic Ring"]
         scrap_items = ["Scrap Pack S", "Scrap Pack M", "Scrap Pack L", "Scrap Pack XL", "Scrap Pack XXL"]
         pet_items = ["Baby Slime", "Fire Spirit", "Fairy", "Dragon Whelp", "Phoenix"]
         
         if item_name in weapon_items:
             return "weapon"
-        elif item_name in gear_items:
-            return "gear"
+        elif item_name in equipment_items:
+            return "equipment"
         elif item_name in scrap_items:
             return "scraps"
         elif item_name in pet_items:
             return "pet"
         else:
-            return "gear"
+            return "equipment"
 
     def get_filtered_items(self):
         category = self.category_map.get(self.current_category, "weapon")
@@ -118,7 +125,6 @@ class InventorySystem:
         self.desc_panel_rect = rect
 
     def handle_event(self, event):
-        import Gear_System
         
         # Handle equip/unequip button clicks
         if event.type == pg.MOUSEBUTTONDOWN and event.button == 1:
@@ -133,21 +139,24 @@ class InventorySystem:
                         continue
                     
                     if key.startswith("unequip_"):
-                        if item_name in Gear_System.gear_database:
-                            slot = Gear_System.gear_database[item_name]["slot"]
-                            Gear_System.unequip_gear(slot)
+                        if item_name in Equipment_System.equipment_database:
+                            slot = Equipment_System.equipment_database[item_name]["slot"]
+                            Equipment_System.unequip_equipment(slot)
                     elif key.startswith("equip_"):
-                        Gear_System.equip_gear(item_name)
+                        Equipment_System.equip_equipment(item_name)
                     return
         
-        # Process category button clicks
+        # 1. Left Mouse Button (Clicking the Category Tabs)
         if event.type == pg.MOUSEBUTTONDOWN and event.button == 1:
             for btn in self.category_buttons:
                 if btn.rect.collidepoint(event.pos):
+
+                    if GLOBAL_CLICK: GLOBAL_CLICK.play() # <--- PLAY SOUND!
+
                     self.set_category(btn.category_id)
                     return
         
-        # Scroll inventory with mouse wheel
+        # 2. Scroll inventory with mouse wheel (Buttons 4 and 5)
         if event.type == pg.MOUSEBUTTONDOWN:
             if event.button == 4:
                 self.scroll_offset = max(0, self.scroll_offset - 1)
@@ -186,7 +195,6 @@ class InventorySystem:
                     break
 
     def draw(self, screen):
-        import Gear_System
         
         # Panel background
         pg.draw.rect(screen, (45, 45, 55), self.rect)
@@ -227,10 +235,10 @@ class InventorySystem:
                 item_rect = pg.Rect(x, y, card_width, card_height)
                 
                 # Check if item is equippable and equipped
-                is_equippable = item_name in Gear_System.gear_database
+                is_equippable = item_name in Equipment_System.equipment_database
                 is_equipped = False
                 if is_equippable:
-                    for slot, equipped_item in Gear_System.equipped_slots.items():
+                    for slot, equipped_item in Equipment_System.equipped_slots.items():
                         if equipped_item == item_name:
                             is_equipped = True
                             break

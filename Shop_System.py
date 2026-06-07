@@ -58,12 +58,12 @@ class ShopSystem:
             ShopItem("Chef's Wok", 2000, "Epic", "Master chef's wok. Perfect for stir-frying.", (200, 150, 50), "weapon"),
             ShopItem("Mythic Pan", 10000, "Mythic", "A pan of legendary power. Sizzles with energy.", (255, 100, 100), "weapon"),
             ShopItem("OP WEAPON", 999999, "Mythic", "Overpowered weapon! Use with care.", (255, 50, 50), "weapon"),
-            # Gear Shop (1)
-            ShopItem("Master Chef Hat", 1500, "Rare", "Increases cooking skill. Look professional!", (200, 180, 100), "gear"),
-            ShopItem("Titanium Apron", 4000, "Epic", "Heavy-duty protection. Stain resistant.", (150, 150, 200), "gear"),
-            ShopItem("Roasted Garlic Aroma", 5000, "Epic", "Smells amazing! Distracts enemies.", (200, 150, 100), "gear"),
-            ShopItem("Speed Boots", 2000, "Rare", "Increases movement speed. Very comfortable.", (100, 150, 200), "gear"),
-            ShopItem("Magic Ring", 8000, "Legendary", "Boosts all stats. Glows with power.", (255, 200, 100), "gear"),
+            # Equipment Shop (1)
+            ShopItem("Master Chef Hat", 1500, "Rare", "Increases cooking skill. Look professional!", (200, 180, 100), "equipment"),
+            ShopItem("Titanium Apron", 4000, "Epic", "Heavy-duty protection. Stain resistant.", (150, 150, 200), "equipment"),
+            ShopItem("Roasted Garlic Aroma", 5000, "Epic", "Smells amazing! Distracts enemies.", (200, 150, 100), "equipment"),
+            ShopItem("Speed Boots", 2000, "Rare", "Increases movement speed. Very comfortable.", (100, 150, 200), "equipment"),
+            ShopItem("Magic Ring", 8000, "Legendary", "Boosts all stats. Glows with power.", (255, 200, 100), "equipment"),
             # Pet Shop (2)
             ShopItem("Baby Slime", 500, "Common", "A cute slime pet. Jiggly and friendly.", (100, 200, 100), "pet"),
             ShopItem("Fire Spirit", 2000, "Epic", "Burns enemies with passion. Handle with care.", (255, 100, 50), "pet"),
@@ -80,7 +80,7 @@ class ShopSystem:
 
         self.category_map = {
             0: "weapon",
-            1: "gear", 
+            1: "equipment", 
             2: "pet",
             3: "scraps"
         }
@@ -119,7 +119,7 @@ class ShopSystem:
         start_x = self.rect.centerx - total_width // 2
         y = self.rect.y + 8
         
-        categories = ["Weapon", "Gear", "Pet", "Scraps"]
+        categories = ["Weapon", "Equipment", "Pet", "Scraps"]
         for i, cat in enumerate(categories):
             btn_rect = pg.Rect(start_x + i * (btn_width + spacing), y, btn_width, btn_height)
             btn = CategoryButton(btn_rect, cat, i)

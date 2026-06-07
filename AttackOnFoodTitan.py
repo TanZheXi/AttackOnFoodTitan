@@ -6,8 +6,10 @@ from Click_Damage_Feature import Monster, MonsterManager, DamageText, damage_per
 import Button_System
 import AFK_System
 import Currency_System
-import Gear_System
+import Equipment_System
 from DailyQuest_System import DailyQuestSystem
+
+
 
 
 '''General'''
@@ -36,8 +38,8 @@ pg.display.set_caption("Attack On Food Titan")
 # Load AFK rewards and saved game data (returns 10 values including daily_data)
 afk_earnings, saved_monster_data, saved_money, saved_progression_index, saved_stage, saved_inventory, saved_shop_state, saved_pet_data, saved_upgrade_level, saved_daily_data = AFK_System.afk_system.load_and_calculate_afk_rewards()
 
-# Load saved gear data
-Gear_System.load_gear()
+# Load saved equipment data
+Equipment_System.load_equipment()
 
 # Reload saved money, then sum up with AFK rewards
 if saved_money > 0:
@@ -102,7 +104,7 @@ def on_prestige_reset():
         Button_System.panel_manager.pet_system.reset_on_prestige()
         print("[PRESTIGE] Pets unequipped.")
     
-    Gear_System.lose_all_gear()
+    Equipment_System.lose_all_equipment()
     print("[PRESTIGE] Equipment reset")
     
     damage_texts.clear()
@@ -142,20 +144,22 @@ while IsRunning:
             break
         elif event.type == pg.KEYDOWN:
             if event.key == pg.K_g:
-                Gear_System.gain_gear("OP WEAPON")
+                # Sync between Equipment_System and Inventory_System when gaining new equipment
+                Equipment_System.gain_equipment("OP WEAPON")
                 Button_System.panel_manager.add_to_inventory("OP WEAPON")
                 print("[DEBUG] Gained OP WEAPON and added to inventory")
             elif event.key == pg.K_e:
                 selected_item = Button_System.panel_manager.get_selected_inventory_item()
-                if selected_item and selected_item in Gear_System.gear_database:
-                    Gear_System.equip_gear(selected_item)
+                if selected_item and selected_item in Equipment_System.equipment_database:
+                    Equipment_System.equip_equipment(selected_item)
                     print(f"[DEBUG] Equipped {selected_item}")
                 else:
                     print("[DEBUG] No valid item selected to equip")
             elif event.key == pg.K_u:
-                Gear_System.unequip_gear("weapon")
+                Equipment_System.unequip_equipment("weapon")
+            # Press 'C' to craft the item (Consumes scraps)
             elif event.key == pg.K_c:
-                if Gear_System.craft_item("Golden Spatula"):
+                if Equipment_System.craft_item("Golden Spatula"):
                     Button_System.panel_manager.add_to_inventory("Golden Spatula")
                     print("[DEBUG] Crafted Golden Spatula and added to inventory")
 
@@ -171,17 +175,38 @@ while IsRunning:
                     print("[DEV WARNING] Prestige failed. Are you at least Stage 10?")
 
         elif event.type == pg.MOUSEBUTTONDOWN:
-            if hasattr(Button_System.panel_manager, 'guide_button_rect'):
-                if Button_System.panel_manager.guide_button_rect.collidepoint(event.pos):
-                    Button_System.panel_manager.toggle_guide()
-            
-            if event.button == 1:
-                if current_monster.rect.collidepoint(event.pos):
-                    base_damage = getattr(Gear_System, "base_damage", damage_per_click)
-                    gear_multi = Gear_System.total_damage_multiplier
-                    prestige_multi = Currency_System.get_prestige_multiplier()
-                    calculated_base, is_critical = calculate_damage(base_damage, 0)
-                    final_damage = int(calculated_base * gear_multi * prestige_multi)
+          if event.button == 1:
+            if current_monster.rect.collidepoint(event.pos):
+                
+                # --- MERGED DAMAGE CALCULATION ---
+                # 1. Base damage
+                base_damage = getattr(Equipment_System, "base_damage", damage_per_click)
+                final_damage, is_critical = calculate_damage(base_damage) 
+                
+                # 2. Equipment Multiplier
+                equipment_multi = Equipment_System.total_damage_multiplier
+                
+                # 3. PRESTIGE MULTIPLIER (NEW!)
+                prestige_multi = Currency_System.get_prestige_multiplier()
+                
+                # 4. Main branch's critical hit logic   
+                calculated_base, is_critical = calculate_damage(base_damage, 0)
+                
+                # 5. Final God-Tier Math
+                final_damage = int(calculated_base * equipment_multi * prestige_multi)
+                
+                # Apply damage
+                current_monster.take_damage(final_damage)
+
+                # Spawn floating damage text
+                popup_x = current_monster.rect.x + random.randint(20, max(20, current_monster.rect.width - 40))
+                popup_y = current_monster.rect.y + random.randint(20, max(20, current_monster.rect.height - 40))
+                damage_texts.append(DamageText(str(final_damage), (popup_x, popup_y), is_critical=is_critical))
+
+                
+                if current_monster.is_defeated():
+                    # FIX: pass current_monster.hp (0 when defeated) so update_economy awards money
+                    Currency_System.update_economy(current_monster.hp, monster_manager.progression_index + 1)
                     
                     current_monster.take_damage(final_damage)
 
@@ -280,7 +305,10 @@ while IsRunning:
             daily_data=daily_data
         )
         AFK_System.afk_system.update_save_time()
-        Gear_System.save_gear()
+
+        # Equipment system auto save
+        Equipment_System.save_equipment()
+
         last_auto_save = current_time
 
     for button in Button_System.buttons:
@@ -388,7 +416,7 @@ pg.quit()
 
 ''' Tan Zhe Xi '''
 ## TZX_1. MINIGAME SYSTEM
-## TZX_2. GEAR & DATA DESIGN
+## TZX_2. EQUIPMENT & DATA DESIGN
 ## TZX_3. ABILITY TO CLICK TO DEAL DAMAGE
 #(Handled by Click_Damage_Feature.py)
 ## TZX_4. ADJUSTING STATS ACCORDING TO PRESTIGE LEVELS
@@ -405,7 +433,7 @@ pg.quit()
 ''' Chen Lik Shen '''
 ## CLS_1. GAME UI & SOUND EFFECT
 # (Handled by Currency_System.py)
-## CLS_2. GAIN & LOST OF GEAR & CURRENCY SYSTEM
+## CLS_2. GAIN & LOST OF EQUIPMENT & CURRENCY SYSTEM
 # (Handled by Currency_System.py)
 ## CLS_3. CRAFTING SYSTEM
-## CLS_4. SYSTEM TO ADD NEW GEAR, CHARACTER, AND RECIPES ACCORDING TO EACH PRESTIGE LEVELS
+## CLS_4. SYSTEM TO ADD NEW EQUIPMENT, CHARACTER, AND RECIPES ACCORDING TO EACH PRESTIGE LEVELS

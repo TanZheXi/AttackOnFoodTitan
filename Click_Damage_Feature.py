@@ -1,6 +1,6 @@
 import pygame as pg
 import random
-import Gear_System
+import Equipment_System
 
 class Monster:
     def __init__(self, name, max_hp, color):
@@ -104,16 +104,16 @@ class DamageText:
 
 
 # Damage System 
-# Use Gear_System.base_damage if available, otherwise fallback
-damage_per_click = getattr(Gear_System, "base_damage", 1)
+# Use Equipment_System.base_damage if available, otherwise fallback
+damage_per_click = getattr(Equipment_System, "base_damage", 1)
 
 # Critical hit settings
 crit_chance = 0.05       # 5% chance
 crit_multiplier = 2.0    # double damage on crit
 
-def calculate_damage(base_damage, gear_bonus=0):
+def calculate_damage(base_damage, equipment_bonus=0):
     # Return (final_damage, is_critical) with crit chance applied. 
-    final_damage = base_damage + gear_bonus
+    final_damage = base_damage + equipment_bonus
     is_critical = random.random() < crit_chance
     if is_critical:
         final_damage = int(final_damage * crit_multiplier)
