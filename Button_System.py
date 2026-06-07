@@ -232,7 +232,7 @@ class GuideSystem:
                 self.scroll_offset = min(max_scroll, getattr(self, 'scroll_offset', 0) + 1)
         
         return False
-
+    
 class PanelManager:
     def __init__(self, screen_width, screen_height):
         self.active_panel = None
@@ -391,7 +391,7 @@ class PanelManager:
             self.inventory_system.reset_inventory()
         if self.pet_system:
             self.pet_system.reset_on_prestige()
-    
+
     def handle_event(self, event):
         # If Guide panel is visible
         if self.guide_system.visible:
@@ -420,18 +420,6 @@ class PanelManager:
         
         # Normal event handling when Guide is not visible
         self.handle_button_events(event)
-        
-        # Handle toolbar button clicks
-        if event.type == pg.MOUSEBUTTONDOWN and event.button == 1:
-            for btn in self.toolbar_buttons:
-                btn_screen_rect = btn.rect.copy()
-                btn_screen_rect.x -= self.toolbar_offset
-                if btn_screen_rect.collidepoint(event.pos):
-                    
-                    if GLOBAL_CLICK: GLOBAL_CLICK.play() # <--- PLAY SOUND FOR TOOLBAR!
-                    
-                    btn.callback()
-                    return
         
         # Handle active panel events
         if self.active_panel == "Shop" and self.shop_system:
@@ -508,145 +496,145 @@ class PanelManager:
         return None
     
     def draw(self, screen):
-            # ========== Make sure daily_system exists ==========
-            if self.daily_system is None:
-                self.daily_system = DailyQuestSystem(0, 0, 1, 1)
-                if self.pending_daily_data:
-                    self.daily_system.restore_save_data(self.pending_daily_data)
-                    Currency_System.set_bottle_caps(self.daily_system.get_bottle_caps())
-            # ======================================================================
+        # ========== Make sure daily_system exists ==========
+        if self.daily_system is None:
+            self.daily_system = DailyQuestSystem(0, 0, 1, 1)
+            if self.pending_daily_data:
+                self.daily_system.restore_save_data(self.pending_daily_data)
+                Currency_System.set_bottle_caps(self.daily_system.get_bottle_caps())
+        # ======================================================================
+        
+        right_area_rect = pg.Rect(850, 0, 450, 750)
+        pg.draw.rect(screen, (45, 45, 55), right_area_rect)
+        pg.draw.rect(screen, (150, 150, 170), right_area_rect, 2)
+        
+        self.draw_buttons(screen)
+        
+        font = pg.font.SysFont(None, 20)
+        guide_text = font.render("?", True, (255, 255, 255))
+        guide_rect = pg.Rect(310, 12, 30, 30)
+        pg.draw.rect(screen, (80, 80, 100), guide_rect)
+        pg.draw.rect(screen, (200, 200, 200), guide_rect, 1)
+        screen.blit(guide_text, guide_text.get_rect(center=guide_rect.center))
+        self.guide_button_rect = guide_rect
+        
+        if self.guide_system.visible:
+            self.guide_system.draw(screen)
+            return
+        
+        if self.active_panel is None:
+            font = pg.font.SysFont(None, 28)
+            hint_text = font.render("Click a button to interact!", True, (200, 200, 220))
+            hint_rect = hint_text.get_rect(center=(850 + 225, 375))
+            screen.blit(hint_text, hint_rect)
             
-            right_area_rect = pg.Rect(850, 0, 450, 750)
-            pg.draw.rect(screen, (45, 45, 55), right_area_rect)
-            pg.draw.rect(screen, (150, 150, 170), right_area_rect, 2)
+            font_small = pg.font.SysFont(None, 20)
+            hint_text2 = font_small.render("U | P | C | I | S | R | Pr | D", True, (150, 150, 170))
+            hint_rect2 = hint_text2.get_rect(center=(850 + 225, 420))
+            screen.blit(hint_text2, hint_rect2)
+            return
+        
+        if self.active_panel:
+            panel_surface = pg.Surface((self.panel_rect.width, self.panel_rect.height))
+            panel_surface.set_alpha(self.panel_color[3])
+            panel_surface.fill(self.panel_color[:3])
+            screen.blit(panel_surface, (self.panel_rect.x, self.panel_rect.y))
+            pg.draw.rect(screen, self.border_color, self.panel_rect, 3)
             
-            self.draw_buttons(screen)
+            if self.active_panel != "Prestige":
+                desc_surface = pg.Surface((self.desc_panel_rect.width, self.desc_panel_rect.height))
+                desc_surface.set_alpha(self.panel_color[3])
+                desc_surface.fill(self.panel_color[:3])
+                screen.blit(desc_surface, (self.desc_panel_rect.x, self.desc_panel_rect.y))
+                pg.draw.rect(screen, self.border_color, self.desc_panel_rect, 3)
             
-            font = pg.font.SysFont(None, 20)
-            guide_text = font.render("?", True, (255, 255, 255))
-            guide_rect = pg.Rect(310, 12, 30, 30)
-            pg.draw.rect(screen, (80, 80, 100), guide_rect)
-            pg.draw.rect(screen, (200, 200, 200), guide_rect, 1)
-            screen.blit(guide_text, guide_text.get_rect(center=guide_rect.center))
-            self.guide_button_rect = guide_rect
+            pg.draw.line(screen, (100, 100, 100), 
+                        (self.panel_rect.x, self.panel_rect.y + self.panel_rect.height),
+                        (self.panel_rect.x + self.panel_rect.width, self.panel_rect.y + self.panel_rect.height), 2)
             
-            if self.guide_system.visible:
-                self.guide_system.draw(screen)
-                return
+            font = pg.font.SysFont(None, 32)
+            if self.active_panel == "Daily":
+                title_text = font.render("DAILY QUEST", True, (255, 220, 100))
+            else:
+                title_text = font.render(f"{self.active_panel}", True, (255, 220, 100))
+            title_rect = title_text.get_rect(center=(self.panel_rect.centerx, self.panel_rect.y + 22))
+            screen.blit(title_text, title_rect)
             
-            if self.active_panel is None:
-                font = pg.font.SysFont(None, 28)
-                hint_text = font.render("Click a button to interact!", True, (200, 200, 220))
-                hint_rect = hint_text.get_rect(center=(850 + 225, 375))
-                screen.blit(hint_text, hint_rect)
+            if self.active_panel == "Shop":
+                if self.shop_system is None:
+                    shop_x = self.panel_rect.x + 10
+                    shop_y = self.panel_rect.y + 50
+                    shop_width = self.panel_rect.width - 20
+                    shop_height = self.panel_rect.height - 80
+                    self.shop_system = ShopSystem(shop_x, shop_y, shop_width, shop_height)
+                    self.shop_system.set_desc_panel_rect(self.desc_panel_rect)
+                    self.shop_system.set_category(self.current_shop_category)
+                    if self.pending_shop_state:
+                        self.shop_system.restore_shop_state(self.pending_shop_state)
+                self.shop_system.update()
+                self.shop_system.draw(screen)
+
+            elif self.active_panel == "Crafting":
+                if getattr(self, 'crafting_system', None) is None:
+                    # Set the dimensions perfectly inside the panel
+                    craft_x = self.panel_rect.x + 10
+                    craft_y = self.panel_rect.y + 50
+                    craft_width = self.panel_rect.width - 20
+                    craft_height = self.panel_rect.height - 80
+                    self.crafting_system = CraftingSystem(craft_x, craft_y, craft_width, craft_height)
+                self.crafting_system.draw(screen)
+
+            elif self.active_panel == "Inventory":
+                if self.inventory_system is None:
+                    inv_x = self.panel_rect.x + 10
+                    inv_y = self.panel_rect.y + 50
+                    inv_width = self.panel_rect.width - 20
+                    inv_height = self.panel_rect.height - 80
+                    self.inventory_system = InventorySystem(inv_x, inv_y, inv_width, inv_height)
+                    self.inventory_system.set_desc_panel_rect(self.desc_panel_rect)
+                    self.inventory_system.set_category(self.current_inv_category)
+                    if self.pending_inventory:
+                        self.inventory_system.restore_inventory(self.pending_inventory)
+                self.inventory_system.draw(screen)
+
+            elif self.active_panel == "Pet":
+                if self.pet_system is None:
+                    self.pet_system = PetSystem()
+                    if self.pending_pet_data:
+                        self.pet_system.restore_save_data(self.pending_pet_data)
+                self.pet_system.update()
+                self.pet_system.draw(screen, self.panel_rect, self.desc_panel_rect)
                 
-                font_small = pg.font.SysFont(None, 20)
-                hint_text2 = font_small.render("U | P | C | I | S | R | Pr | D", True, (150, 150, 170))
-                hint_rect2 = hint_text2.get_rect(center=(850 + 225, 420))
-                screen.blit(hint_text2, hint_rect2)
-                return
-            
-            if self.active_panel:
-                panel_surface = pg.Surface((self.panel_rect.width, self.panel_rect.height))
-                panel_surface.set_alpha(self.panel_color[3])
-                panel_surface.fill(self.panel_color[:3])
-                screen.blit(panel_surface, (self.panel_rect.x, self.panel_rect.y))
-                pg.draw.rect(screen, self.border_color, self.panel_rect, 3)
-                
-                if self.active_panel != "Prestige":
-                    desc_surface = pg.Surface((self.desc_panel_rect.width, self.desc_panel_rect.height))
-                    desc_surface.set_alpha(self.panel_color[3])
-                    desc_surface.fill(self.panel_color[:3])
-                    screen.blit(desc_surface, (self.desc_panel_rect.x, self.desc_panel_rect.y))
-                    pg.draw.rect(screen, self.border_color, self.desc_panel_rect, 3)
-                
-                pg.draw.line(screen, (100, 100, 100), 
-                            (self.panel_rect.x, self.panel_rect.y + self.panel_rect.height),
-                            (self.panel_rect.x + self.panel_rect.width, self.panel_rect.y + self.panel_rect.height), 2)
-                
-                font = pg.font.SysFont(None, 32)
-                if self.active_panel == "Daily":
-                    title_text = font.render("DAILY QUEST", True, (255, 220, 100))
+            elif self.active_panel == "Daily":
+                # Refresh position only for daily quest
+                if self.daily_system:
+                    self.daily_system.rect = pg.Rect(
+                        self.panel_rect.x + 10,
+                        self.panel_rect.y + 50,
+                        self.panel_rect.width - 20,
+                        self.panel_rect.height - 80
+                    )
                 else:
-                    title_text = font.render(f"{self.active_panel}", True, (255, 220, 100))
-                title_rect = title_text.get_rect(center=(self.panel_rect.centerx, self.panel_rect.y + 22))
-                screen.blit(title_text, title_rect)
-                
-                if self.active_panel == "Shop":
-                    if self.shop_system is None:
-                        shop_x = self.panel_rect.x + 10
-                        shop_y = self.panel_rect.y + 50
-                        shop_width = self.panel_rect.width - 20
-                        shop_height = self.panel_rect.height - 80
-                        self.shop_system = ShopSystem(shop_x, shop_y, shop_width, shop_height)
-                        self.shop_system.set_desc_panel_rect(self.desc_panel_rect)
-                        self.shop_system.set_category(self.current_shop_category)
-                        if self.pending_shop_state:
-                            self.shop_system.restore_shop_state(self.pending_shop_state)
-                    self.shop_system.update()
-                    self.shop_system.draw(screen)
-
-                elif self.active_panel == "Crafting":
-                    if getattr(self, 'crafting_system', None) is None:
-                        # Set the dimensions perfectly inside the panel
-                        craft_x = self.panel_rect.x + 10
-                        craft_y = self.panel_rect.y + 50
-                        craft_width = self.panel_rect.width - 20
-                        craft_height = self.panel_rect.height - 80
-                        self.crafting_system = CraftingSystem(craft_x, craft_y, craft_width, craft_height)
-                    self.crafting_system.draw(screen)
-
-                elif self.active_panel == "Inventory":
-                    if self.inventory_system is None:
-                        inv_x = self.panel_rect.x + 10
-                        inv_y = self.panel_rect.y + 50
-                        inv_width = self.panel_rect.width - 20
-                        inv_height = self.panel_rect.height - 80
-                        self.inventory_system = InventorySystem(inv_x, inv_y, inv_width, inv_height)
-                        self.inventory_system.set_desc_panel_rect(self.desc_panel_rect)
-                        self.inventory_system.set_category(self.current_inv_category)
-                        if self.pending_inventory:
-                            self.inventory_system.restore_inventory(self.pending_inventory)
-                    self.inventory_system.draw(screen)
-
-                elif self.active_panel == "Pet":
-                    if self.pet_system is None:
-                        self.pet_system = PetSystem()
-                        if self.pending_pet_data:
-                            self.pet_system.restore_save_data(self.pending_pet_data)
-                    self.pet_system.update()
-                    self.pet_system.draw(screen, self.panel_rect, self.desc_panel_rect)
-                    
-                elif self.active_panel == "Daily":
-                    # Refresh position only for daily quest
-                    if self.daily_system:
-                        self.daily_system.rect = pg.Rect(
-                            self.panel_rect.x + 10,
-                            self.panel_rect.y + 50,
-                            self.panel_rect.width - 20,
-                            self.panel_rect.height - 80
-                        )
-                    else:
-                        daily_x = self.panel_rect.x + 10
-                        daily_y = self.panel_rect.y + 50
-                        daily_width = self.panel_rect.width - 20
-                        daily_height = self.panel_rect.height - 80
-                        self.daily_system = DailyQuestSystem(daily_x, daily_y, daily_width, daily_height)
-                        if self.pending_daily_data:
-                            self.daily_system.restore_save_data(self.pending_daily_data)
-                            Currency_System.set_bottle_caps(self.daily_system.get_bottle_caps())
-                    self.daily_system.update()
-                    self.daily_system.draw(screen)
-                elif self.active_panel == "Prestige":
-                    self._draw_prestige_panel(screen)
-                elif self.active_panel == "Upgrade":
-                    if self.player_upgrade_system is None:
-                        upgrade_x = self.panel_rect.x + 10
-                        upgrade_y = self.panel_rect.y + 50
-                        upgrade_width = self.panel_rect.width - 20
-                        upgrade_height = self.panel_rect.height - 80
-                        self.player_upgrade_system = PlayerUpgradeSystem(upgrade_x, upgrade_y, upgrade_width, upgrade_height)
-                    self.player_upgrade_system.draw(screen)
+                    daily_x = self.panel_rect.x + 10
+                    daily_y = self.panel_rect.y + 50
+                    daily_width = self.panel_rect.width - 20
+                    daily_height = self.panel_rect.height - 80
+                    self.daily_system = DailyQuestSystem(daily_x, daily_y, daily_width, daily_height)
+                    if self.pending_daily_data:
+                        self.daily_system.restore_save_data(self.pending_daily_data)
+                        Currency_System.set_bottle_caps(self.daily_system.get_bottle_caps())
+                self.daily_system.update()
+                self.daily_system.draw(screen)
+            elif self.active_panel == "Prestige":
+                self._draw_prestige_panel(screen)
+            elif self.active_panel == "Upgrade":
+                if self.player_upgrade_system is None:
+                    upgrade_x = self.panel_rect.x + 10
+                    upgrade_y = self.panel_rect.y + 50
+                    upgrade_width = self.panel_rect.width - 20
+                    upgrade_height = self.panel_rect.height - 80
+                    self.player_upgrade_system = PlayerUpgradeSystem(upgrade_x, upgrade_y, upgrade_width, upgrade_height)
+                self.player_upgrade_system.draw(screen)
 
     def _draw_prestige_panel(self, screen):
         stars_to_gain = Currency_System.calculate_prestige_rewards(self.current_stage)
@@ -713,59 +701,12 @@ class PanelManager:
             btn_color = (100, 100, 100)
             btn_text = "REACH STAGE 10"
             
-            current_stars = Currency_System.michelin_stars
-            current_mult = Currency_System.get_prestige_multiplier()
-            
-            pg.draw.rect(screen, (20, 20, 40), self.panel_rect)
-            pg.draw.rect(screen, (0, 0, 0), self.panel_rect, 6) 
-            pg.draw.rect(screen, (200, 200, 200), self.panel_rect.inflate(-12, -12), 4)
-
-            font_title = pg.font.SysFont("courier", 36, bold=True)
-            font_med = pg.font.SysFont("courier", 20, bold=True)
-            font_small = pg.font.SysFont("courier", 16, bold=True)
-            
-            y_offset = self.panel_rect.y + 30
-            
-            title_text = font_title.render("- PRESTIGE -", False, (255, 255, 0))
-            screen.blit(title_text, title_text.get_rect(center=(self.panel_rect.centerx, y_offset)))
-            
-            y_offset += 30
-            warn_text = font_small.render("WARNING: MONEY RESETS. GEAR KEPT.", False, (255, 50, 50))
-            screen.blit(warn_text, warn_text.get_rect(center=(self.panel_rect.centerx, y_offset)))
-            
-            y_offset += 22
-            if current_stars > 0:
-                buff_text = font_small.render(f"CURRENT BUFF: {current_stars} STARS (x{current_mult:.1f} DMG)", False, (255, 215, 0))
-                screen.blit(buff_text, buff_text.get_rect(center=(self.panel_rect.centerx, y_offset)))
-            
-            y_offset += 22
-            inner_screen_rect = pg.Rect(self.panel_rect.x + 30, y_offset, self.panel_rect.width - 60, 90)
-            pg.draw.rect(screen, (10, 10, 20), inner_screen_rect) 
-            pg.draw.rect(screen, (100, 255, 100), inner_screen_rect, 2) 
-            
-            gain_text = font_med.render(f"STARS TO GAIN: +{stars_to_gain}", False, (255, 255, 255))
-            screen.blit(gain_text, gain_text.get_rect(center=(self.panel_rect.centerx, y_offset + 30)))
-            
-            start_text = font_med.render(f"NEXT START: LVL {new_start}", False, (100, 255, 255))
-            screen.blit(start_text, start_text.get_rect(center=(self.panel_rect.centerx, y_offset + 55)))
-            
-            self.prestige_btn_rect = pg.Rect(self.panel_rect.centerx - 80, self.panel_rect.bottom - 70, 160, 40)
-            
-            if stars_to_gain > 0:
-                btn_color = (200, 150, 0) if self.prestige_btn_rect.collidepoint(pg.mouse.get_pos()) else (150, 100, 0)
-                btn_text = "CONFIRM PRESTIGE"
-                if getattr(self, 'confirm_prestige', False):
-                    btn_text = "CLICK AGAIN!"
-            else:
-                btn_color = (100, 100, 100)
-                btn_text = "REACH STAGE 10"
-                
-            pg.draw.rect(screen, btn_color, self.prestige_btn_rect)
-            pg.draw.rect(screen, (255, 255, 255), self.prestige_btn_rect, 2)
-            
-            lbl = font_med.render(btn_text, True, (255, 255, 255))
-            lbl_rect = lbl.get_rect(center=self.prestige_btn_rect.center)
-            screen.blit(lbl, lbl_rect)
+        pg.draw.rect(screen, btn_color, self.prestige_btn_rect)
+        pg.draw.rect(screen, (255, 255, 255), self.prestige_btn_rect, 2)
+        
+        lbl = font_med.render(btn_text, True, (255, 255, 255))
+        lbl_rect = lbl.get_rect(center=self.prestige_btn_rect.center)
+        screen.blit(lbl, lbl_rect)
 
 
 # ========== Global instance ==========
