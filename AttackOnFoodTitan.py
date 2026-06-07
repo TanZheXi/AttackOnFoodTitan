@@ -169,7 +169,7 @@ while IsRunning:
                 if not success:
                     print("[DEV WARNING] Prestige failed. Are you at least Stage 10?")
 
-            # --- Click event handling ---
+        # --- Click event handling ---
         elif event.type == pg.MOUSEBUTTONDOWN:
               if event.button == 1 and current_monster.rect.collidepoint(event.pos):
               # Get crit bonuses
