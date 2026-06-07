@@ -529,7 +529,7 @@ class PanelManager:
             screen.blit(hint_text, hint_rect)
             
             font_small = pg.font.SysFont(None, 20)
-            hint_text2 = font_small.render("U | P | C | I | S | R | Pr | D", True, (150, 150, 170))
+            hint_text2 = font_small.render("Panel will appear here", True, (150, 150, 170))
             hint_rect2 = hint_text2.get_rect(center=(850 + 225, 420))
             screen.blit(hint_text2, hint_rect2)
             return
