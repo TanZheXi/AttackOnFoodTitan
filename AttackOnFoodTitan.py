@@ -126,6 +126,8 @@ if saved_daily_data:
 # =========================
 while IsRunning:
     dt_ms = clock.tick(60)   # frame delta in ms
+    damage_boost.update()
+    crispy_precision.update()
 
     # -------------------------
     # Event Handling
