@@ -49,7 +49,7 @@ def spend_money(amount):
         print(f"Not enough money! You need ${amount - pocket_money} more.")
     return False
 
-def update_economy(monster_hp, progression_index):
+def update_economy(monster_value, progression_index):
     global pocket_money
     current_stage = (progression_index // 10) + 1
     tier = current_stage // 10

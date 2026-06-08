@@ -194,9 +194,12 @@ while IsRunning:
               # Exclude clicks inside UI panels
               in_left_panel = mouse_x < LEFT_WIDTH
               in_right_panel = mouse_x >= RIGHT_AREA_X
-              in_active_panel = Button_System.panel_manager.active_panel is not None
+              in_active_panel_area = False
+              panel_rect = Button_System.panel_manager.get_active_panel_rect()
+              if panel_rect and panel_rect.collidepoint(event.pos):
+                 in_active_panel_area = True
 
-              if not (in_left_panel or in_right_panel or in_active_panel):
+              if not (in_left_panel or in_right_panel or in_active_panel_area):
                 # Get crit bonuses
                 extra_chance, extra_multi = crispy_precision.get_crit_bonus()
 
@@ -217,9 +220,11 @@ while IsRunning:
 
                 # Check defeat
                 if current_monster.is_defeated():
-                   Currency_System.update_economy(current_monster.hp, monster_manager.progression_index + 1)
-                if Button_System.panel_manager.daily_system:
-                   Button_System.panel_manager.daily_system.on_defeat_titan()
+                   Currency_System.update_economy(current_monster.max_hp, monster_manager.progression_index + 1)
+
+                   if Button_System.panel_manager.daily_system:
+                      Button_System.panel_manager.daily_system.on_defeat_titan()
+
                    monster_manager.next_monster()
                    current_monster = monster_manager.current_monster
                    current_monster.rect.x = MIDDLE_CENTER_X - MONSTER_SIZE // 2
@@ -257,16 +262,18 @@ while IsRunning:
                 popup_y = current_monster.rect.y + random.randint(20, max(20, current_monster.rect.height - 40))
                 damage_texts.append(DamageText(f"{final_pet_damage:.1f}", (popup_x, popup_y), is_critical))
 
-                if current_monster.is_defeated():
-                    Currency_System.update_economy(current_monster.hp, monster_manager.progression_index)
+                # Pet attack defeat check
+                if current_monster.is_defeated(): 
+                   Currency_System.update_economy(current_monster.max_hp, monster_manager.progression_index)
 
-                    if Button_System.panel_manager.daily_system:
-                        Button_System.panel_manager.daily_system.on_defeat_with_pet()
+                   if Button_System.panel_manager.daily_system:
+                      Button_System.panel_manager.daily_system.on_defeat_with_pet()
 
-                    monster_manager.next_monster()
-                    current_monster = monster_manager.current_monster
-                    current_monster.rect.x = MIDDLE_CENTER_X - MONSTER_SIZE // 2
-                    current_monster.rect.y = 275
+                   monster_manager.next_monster()
+                   current_monster = monster_manager.current_monster
+                   current_monster.rect.x = MIDDLE_CENTER_X - MONSTER_SIZE // 2
+                   current_monster.rect.y = 275
+                   
         last_pet_attack_time = current_time
     # =================================
 

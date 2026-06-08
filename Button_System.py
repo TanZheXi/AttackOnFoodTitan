@@ -463,7 +463,12 @@ class PanelManager:
                 else:
                     self.confirm_prestige = False # Only cancel if they clicked away!
             return
-
+    def get_active_panel_rect(self):
+        """Return the rect of the currently active panel, if any."""
+        if self.active_panel:
+            return self.panel_rect
+        return None
+    
     def add_to_inventory(self, item_name):
         if self.pet_system is None:
             self.pet_system = PetSystem()
