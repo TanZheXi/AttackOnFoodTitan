@@ -122,15 +122,24 @@ class SpicySurge(AbilityBase):
     def __init__(self, x, y, radius):
         super().__init__(x, y, radius)
         self.damage_multiplier = 1.5
+        self.mana_cost = 20
+
+    def activate(self, mana_system=None):
+        if mana_system and not mana_system.spend(self.mana_cost):
+            print("[ABILITY] Not enough mana for Spicy Surge!")
+            return
+        super().activate()
 
     def get_multiplier(self):
         return self.damage_multiplier if self.active else 1.0
 
-    def draw(self, surface):
-        # Update rect before drawing
+    def draw(self, surface, mana_system=None):
         self.rect = pg.Rect(self.x - self.radius, self.y - self.radius, self.radius * 2, self.radius * 2)
 
-        if self.active:
+         # Grey if not enough mana
+        if mana_system and mana_system.current_mana < self.mana_cost:
+            color = (80, 80, 80)
+        elif self.active:
             color = (255, 0, 0)
         elif self.cooldown:
             color = (100, 100, 100)
@@ -161,17 +170,26 @@ class CrispyPrecision(AbilityBase):
         super().__init__(x, y, radius)
         self.extra_crit_chance = 0.15
         self.extra_crit_damage = 1.5
+        self.mana_cost = 30
+
+    def activate(self, mana_system=None):
+        if mana_system and not mana_system.spend(self.mana_cost):
+            print("[ABILITY] Not enough mana for Crispy Precision!")
+            return
+        super().activate()
 
     def get_crit_bonus(self):
         if self.active:
             return self.extra_crit_chance, self.extra_crit_damage
         return 0.0, 1.0
 
-    def draw(self, surface):
-        # Update rect before drawing
+    def draw(self, surface, mana_system=None):
         self.rect = pg.Rect(self.x - self.radius, self.y - self.radius, self.radius * 2, self.radius * 2)
 
-        if self.active:
+        # Grey if not enough mana
+        if mana_system and mana_system.current_mana < self.mana_cost:
+            color = (80, 80, 80)
+        elif self.active:
             color = (0, 255, 0)
         elif self.cooldown:
             color = (100, 100, 100)
@@ -192,3 +210,43 @@ class CrispyPrecision(AbilityBase):
             progress = (time.time() - self.cooldown_start) / self.cooldown_time
             bar_color = lerp_color((255, 0, 0), (173, 216, 230), progress)
             self.draw_progress_arc(surface, progress, clockwise=False, color=bar_color)
+
+# =================
+# Mana Point System
+# =================
+class ManaSystem:
+    def __init__(self, max_mana=100, regen_rate=0.2):
+        self.max_mana = max_mana
+        self.current_mana = max_mana
+        self.regen_rate = regen_rate
+        self.last_update = time.time()
+
+    def update(self):
+        now = time.time()
+        elapsed = now - self.last_update
+        self.last_update = now
+        self.current_mana = min(self.max_mana, self.current_mana + elapsed * self.regen_rate)
+
+    def spend(self, amount):
+        if self.current_mana >= amount:
+            self.current_mana -= amount
+            return True
+        return False
+
+    def draw(self, surface, left_boundary_x, ability_y, ability_radius, width=120, height=16):
+        x = left_boundary_x + 5
+        y = ability_y - ability_radius - height - 10
+
+        # Background
+        pg.draw.rect(surface, (40, 40, 40), (x, y, width, height))
+        # Filled portion (cyan)
+        mana_ratio = self.current_mana / self.max_mana
+        pg.draw.rect(surface, (0, 255, 255), (x, y, int(width * mana_ratio), height))
+        # Border
+        pg.draw.rect(surface, (200, 200, 200), (x, y, width, height), 2)
+
+        # Text display: current/max
+        font = pg.font.SysFont(None, 20)
+        text_surface = font.render(f"{int(self.current_mana)}/{self.max_mana}", True, (255, 255, 255))
+        text_rect = text_surface.get_rect(midleft=(x + width + 10, y + height // 2))
+        surface.blit(text_surface, text_rect)

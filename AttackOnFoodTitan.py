@@ -8,7 +8,7 @@ import AFK_System
 import Currency_System
 import Equipment_System
 from DailyQuest_System import DailyQuestSystem
-from Abilities import SpicySurge, CrispyPrecision
+from Abilities import SpicySurge, CrispyPrecision, ManaSystem
 
 
 # ========== UI LAYOUT ==========
@@ -97,6 +97,8 @@ crispy_precision = CrispyPrecision(
     y=damage_boost.y,
     radius=35
 )
+
+mana_system = ManaSystem()
 
 def on_prestige_reset():
     if Button_System.panel_manager.shop_system:
@@ -242,8 +244,11 @@ while IsRunning:
                    current_monster.rect.y = 275
 
         # Ability events
-        damage_boost.handle_event(event)
-        crispy_precision.handle_event(event)
+        if event.type == pg.MOUSEBUTTONDOWN and event.button == 1:
+           if damage_boost.rect.collidepoint(event.pos):
+              damage_boost.activate(mana_system)
+           elif crispy_precision.rect.collidepoint(event.pos):
+                crispy_precision.activate(mana_system)
 
         # UI Event
         Button_System.panel_manager.monster_manager = monster_manager
@@ -420,9 +425,15 @@ while IsRunning:
 
     Button_System.panel_manager.draw(window)
 
+    # Update mana
+    mana_system.update()
+
+    # Draw mana bar above abilities, aligned with left panel line
+    mana_system.draw(window, LEFT_WIDTH, damage_boost.y, damage_boost.radius) 
+
     # Abilities drawn last so they are visible on top
-    damage_boost.draw(window)
-    crispy_precision.draw(window)
+    damage_boost.draw(window, mana_system)
+    crispy_precision.draw(window, mana_system)
 
     pg.display.update()
 
