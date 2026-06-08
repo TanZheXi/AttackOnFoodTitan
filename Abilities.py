@@ -161,6 +161,11 @@ class SpicySurge(AbilityBase):
             bar_color = lerp_color((255, 0, 0), (173, 216, 230), progress)
             self.draw_progress_arc(surface, progress, clockwise=False, color=bar_color)
 
+        # Draw mana cost label below the button
+        font = pg.font.SysFont(None, 18)
+        txt = font.render(f"{self.mana_cost} MP", True, (0, 0, 0))
+        txt_rect = txt.get_rect(center=(self.x, self.y + self.radius + 15))
+        surface.blit(txt, txt_rect)
 
 # =========================
 # Crispy Precision (Crit Boost)
@@ -211,6 +216,12 @@ class CrispyPrecision(AbilityBase):
             bar_color = lerp_color((255, 0, 0), (173, 216, 230), progress)
             self.draw_progress_arc(surface, progress, clockwise=False, color=bar_color)
 
+        # ✅ Draw mana cost label below the button
+        font = pg.font.SysFont(None, 18)
+        txt = font.render(f"{self.mana_cost} MP", True, (0, 0, 0))
+        txt_rect = txt.get_rect(center=(self.x, self.y + self.radius + 15))
+        surface.blit(txt, txt_rect)
+
 # =================
 # Mana Point System
 # =================
@@ -247,6 +258,6 @@ class ManaSystem:
 
         # Text display: current/max
         font = pg.font.SysFont(None, 20)
-        text_surface = font.render(f"{int(self.current_mana)}/{self.max_mana}", True, (255, 255, 255))
+        text_surface = font.render(f"{int(self.current_mana)}/{self.max_mana}", True, (0, 0, 0))
         text_rect = text_surface.get_rect(midleft=(x + width + 10, y + height // 2))
         surface.blit(text_surface, text_rect)
