@@ -12,11 +12,9 @@ def register_prestige_callback(callback):
 
 pocket_money = 0
 current_stage = 1
-bottle_caps = 0
 
 ui_font = pg.font.SysFont(None, 48)
 scrap_font = pg.font.SysFont(None, 36)
-bottle_font = pg.font.SysFont(None, 48)
 
 MIDDLE_CENTER_X = 575
 
@@ -26,18 +24,6 @@ try:
 except Exception as e:
     print(f"[UI WARN] Could not load pocket_money.png: {e}")
     coin_icon = None
-
-def set_bottle_caps(amount):
-    global bottle_caps
-    bottle_caps = amount
-
-def get_bottle_caps():
-    return bottle_caps
-
-def add_bottle_caps(amount):
-    global bottle_caps
-    bottle_caps += amount
-    print(f"[CURRENCY] Added {amount} Bottle Caps. Total: {bottle_caps}")
 
 def spend_money(amount):
     global pocket_money
@@ -84,10 +70,7 @@ def format_money(amount):
     if amount < 1000:
         return f"{int(amount)}"
 
-    # You can add as many as you want here manually. It's super easy to read.
-    suffixes = [
-        "", "K", "M", "B", "T", "Qa", "Qi",   # The Classics     
-    ]
+    suffixes = ["", "K", "M", "B", "T", "Qa", "Qi"]
     
     magnitude = 0
     temp_amount = float(amount)
@@ -96,12 +79,10 @@ def format_money(amount):
         temp_amount /= 1000.0
     if temp_amount >= 1000 and magnitude == len(suffixes) - 1:
         return f"{float(amount):.2e}"
-
-    # 5. Return the formatted number
     return f"{temp_amount:.2f}{suffixes[magnitude]}"
         
 def draw_ui(window):
-    global michelin_stars, bottle_caps
+    global michelin_stars
     money_text = ui_font.render(f"{format_money(pocket_money)}", True, (34, 139, 34))
     
     if coin_icon:
@@ -111,21 +92,14 @@ def draw_ui(window):
         window.blit(coin_icon, coin_rect)
         money_rect = money_text.get_rect(midleft=(coin_rect.right + 10, 160))
         window.blit(money_text, money_rect)
-        
-        caps_text = bottle_font.render(f"BC{bottle_caps}", True, (200, 180, 100))
-        caps_rect = caps_text.get_rect(center=(MIDDLE_CENTER_X, 200))
-        window.blit(caps_text, caps_rect)
     else:
         money_rect = money_text.get_rect(center=(MIDDLE_CENTER_X, 160))
         window.blit(money_text, money_rect)
-        caps_text = bottle_font.render(f"BC{bottle_caps}", True, (200, 180, 100))
-        caps_rect = caps_text.get_rect(center=(MIDDLE_CENTER_X, 200))
-        window.blit(caps_text, caps_rect)
 
     if michelin_stars > 0:
         multiplier_display = get_prestige_multiplier()
         stars_text = scrap_font.render(f"Michelin Stars: {michelin_stars} (x{multiplier_display:.1f} DMG)", True, (255, 215, 0))
-        stars_rect = stars_text.get_rect(center=(MIDDLE_CENTER_X, 235))
+        stars_rect = stars_text.get_rect(center=(MIDDLE_CENTER_X, 200))
         window.blit(stars_text, stars_rect)
 
 michelin_stars = 0 

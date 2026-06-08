@@ -6,7 +6,7 @@ from Pet_System import PetSystem
 from Player_Upgrade_System import PlayerUpgradeSystem
 import Equipment_System
 from Crafting_System import CraftingSystem
-from DailyQuest_System import DailyQuestSystem
+from KitchenGuide_System import KitchenGuideSystem
 
 # --- NEW: GLOBAL SOUND SYSTEM (CLS_1) ---
 try:
@@ -112,7 +112,6 @@ class VerticalScrollButton:
         text_rect = text_surf.get_rect(center=self.rect.center)
         screen.blit(text_surf, text_rect)
 
-
 class GuideSystem:
     def __init__(self, x, y, width, height):
         self.rect = pg.Rect(x, y, width, height)
@@ -147,10 +146,10 @@ class GuideSystem:
             "Click Pet button to manage pets",
             "Equip up to 3 pets",
             "",
-            "[DAILY QUESTS]",
-            "Click D button to open daily quests",
-            "Complete tasks to earn Bottle Caps",
-            "Quests reset every real day",
+            "[KITCHEN GUIDE]",
+            "Click G button to open kitchen guide",
+            "Complete tasks to earn rewards",
+            "Finish all to complete the guide",
             "",
             "[PRESTIGE]",
             "Reach Stage 10 to Prestige",
@@ -232,7 +231,8 @@ class GuideSystem:
                 self.scroll_offset = min(max_scroll, getattr(self, 'scroll_offset', 0) + 1)
         
         return False
-    
+
+
 class PanelManager:
     def __init__(self, screen_width, screen_height):
         self.active_panel = None
@@ -270,7 +270,7 @@ class PanelManager:
         self.shop_system = None
         self.inventory_system = None
         self.pet_system = None
-        self.daily_system = None
+        self.kitchen_guide_system = None
         self.global_pocket_money = Currency_System.pocket_money
         self.crafting_system = None
         
@@ -280,7 +280,7 @@ class PanelManager:
         self.pending_inventory = []
         self.pending_shop_state = []
         self.pending_pet_data = []
-        self.pending_daily_data = {}
+        self.pending_guide_data = {}
         self.pending_money = None
 
         self.current_stage = 1
@@ -295,35 +295,25 @@ class PanelManager:
         
         BUTTON_AREA_X = MIDDLE_RIGHT_BORDER - BUTTON_WIDTH - 5
         
-        left_column_texts = ["U", "P", "C", "I"]
-        left_column_callbacks = [
+        button_texts = ["U", "P", "C", "I", "S", "R", "Pr", "G"]
+        button_callbacks = [
             lambda: self.toggle_panel("Upgrade"),
             lambda: self.toggle_panel("Pet"),
             lambda: self.toggle_panel("Crafting"),
-            lambda: self.toggle_panel("Inventory")
-        ]
-        
-        right_column_texts = ["S", "R", "Pr", "D"]
-        right_column_callbacks = [
+            lambda: self.toggle_panel("Inventory"),
             lambda: self.toggle_panel("Shop"),
             lambda: self.toggle_panel("Raids"),
             lambda: self.toggle_panel("Prestige"),
-            lambda: self.toggle_panel("Daily")
+            lambda: self.toggle_panel("Guide")
         ]
-        
-        right_col_x = BUTTON_AREA_X - BUTTON_WIDTH - 5
-        
+
         self.left_column_buttons = []
-        for i, (text, callback) in enumerate(zip(left_column_texts, left_column_callbacks)):
+        for i, (text, callback) in enumerate(zip(button_texts, button_callbacks)):
             y = BUTTON_START_Y + i * (BUTTON_HEIGHT + SPACING)
             btn = VerticalScrollButton(BUTTON_AREA_X, y, BUTTON_WIDTH, BUTTON_HEIGHT, text, callback)
             self.left_column_buttons.append(btn)
-        
+
         self.right_column_buttons = []
-        for i, (text, callback) in enumerate(zip(right_column_texts, right_column_callbacks)):
-            y = BUTTON_START_Y + i * (BUTTON_HEIGHT + SPACING)
-            btn = VerticalScrollButton(right_col_x, y, BUTTON_WIDTH, BUTTON_HEIGHT, text, callback)
-            self.right_column_buttons.append(btn)
 
     def handle_button_events(self, event):
         if event.type == pg.MOUSEBUTTONDOWN and event.button == 1:
@@ -331,17 +321,10 @@ class PanelManager:
                 if btn.rect.collidepoint(event.pos):
                     btn.callback()
                     return True
-            for btn in self.right_column_buttons:
-                if btn.rect.collidepoint(event.pos):
-                    btn.callback()
-                    return True
         return False
 
     def draw_buttons(self, screen):
         for btn in self.left_column_buttons:
-            btn.update(pg.mouse.get_pos())
-            btn.draw(screen)
-        for btn in self.right_column_buttons:
             btn.update(pg.mouse.get_pos())
             btn.draw(screen)
 
@@ -354,12 +337,12 @@ class PanelManager:
     def toggle_guide(self):
         self.guide_system.toggle()
 
-    def load_saved_data(self, pocket_money, inventory_items, shop_state, pet_data=None, daily_data=None):
+    def load_saved_data(self, pocket_money, inventory_items, shop_state, pet_data=None, guide_data=None):
         self.global_pocket_money = pocket_money
         self.pending_inventory = inventory_items if inventory_items else []
         self.pending_shop_state = shop_state if shop_state else []
         self.pending_pet_data = pet_data if pet_data else []
-        self.pending_daily_data = daily_data if daily_data else {}
+        self.pending_guide_data = guide_data if guide_data else {}
         self.pending_money = pocket_money
         
         if self.inventory_system and self.pending_inventory:
@@ -379,10 +362,10 @@ class PanelManager:
         pet_data = []
         if self.pet_system:
             pet_data = self.pet_system.get_save_data()
-        daily_data = {}
-        if self.daily_system:
-            daily_data = self.daily_system.get_save_data()
-        return inventory_items, shop_state, pet_data, daily_data
+        guide_data = {}
+        if self.kitchen_guide_system:
+            guide_data = self.kitchen_guide_system.guide_manager.get_save_data()
+        return inventory_items, shop_state, pet_data, guide_data
 
     def reset_all_on_prestige(self):
         if self.shop_system:
@@ -391,7 +374,8 @@ class PanelManager:
             self.inventory_system.reset_inventory()
         if self.pet_system:
             self.pet_system.reset_on_prestige()
-
+        # Kitchen Guide will not be reset on prestige
+    
     def handle_event(self, event):
         # If Guide panel is visible
         if self.guide_system.visible:
@@ -433,8 +417,8 @@ class PanelManager:
             self.pet_system.handle_event(event)
         elif self.active_panel == "Upgrade" and self.player_upgrade_system:
             self.player_upgrade_system.handle_event(event)
-        elif self.active_panel == "Daily" and self.daily_system:
-            self.daily_system.handle_event(event)
+        elif self.active_panel == "Guide" and self.kitchen_guide_system:
+            self.kitchen_guide_system.handle_event(event)
         elif self.active_panel == "Prestige":
             stars_to_gain = Currency_System.calculate_prestige_rewards(self.current_stage)
             
@@ -496,12 +480,11 @@ class PanelManager:
         return None
     
     def draw(self, screen):
-        # ========== Make sure daily_system exists ==========
-        if self.daily_system is None:
-            self.daily_system = DailyQuestSystem(0, 0, 1, 1)
-            if self.pending_daily_data:
-                self.daily_system.restore_save_data(self.pending_daily_data)
-                Currency_System.set_bottle_caps(self.daily_system.get_bottle_caps())
+        # ========== Make sure kitchen_guide_system exists ==========
+        if self.kitchen_guide_system is None:
+            self.kitchen_guide_system = KitchenGuideSystem(0, 0, 1, 1)
+            if self.pending_guide_data:
+                self.kitchen_guide_system.guide_manager.restore_save_data(self.pending_guide_data)
         # ======================================================================
         
         right_area_rect = pg.Rect(850, 0, 450, 750)
@@ -553,8 +536,8 @@ class PanelManager:
                         (self.panel_rect.x + self.panel_rect.width, self.panel_rect.y + self.panel_rect.height), 2)
             
             font = pg.font.SysFont(None, 32)
-            if self.active_panel == "Daily":
-                title_text = font.render("DAILY QUEST", True, (255, 220, 100))
+            if self.active_panel == "Guide":
+                title_text = font.render("KITCHEN GUIDE", True, (255, 220, 100))
             else:
                 title_text = font.render(f"{self.active_panel}", True, (255, 220, 100))
             title_rect = title_text.get_rect(center=(self.panel_rect.centerx, self.panel_rect.y + 22))
@@ -576,7 +559,6 @@ class PanelManager:
 
             elif self.active_panel == "Crafting":
                 if getattr(self, 'crafting_system', None) is None:
-                    # Set the dimensions perfectly inside the panel
                     craft_x = self.panel_rect.x + 10
                     craft_y = self.panel_rect.y + 50
                     craft_width = self.panel_rect.width - 20
@@ -605,26 +587,36 @@ class PanelManager:
                 self.pet_system.update()
                 self.pet_system.draw(screen, self.panel_rect, self.desc_panel_rect)
                 
-            elif self.active_panel == "Daily":
-                # Refresh position only for daily quest
-                if self.daily_system:
-                    self.daily_system.rect = pg.Rect(
+            elif self.active_panel == "Guide":
+                # Refresh position for kitchen guide
+                if self.kitchen_guide_system:
+                    self.kitchen_guide_system.rect = pg.Rect(
                         self.panel_rect.x + 10,
                         self.panel_rect.y + 50,
                         self.panel_rect.width - 20,
                         self.panel_rect.height - 80
                     )
+                    # Set callbacks for rewards
+                    self.kitchen_guide_system.set_callbacks({
+                        "add_to_inventory": self.add_to_inventory,
+                        "gain_equipment": Equipment_System.gain_equipment,
+                        "add_pet": lambda name: self.pet_system.add_pet(name) if self.pet_system else None
+                    })
                 else:
-                    daily_x = self.panel_rect.x + 10
-                    daily_y = self.panel_rect.y + 50
-                    daily_width = self.panel_rect.width - 20
-                    daily_height = self.panel_rect.height - 80
-                    self.daily_system = DailyQuestSystem(daily_x, daily_y, daily_width, daily_height)
-                    if self.pending_daily_data:
-                        self.daily_system.restore_save_data(self.pending_daily_data)
-                        Currency_System.set_bottle_caps(self.daily_system.get_bottle_caps())
-                self.daily_system.update()
-                self.daily_system.draw(screen)
+                    guide_x = self.panel_rect.x + 10
+                    guide_y = self.panel_rect.y + 50
+                    guide_width = self.panel_rect.width - 20
+                    guide_height = self.panel_rect.height - 80
+                    self.kitchen_guide_system = KitchenGuideSystem(guide_x, guide_y, guide_width, guide_height)
+                    if self.pending_guide_data:
+                        self.kitchen_guide_system.guide_manager.restore_save_data(self.pending_guide_data)
+                    self.kitchen_guide_system.set_callbacks({
+                        "add_to_inventory": self.add_to_inventory,
+                        "gain_equipment": Equipment_System.gain_equipment,
+                        "add_pet": lambda name: self.pet_system.add_pet(name) if self.pet_system else None
+                    })
+                self.kitchen_guide_system.update()
+                self.kitchen_guide_system.draw(screen)
             elif self.active_panel == "Prestige":
                 self._draw_prestige_panel(screen)
             elif self.active_panel == "Upgrade":
@@ -649,14 +641,8 @@ class PanelManager:
 
         try:
             badge_img = pg.image.load("Icon/Prestige_icon.png").convert_alpha()
-            
-            # Optional: Scale it if it's too big! Change (150, 150) to whatever fits.
             badge_img = pg.transform.scale(badge_img, (350, 450))
-            
-            # 2. Find the perfect center of your panel
             badge_rect = badge_img.get_rect(center=(self.panel_rect.centerx, self.panel_rect.centery + 30))
-            
-            # 3. Draw it!
             screen.blit(badge_img, badge_rect)
         except Exception as e:
             print(f"Could not load badge: {e}")

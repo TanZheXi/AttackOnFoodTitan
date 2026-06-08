@@ -9,6 +9,14 @@ with open('Equipment.json', 'r') as file:
 total_damage_multiplier = 1.0
 crafting_scraps = 0
 
+# --- Kitchen Guide callback ---
+_equip_callback = None
+
+def set_equip_callback(callback):
+    """Set callback for when equipment is equipped"""
+    global _equip_callback
+    _equip_callback = callback
+
 # --- The Player's Body ---
 equipped_slots = {
     "weapon": None,
@@ -82,6 +90,8 @@ def upgrade_equipment(item_name):
 
 def equip_equipment(item_name):
     """Takes an item from the backpack and puts it on the player's body."""
+    global _equip_callback
+    
     if item_name in equipment_database and equipment_database[item_name].get("owned", False) is True:
         target_slot = equipment_database[item_name]["slot"]
 
@@ -95,6 +105,11 @@ def equip_equipment(item_name):
         recalculate_stats()
         save_equipment()  # save immediately after equipping
         print(f"[EQUIP] Saved to JSON - equipped weapon: {equipped_slots['weapon']}")
+
+        # ========== 通知 Kitchen Guide 装备已装备 ==========
+        if _equip_callback:
+            _equip_callback()
+        # =================================================
 
         return True
     else:

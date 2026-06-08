@@ -7,7 +7,7 @@ import Button_System
 import AFK_System
 import Currency_System
 import Equipment_System
-from DailyQuest_System import DailyQuestSystem
+from KitchenGuide_System import KitchenGuideSystem
 from Abilities import SpicySurge, CrispyPrecision
 
 
@@ -36,8 +36,8 @@ pg.display.set_caption("Attack On Food Titan")
 # Setup clock
 clock = pg.time.Clock()
 
-# Load AFK rewards and saved game data (returns 10 values including daily_data)
-afk_earnings, saved_monster_data, saved_money, saved_progression_index, saved_stage, saved_inventory, saved_shop_state, saved_pet_data, saved_upgrade_level, saved_daily_data = AFK_System.afk_system.load_and_calculate_afk_rewards()
+# Load AFK rewards and saved game data (returns 10 values including guide_data)
+afk_earnings, saved_monster_data, saved_money, saved_progression_index, saved_stage, saved_inventory, saved_shop_state, saved_pet_data, saved_upgrade_level, saved_guide_data = AFK_System.afk_system.load_and_calculate_afk_rewards()
 
 # Load saved equipment data
 Equipment_System.load_equipment()
@@ -80,7 +80,7 @@ last_pet_attack_time = time.time()
 Button_System.panel_manager.pending_inventory = saved_inventory if saved_inventory else []
 Button_System.panel_manager.pending_shop_state = saved_shop_state if saved_shop_state else []
 Button_System.panel_manager.pending_pet_data = saved_pet_data if saved_pet_data else []
-Button_System.panel_manager.pending_daily_data = saved_daily_data if saved_daily_data else {}
+Button_System.panel_manager.pending_guide_data = saved_guide_data if saved_guide_data else {}
 Button_System.panel_manager.pending_money = Currency_System.pocket_money
 
 data_restored = False
@@ -114,11 +114,20 @@ def on_prestige_reset():
 
 Currency_System.register_prestige_callback(on_prestige_reset)
 
-# ========== Load Daily System ==========
-Button_System.panel_manager.daily_system = DailyQuestSystem(0, 0, 1, 1)
-if saved_daily_data:
-    Button_System.panel_manager.daily_system.restore_save_data(saved_daily_data)
-    Currency_System.set_bottle_caps(Button_System.panel_manager.daily_system.get_bottle_caps())
+# ========== Load Kitchen Guide System ==========
+Button_System.panel_manager.kitchen_guide_system = KitchenGuideSystem(0, 0, 1, 1)
+if saved_guide_data:
+    Button_System.panel_manager.kitchen_guide_system.guide_manager.restore_save_data(saved_guide_data)
+
+# ========== Set Kitchen Guide Callbacks ==========
+# Equipment equip callback
+Equipment_System.set_equip_callback(lambda: (
+    Button_System.panel_manager.kitchen_guide_system.guide_manager.update_progress("equip_equipment", 1)
+    if Button_System.panel_manager.kitchen_guide_system else None
+))
+
+# Pet equip callback (will be set after pet system is created)
+# Player upgrade callback (will be set after upgrade system is created)
 # ====================================================
 
 # =========================
@@ -134,7 +143,7 @@ while IsRunning:
     # -------------------------
     for event in pg.event.get():
         if event.type == pg.QUIT:
-            inventory_state, shop_state, pet_data, daily_data = Button_System.panel_manager.get_save_data()
+            inventory_state, shop_state, pet_data, guide_data = Button_System.panel_manager.get_save_data()
             upgrade_level = 0
             if Button_System.panel_manager.player_upgrade_system:
                 upgrade_level = Button_System.panel_manager.player_upgrade_system.level
@@ -150,7 +159,7 @@ while IsRunning:
                 shop_items_state=shop_state,
                 pet_data=pet_data,
                 upgrade_level=upgrade_level,
-                daily_data=daily_data
+                guide_data=guide_data
             )
             IsRunning = False
             break
@@ -214,8 +223,9 @@ while IsRunning:
                 if current_monster.is_defeated():
                     Currency_System.update_economy(current_monster.hp, monster_manager.progression_index + 1)
 
-                    if Button_System.panel_manager.daily_system:
-                        Button_System.panel_manager.daily_system.on_defeat_titan()
+                    # Update Kitchen Guide progress (Quest 1: Cook Food Titan)
+                    if Button_System.panel_manager.kitchen_guide_system:
+                        Button_System.panel_manager.kitchen_guide_system.guide_manager.update_progress("defeat_titan", 1)
 
                     monster_manager.next_monster()
                     current_monster = monster_manager.current_monster
@@ -257,8 +267,9 @@ while IsRunning:
                 if current_monster.is_defeated():
                     Currency_System.update_economy(current_monster.hp, monster_manager.progression_index)
 
-                    if Button_System.panel_manager.daily_system:
-                        Button_System.panel_manager.daily_system.on_defeat_with_pet()
+                    # Update Kitchen Guide progress (Quest 3: Defeat with pet)
+                    if Button_System.panel_manager.kitchen_guide_system:
+                        Button_System.panel_manager.kitchen_guide_system.guide_manager.update_progress("defeat_with_pet", 1)
 
                     monster_manager.next_monster()
                     current_monster = monster_manager.current_monster
@@ -283,9 +294,27 @@ while IsRunning:
             saved_inventory,
             saved_shop_state,
             saved_pet_data,
-            saved_daily_data
+            saved_guide_data
         )
         data_restored = True
+
+    # ========== Set callbacks after systems are created ==========
+    # Pet equip callback
+    if Button_System.panel_manager.pet_system and not hasattr(Button_System.panel_manager.pet_system, '_callback_set'):
+        Button_System.panel_manager.pet_system.guide_callback = lambda: (
+            Button_System.panel_manager.kitchen_guide_system.guide_manager.update_progress("equip_pet", 1)
+            if Button_System.panel_manager.kitchen_guide_system else None
+        )
+        Button_System.panel_manager.pet_system._callback_set = True
+
+    # Player upgrade callback
+    if Button_System.panel_manager.player_upgrade_system and not hasattr(Button_System.panel_manager.player_upgrade_system, '_callback_set'):
+        Button_System.panel_manager.player_upgrade_system.upgrade_callback = lambda: (
+            Button_System.panel_manager.kitchen_guide_system.guide_manager.update_progress("upgrade_base_damage", 1)
+            if Button_System.panel_manager.kitchen_guide_system else None
+        )
+        Button_System.panel_manager.player_upgrade_system._callback_set = True
+    # ==============================================================
 
     # Restore upgrade level
     if Button_System.panel_manager.player_upgrade_system and saved_upgrade_level > 0:
@@ -294,13 +323,15 @@ while IsRunning:
                 Button_System.panel_manager.player_upgrade_system.purchase_upgrade()
             print(f"[LOAD] Restored upgrade level: {saved_upgrade_level}")
 
-    # Sync currency and bottle caps
+    # Sync currency
     Button_System.panel_manager.global_pocket_money = Currency_System.pocket_money
-    if Button_System.panel_manager.daily_system:
-        Currency_System.set_bottle_caps(Button_System.panel_manager.daily_system.get_bottle_caps())
 
     # Sync Stage & Check for Prestige
     Button_System.panel_manager.current_stage = monster_manager.stage
+
+    # Update Kitchen Guide stage progress (Quest 4: Reach Stage)
+    if Button_System.panel_manager.kitchen_guide_system:
+        Button_System.panel_manager.kitchen_guide_system.guide_manager.update_progress("stage_reached", monster_manager.stage)
 
     if getattr(Button_System.panel_manager, 'wants_to_prestige', False):
         success = Currency_System.trigger_prestige(monster_manager)
@@ -311,7 +342,7 @@ while IsRunning:
     # Auto save system for AFK
     current_time = time.time()
     if current_time - last_auto_save >= auto_save_interval:
-        inventory_state, shop_state, pet_data, daily_data = Button_System.panel_manager.get_save_data()
+        inventory_state, shop_state, pet_data, guide_data = Button_System.panel_manager.get_save_data()
         upgrade_level = 0
         if Button_System.panel_manager.player_upgrade_system:
             upgrade_level = Button_System.panel_manager.player_upgrade_system.level
@@ -328,7 +359,7 @@ while IsRunning:
             shop_items_state=shop_state,
             pet_data=pet_data,
             upgrade_level=upgrade_level,
-            daily_data=daily_data
+            guide_data=guide_data
         )
         AFK_System.afk_system.update_save_time()
 
@@ -438,7 +469,7 @@ pg.quit()
 #Source code: Deepseek
 #Link: None
 
-#8. Daily Quest system (DailyQuest_System.py)
+#8. Kitchen Guide system (KitchenGuide_System.py)
 #Source code: Deepseek
 #Link: None
 

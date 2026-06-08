@@ -87,6 +87,10 @@ class PetSystem:
         
         self.panel_rect = None
         self.desc_panel_rect = None
+        
+        # ========== Kitchen Guide callback ==========
+        self.guide_callback = None  # 外部设置的回调函数
+        # ===========================================
 
     def update_pets_by_category(self):
         """Filter owned pets based on the current category"""
@@ -157,6 +161,11 @@ class PetSystem:
                 pet.equipped = True
                 self.message = f"{pet.name} equipped!"
                 self.message_timer = 120
+                
+                # ========== 通知 Kitchen Guide 宠物已装备 ==========
+                if self.guide_callback:
+                    self.guide_callback()
+                # =================================================
 
     def update(self):
         if self.message_timer > 0:
@@ -167,32 +176,21 @@ class PetSystem:
     def handle_event(self, event):
         if event.type == pg.MOUSEBUTTONDOWN and event.button == 1:
             
-            # (Delete the example loop I gave you with 'pet_rects')
-            
             # Detect left and right scroll arrows
             if hasattr(self, 'arrow_left_rect') and self.arrow_left_rect.collidepoint(event.pos):
-                if GLOBAL_CLICK: GLOBAL_CLICK.play() # <--- PLAY SOUND
+                if GLOBAL_CLICK: GLOBAL_CLICK.play()
                 self.scroll_categories("left")
                 return
             if hasattr(self, 'arrow_right_rect') and self.arrow_right_rect.collidepoint(event.pos):
-                if GLOBAL_CLICK: GLOBAL_CLICK.play() # <--- PLAY SOUND
+                if GLOBAL_CLICK: GLOBAL_CLICK.play()
                 self.scroll_categories("right")
                 return
             
             # Handle pet equip buttons
             for key, rect in self.buttons_rect.items():
                 if rect.collidepoint(event.pos):
+                    if GLOBAL_CLICK: GLOBAL_CLICK.play()
                     
-                    if GLOBAL_CLICK: GLOBAL_CLICK.play() # <--- PLAY SOUND
-                    
-                    if key.startswith("equip_"):
-                        idx = int(key.split("_")[1])
-                        self.toggle_equip(idx)
-                    return
-            
-            # Handle pet equip buttons
-            for key, rect in self.buttons_rect.items():
-                if rect.collidepoint(event.pos):
                     if key.startswith("equip_"):
                         idx = int(key.split("_")[1])
                         self.toggle_equip(idx)
