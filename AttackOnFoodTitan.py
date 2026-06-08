@@ -194,12 +194,23 @@ while IsRunning:
               # Exclude clicks inside UI panels
               in_left_panel = mouse_x < LEFT_WIDTH
               in_right_panel = mouse_x >= RIGHT_AREA_X
+
+              # Exclude clicks inside active panel rect
               in_active_panel_area = False
               panel_rect = Button_System.panel_manager.get_active_panel_rect()
               if panel_rect and panel_rect.collidepoint(event.pos):
                  in_active_panel_area = True
 
-              if not (in_left_panel or in_right_panel or in_active_panel_area):
+              # Exclude clicks on panel buttons
+              in_button_area = Button_System.panel_manager.is_click_on_button(event.pos)
+
+              # Exclude clicks on ability buttons (Spicy Surge, Crispy Precision)
+              in_ability_area = damage_boost.rect.collidepoint(event.pos) or crispy_precision.rect.collidepoint(event.pos)
+
+              # Exclude clicks on global buttons list
+              in_global_button_area = any(btn.rect.collidepoint(event.pos) for btn in Button_System.buttons)
+              
+              if not (in_left_panel or in_right_panel or in_active_panel_area or in_button_area or in_ability_area or in_global_button_area):
                 # Get crit bonuses
                 extra_chance, extra_multi = crispy_precision.get_crit_bonus()
 
@@ -273,7 +284,7 @@ while IsRunning:
                    current_monster = monster_manager.current_monster
                    current_monster.rect.x = MIDDLE_CENTER_X - MONSTER_SIZE // 2
                    current_monster.rect.y = 275
-                   
+
         last_pet_attack_time = current_time
     # =================================
 

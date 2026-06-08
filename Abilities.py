@@ -37,6 +37,9 @@ class AbilityBase:
         self.cooldown_start = 0
         self.font = pg.font.SysFont(None, 24)
 
+        # Add rect for collision detection
+        self.rect = pg.Rect(x - radius, y - radius, radius * 2, radius * 2)
+
     def handle_event(self, event):
         if event.type == pg.MOUSEBUTTONDOWN and event.button == 1:
             mouse_x, mouse_y = event.pos
@@ -124,6 +127,9 @@ class SpicySurge(AbilityBase):
         return self.damage_multiplier if self.active else 1.0
 
     def draw(self, surface):
+        # Update rect before drawing
+        self.rect = pg.Rect(self.x - self.radius, self.y - self.radius, self.radius * 2, self.radius * 2)
+
         if self.active:
             color = (255, 0, 0)
         elif self.cooldown:
@@ -162,6 +168,9 @@ class CrispyPrecision(AbilityBase):
         return 0.0, 1.0
 
     def draw(self, surface):
+        # Update rect before drawing
+        self.rect = pg.Rect(self.x - self.radius, self.y - self.radius, self.radius * 2, self.radius * 2)
+
         if self.active:
             color = (0, 255, 0)
         elif self.cooldown:

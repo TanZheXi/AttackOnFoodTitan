@@ -463,12 +463,22 @@ class PanelManager:
                 else:
                     self.confirm_prestige = False # Only cancel if they clicked away!
             return
+        
     def get_active_panel_rect(self):
-        """Return the rect of the currently active panel, if any."""
+        # Return the rect of the currently active panel, if any.
         if self.active_panel:
             return self.panel_rect
         return None
     
+    def is_click_on_button(self, pos):
+        # Return True if the click is inside any panel button rect."""
+        for btn in self.left_column_buttons + self.right_column_buttons:
+            if btn.rect.collidepoint(pos):
+               return True
+        if hasattr(self, 'guide_button_rect') and self.guide_button_rect.collidepoint(pos):
+            return True
+        return False
+
     def add_to_inventory(self, item_name):
         if self.pet_system is None:
             self.pet_system = PetSystem()
