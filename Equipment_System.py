@@ -106,7 +106,7 @@ def equip_equipment(item_name):
         save_equipment()  # save immediately after equipping
         print(f"[EQUIP] Saved to JSON - equipped weapon: {equipped_slots['weapon']}")
 
-        # ========== 通知 Kitchen Guide 装备已装备 ==========
+        # ========== Announce Kitchen Guide Equipment Update ==========
         if _equip_callback:
             _equip_callback()
         # =================================================
@@ -166,7 +166,8 @@ def lose_all_equipment():
         equipped_slots[slot] = None
 
     for item_name in equipment_database:
-        equipment_database[item_name]["owned"] = False
+        if item_name != "Player_Data":
+            equipment_database[item_name]["owned"] = False
 
     global crafting_scraps
     crafting_scraps = 0
@@ -179,7 +180,8 @@ def reset_equipment_to_default():
     global crafting_scraps, equipped_slots, equipment_database
 
     for item_name in equipment_database:
-        equipment_database[item_name]["owned"] = False
+        if item_name != "Player_Data":
+            equipment_database[item_name]["owned"] = False
 
     for slot in equipped_slots:
         equipped_slots[slot] = None
@@ -218,34 +220,56 @@ def save_equipment():
 def load_equipment():
     """Reads Equipment.json and restores the player's scraps and equipped items."""
     global crafting_scraps, equipped_slots, equipment_database
+    
+    # ========== Detect afk_save.json exists or not ==========
+    afk_save_exists = os.path.exists("afk_save.json")
 
-    if not os.path.exists('Equipment.json'):
-        print("[EQUIPMENT] Equipment.json missing, creating default file.")
-        reset_equipment_to_default()
-    else:
-        with open('Equipment.json', 'r') as file:
-            equipment_database = json.load(file)
-
-    if "Player_Data" not in equipment_database:
+    with open('Equipment.json', 'r') as file:
+        equipment_database = json.load(file)
+    
+    if not afk_save_exists:
+        print("[EQUIPMENT] New game detected! Resetting all equipment ownership.")
+        for item_name in equipment_database:
+            if item_name != "Player_Data":
+                equipment_database[item_name]["owned"] = False
+        # Reset Player_Data
         equipment_database["Player_Data"] = {
             "scraps": 0,
-            "equipped": equipped_slots.copy()
+            "equipped": {
+                "weapon": None,
+                "hat": None,
+                "armor": None,
+                "aroma": None
+            }
         }
 
-    player_data = equipment_database["Player_Data"]
-    crafting_scraps = player_data.get("scraps", 0)
-
-    saved_slots = player_data.get("equipped", {})
-    for slot, item_name in saved_slots.items():
-        if item_name and item_name in equipment_database and equipment_database[item_name].get("owned", False):
-            equipped_slots[slot] = item_name
-            print(f"[LOAD] Equipped {item_name} to {slot}")
-        else:
-            equipped_slots[slot] = None
-
-    print("Equipment System Loaded Successfully!")
-    recalculate_stats()
-    return True
+        with open('Equipment.json', 'w') as file:
+            json.dump(equipment_database, file, indent=4)
+    
+    if "Player_Data" in equipment_database:
+        player_data = equipment_database["Player_Data"]
+        
+        # 2. Restore the scraps
+        crafting_scraps = player_data.get("scraps", 0)
+        
+        # 3. Restore the equipped slots (only if the player actually owns the item)
+        saved_slots = player_data.get("equipped", {})
+        
+        for slot, item_name in saved_slots.items():
+            if item_name and item_name in equipment_database and equipment_database[item_name].get("owned", False):
+                equipped_slots[slot] = item_name
+                print(f"[LOAD] Equipped {item_name} to {slot}")
+            else:
+                equipped_slots[slot] = None
+            
+        print("Equipment System Loaded Successfully!")
+        print(f"[LOAD] Loaded equipped weapon: {equipped_slots['weapon']}")
+        
+        recalculate_stats()
+        return True
+    else:
+        print("No saved equipment data found. Starting fresh!")
+        return True
 
 def upgrade_weapon_by_name(weapon_name):
     """Upgrades whatever weapon name is passed to it from the Forge!"""
