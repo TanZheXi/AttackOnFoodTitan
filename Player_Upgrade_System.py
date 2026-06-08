@@ -47,6 +47,9 @@ class PlayerUpgradeSystem:
         self.current_cost = self.base_cost
 
         self.button_rect = None
+        
+        self.spicy_ability = None
+        self.crispy_ability = None
 
         # Spicy Surge upgrade tracking
         self.spicy_level = 0
@@ -108,17 +111,17 @@ class PlayerUpgradeSystem:
                 # Spicy Surge upgrade
                 if hasattr(self, "spicy_rect") and self.spicy_rect.collidepoint(event.pos):
                    if self.level >= 50 and self.spicy_level < self.spicy_max_level:
-                      if Currency_System.pocket_money >= self.spicy_cost:
-                         Currency_System.pocket_money -= self.spicy_cost
-                         self.spicy_level += 1
-                         self.spicy_damage_boost += 0.15
-                         self.spicy_cost = int(self.spicy_cost * self.spicy_ratio)
+                     if Currency_System.pocket_money >= self.spicy_cost:
+                        Currency_System.pocket_money -= self.spicy_cost
+                        self.spicy_level += 1
+                        self.spicy_damage_boost += 0.15
+                        self.spicy_cost = int(self.spicy_cost * self.spicy_ratio)
 
-                         # ✅ Sync with ability instance
-                         if hasattr(self, "spicy_ability"):
-                            self.spicy_ability.set_upgrade_bonus(self.spicy_damage_boost)
-
-                         print(f"[SPICY SURGE] Lv {self.spicy_level} → Damage Boost +{self.spicy_damage_boost:.2f}, Next Cost: {self.spicy_cost}")
+                        # ✅ Scale mana cost and push into ability
+                        if self.spicy_ability:
+                           new_mana_cost = int(self.spicy_ability.mana_cost * 1.3)
+                           self.spicy_ability.set_upgrade_bonus(self.spicy_damage_boost, new_mana_cost)
+                           print(f"[SPICY SURGE] Lv {self.spicy_level} → Damage Boost +{self.spicy_damage_boost:.2f}, Mana Cost {self.spicy_ability.mana_cost}, Next Cost: {self.spicy_cost}")
         
                 # Crispy Precision upgrade
                 if hasattr(self, "crispy_rect") and self.crispy_rect.collidepoint(event.pos):
@@ -130,12 +133,12 @@ class PlayerUpgradeSystem:
                          self.crispy_crit_chance += 0.01
                          self.crispy_cost = int(self.crispy_cost * self.crispy_ratio)
 
-                         # ✅ Sync with ability instance
-                         if hasattr(self, "crispy_ability"):
-                            self.crispy_ability.set_upgrade_bonus(self.crispy_crit_chance, self.crispy_crit_damage)
+                         # ✅ Scale mana cost and push into ability
+                         if self.crispy_ability:
+                            new_mana_cost = int(self.crispy_ability.mana_cost * 1.3)
+                            self.crispy_ability.set_upgrade_bonus(self.crispy_crit_chance, self.crispy_crit_damage, new_mana_cost)
+                            print(f"[CRISPY PRECISION] Lv {self.crispy_level} → Crit +{self.crispy_crit_chance:.2f}, Damage +{self.crispy_crit_damage:.2f}, Mana Cost {self.crispy_ability.mana_cost}, Next Cost: {self.crispy_cost}")
 
-                         print(f"[CRISPY PRECISION] Lv {self.crispy_level} → Crit +{self.crispy_crit_chance:.2f}, Damage +{self.crispy_crit_damage:.2f}, Next Cost: {self.crispy_cost}")
-                    
         elif self.current_category == 1:  # Companion upgrade
             if event.type == pg.MOUSEBUTTONDOWN and event.button == 1:
                 if self.button_rect and self.button_rect.collidepoint(event.pos):

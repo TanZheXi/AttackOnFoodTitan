@@ -125,8 +125,10 @@ class SpicySurge(AbilityBase):
         self.upgrade_bonus = 0.0
         self.mana_cost = 20
 
-    def set_upgrade_bonus(self, bonus):
+    def set_upgrade_bonus(self, bonus, new_mana_cost=None):
         self.upgrade_bonus = bonus
+        if new_mana_cost is not None:
+            self.mana_cost = new_mana_cost
 
     def activate(self, mana_system=None):
         if mana_system and not mana_system.spend(self.mana_cost):
@@ -185,9 +187,11 @@ class CrispyPrecision(AbilityBase):
         self.upgrade_bonus_damage = 0.0
         self.mana_cost = 30
 
-    def set_upgrade_bonus(self, bonus_chance, bonus_damage):
+    def set_upgrade_bonus(self, bonus_chance, bonus_damage, new_mana_cost=None):
         self.upgrade_bonus_chance = bonus_chance
         self.upgrade_bonus_damage = bonus_damage
+        if new_mana_cost is not None:
+            self.mana_cost = new_mana_cost
 
     def activate(self, mana_system=None):
         if mana_system and not mana_system.spend(self.mana_cost):

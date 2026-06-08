@@ -110,7 +110,7 @@ player_upgrade_system = PlayerUpgradeSystem(
     height=400
 )
 
-# Link abilities to upgrade system
+# ✅ Link abilities before events fire
 player_upgrade_system.spicy_ability = damage_boost
 player_upgrade_system.crispy_ability = crispy_precision
 
