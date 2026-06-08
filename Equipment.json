@@ -70,13 +70,9 @@
         "level": 3
     },
     "Player_Data": {
-<<<<<<< HEAD
-        "scraps": 134540,
-=======
         "scraps": 234560,
->>>>>>> 26cc50ce74647f775d96059ad6992d8a8608776a
         "equipped": {
-            "weapon": "Rusty Spatula",
+            "weapon": null,
             "hat": null,
             "armor": null,
             "aroma": null
