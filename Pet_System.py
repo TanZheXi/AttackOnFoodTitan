@@ -1,5 +1,11 @@
 import pygame as pg
 
+try:
+    GLOBAL_CLICK = pg.mixer.Sound("Sfx/click.wav")
+    GLOBAL_CLICK.set_volume(0.5)
+except Exception as e:
+    GLOBAL_CLICK = None
+
 pg.init()
 pg.font.init()
 
@@ -159,23 +165,30 @@ class PetSystem:
             self.message = ""
 
     def handle_event(self, event):
-        if not self.panel_rect:
-            return
-        
         if event.type == pg.MOUSEBUTTONDOWN and event.button == 1:
-            # Detect category button's clicks
-            for btn in self.category_buttons:
-                if btn["rect"].collidepoint(event.pos):
-                    self.set_category(btn["category_id"])
-                    return
+            
+            # (Delete the example loop I gave you with 'pet_rects')
             
             # Detect left and right scroll arrows
             if hasattr(self, 'arrow_left_rect') and self.arrow_left_rect.collidepoint(event.pos):
+                if GLOBAL_CLICK: GLOBAL_CLICK.play() # <--- PLAY SOUND
                 self.scroll_categories("left")
                 return
             if hasattr(self, 'arrow_right_rect') and self.arrow_right_rect.collidepoint(event.pos):
+                if GLOBAL_CLICK: GLOBAL_CLICK.play() # <--- PLAY SOUND
                 self.scroll_categories("right")
                 return
+            
+            # Handle pet equip buttons
+            for key, rect in self.buttons_rect.items():
+                if rect.collidepoint(event.pos):
+                    
+                    if GLOBAL_CLICK: GLOBAL_CLICK.play() # <--- PLAY SOUND
+                    
+                    if key.startswith("equip_"):
+                        idx = int(key.split("_")[1])
+                        self.toggle_equip(idx)
+                    return
             
             # Handle pet equip buttons
             for key, rect in self.buttons_rect.items():

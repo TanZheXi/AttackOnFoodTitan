@@ -15,10 +15,11 @@ def draw_smooth_circle(surface, x, y, radius, color):
 # =========================
 def lerp_color(color_start, color_end, t):
     """Linearly interpolate between two colors (0.0–1.0)."""
+    t = max(0.0, min(1.0, t))
     r = int(color_start[0] + (color_end[0] - color_start[0]) * t)
     g = int(color_start[1] + (color_end[1] - color_start[1]) * t)
     b = int(color_start[2] + (color_end[2] - color_start[2]) * t)
-    return (r, g, b)
+    return (max(0, min(255, r)), max(0, min(255, g)), max(0, min(255, b)))
 
 # =========================
 # Base Ability Template
@@ -46,23 +47,33 @@ class AbilityBase:
     def activate(self):
         self.active = True
         self.start_time = time.time()
+        print(f"[ABILITY] Activated at {self.start_time}")
 
     def update(self):
         current_time = time.time()
-        if self.active and current_time - self.start_time >= self.duration:
-            self.active = False
-            self.cooldown = True
-            self.cooldown_start = current_time
-        elif self.cooldown and current_time - self.cooldown_start >= self.cooldown_time:
-            self.cooldown = False
+        if self.active:
+            elapsed = current_time - self.start_time
+            if elapsed >= self.duration:
+                self.active = False
+                self.cooldown = True
+                self.cooldown_start = current_time
+                print(f"[ABILITY] Duration ended, entering cooldown at {current_time}")
+        elif self.cooldown:
+            elapsed = current_time - self.cooldown_start
+            if elapsed >= self.cooldown_time:
+                self.cooldown = False
+                print(f"[ABILITY] Cooldown ended at {current_time}")
 
     def draw_timer(self, surface):
         text = ""
+        current_time = time.time()
         if self.active:
-            remaining = int(self.duration - (time.time() - self.start_time))
+            elapsed = current_time - self.start_time
+            remaining = max(0, int(self.duration - elapsed))
             text = f"{remaining}s"
         elif self.cooldown:
-            remaining = int(self.cooldown_time - (time.time() - self.cooldown_start))
+            elapsed = current_time - self.cooldown_start
+            remaining = max(0, int(self.cooldown_time - elapsed))
             text = f"CD {remaining}s"
         if text:
             txt_surface = self.font.render(text, True, (255, 255, 255))
@@ -80,6 +91,9 @@ class AbilityBase:
         return (r, g, b)
 
     def draw_progress_arc(self, surface, progress, clockwise=True, color=(0, 0, 139)):
+        if progress <= 0 or progress >= 1:
+            return
+        
         rect = pg.Rect(self.x - self.radius - 6, self.y - self.radius - 6,
                        (self.radius + 6) * 2, (self.radius + 6) * 2)
         start_angle = -math.pi / 2
@@ -87,7 +101,15 @@ class AbilityBase:
             end_angle = start_angle + (progress * 2 * math.pi)
         else:
             end_angle = start_angle - (progress * 2 * math.pi)
-        pg.draw.arc(surface, color, rect, start_angle, end_angle, 5)
+        
+        if isinstance(color, tuple) and len(color) == 3:
+            safe_color = (max(0, min(255, color[0])), 
+                         max(0, min(255, color[1])), 
+                         max(0, min(255, color[2])))
+        else:
+            safe_color = (0, 0, 139)
+        
+        pg.draw.arc(surface, safe_color, rect, start_angle, end_angle, 5)
 
 
 # =========================
@@ -115,12 +137,10 @@ class SpicySurge(AbilityBase):
         draw_smooth_circle(surface, self.x, self.y, self.radius, color)
         self.draw_timer(surface)
 
-        # Duration bar: light blue → red
         if self.active:
             progress = (time.time() - self.start_time) / self.duration
             bar_color = lerp_color((173, 216, 230), (255, 0, 0), progress)
             self.draw_progress_arc(surface, progress, clockwise=True, color=bar_color)
-        # Cooldown bar: red → light blue
         elif self.cooldown:
             progress = (time.time() - self.cooldown_start) / self.cooldown_time
             bar_color = lerp_color((255, 0, 0), (173, 216, 230), progress)
@@ -155,12 +175,10 @@ class CrispyPrecision(AbilityBase):
         draw_smooth_circle(surface, self.x, self.y, self.radius, color)
         self.draw_timer(surface)
 
-        # Duration bar: light blue → red
         if self.active:
             progress = (time.time() - self.start_time) / self.duration
             bar_color = lerp_color((173, 216, 230), (255, 0, 0), progress)
             self.draw_progress_arc(surface, progress, clockwise=True, color=bar_color)
-        # Cooldown bar: red → light blue
         elif self.cooldown:
             progress = (time.time() - self.cooldown_start) / self.cooldown_time
             bar_color = lerp_color((255, 0, 0), (173, 216, 230), progress)

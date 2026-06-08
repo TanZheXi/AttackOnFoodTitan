@@ -1,39 +1,43 @@
 import pygame as pg
 import random 
-import Gear_System
+import Equipment_System
 
 pg.init()
 pg.font.init()
 
-# Callbacks for prestige
 _prestige_callbacks = []
 
 def register_prestige_callback(callback):
     _prestige_callbacks.append(callback)
 
-# Variables for CLS_1
 pocket_money = 0
 current_stage = 1
+bottle_caps = 0
 
-# Setup for CLS_2
 ui_font = pg.font.SysFont(None, 48)
 scrap_font = pg.font.SysFont(None, 36)
+bottle_font = pg.font.SysFont(None, 48)
 
 MIDDLE_CENTER_X = 575
 
-# --- NEW: LOAD AND SCALE THE COIN ICON ---
 try:
-    # Load the image
-
     raw_coin_image = pg.image.load("Icon/pocket_money.png")
-    # Scale it down to a nice 40x40 pixel UI icon
     coin_icon = pg.transform.scale(raw_coin_image, (40, 40))
 except Exception as e:
     print(f"[UI WARN] Could not load pocket_money.png: {e}")
     coin_icon = None
-# -----------------------------------------
 
-MIDDLE_CENTER_X = 575
+def set_bottle_caps(amount):
+    global bottle_caps
+    bottle_caps = amount
+
+def get_bottle_caps():
+    return bottle_caps
+
+def add_bottle_caps(amount):
+    global bottle_caps
+    bottle_caps += amount
+    print(f"[CURRENCY] Added {amount} Bottle Caps. Total: {bottle_caps}")
 
 def spend_money(amount):
     global pocket_money
@@ -47,9 +51,7 @@ def spend_money(amount):
 
 def update_economy(monster_hp, progression_index):
     global pocket_money
-    
     current_stage = (progression_index // 10) + 1
-    
     tier = current_stage // 10
     
     if tier == 0:
@@ -79,9 +81,8 @@ def update_economy(monster_hp, progression_index):
     pocket_money += money_earned
 
 def format_money(amount):
-    # 1. Less than 1,000 stays normal
     if amount < 1000:
-        return f"${int(amount)}"
+        return f"{int(amount)}"
 
     # You can add as many as you want here manually. It's super easy to read.
     suffixes = [
@@ -90,46 +91,43 @@ def format_money(amount):
     
     magnitude = 0
     temp_amount = float(amount)
-
-    # 3. Keep dividing by 1000 as long as we haven't run out of suffixes in our list
     while temp_amount >= 1000 and magnitude < len(suffixes) - 1:
         magnitude += 1
         temp_amount /= 1000.0
-
-    # We switch them to scientific notation so the game doesn't crash.
     if temp_amount >= 1000 and magnitude == len(suffixes) - 1:
-        return f"${float(amount):.2e}"
+        return f"{float(amount):.2e}"
 
     # 5. Return the formatted number
-    return f"${temp_amount:.2f}{suffixes[magnitude]}"
+    return f"{temp_amount:.2f}{suffixes[magnitude]}"
         
 def draw_ui(window):
-    # 1. Render the text
+    global michelin_stars, bottle_caps
     money_text = ui_font.render(f"{format_money(pocket_money)}", True, (34, 139, 34))
     
-    # 2. Check if the image loaded successfully
     if coin_icon:
-        # Calculate the total width of the icon + 10 pixels spacing + the text
         total_width = coin_icon.get_width() + 10 + money_text.get_width()
-        
-        # Figure out where to start drawing so the whole group is perfectly centered
         start_x = MIDDLE_CENTER_X - (total_width // 2)
-        
-        # Draw the coin on the left
         coin_rect = coin_icon.get_rect(midleft=(start_x, 160))
         window.blit(coin_icon, coin_rect)
-        
-        # Draw the text right next to it
         money_rect = money_text.get_rect(midleft=(coin_rect.right + 10, 160))
         window.blit(money_text, money_rect)
         
+        caps_text = bottle_font.render(f"BC{bottle_caps}", True, (200, 180, 100))
+        caps_rect = caps_text.get_rect(center=(MIDDLE_CENTER_X, 200))
+        window.blit(caps_text, caps_rect)
     else:
-        # Fallback just in case the image goes missing
         money_rect = money_text.get_rect(center=(MIDDLE_CENTER_X, 160))
         window.blit(money_text, money_rect)
+        caps_text = bottle_font.render(f"BC{bottle_caps}", True, (200, 180, 100))
+        caps_rect = caps_text.get_rect(center=(MIDDLE_CENTER_X, 200))
+        window.blit(caps_text, caps_rect)
 
+    if michelin_stars > 0:
+        multiplier_display = get_prestige_multiplier()
+        stars_text = scrap_font.render(f"Michelin Stars: {michelin_stars} (x{multiplier_display:.1f} DMG)", True, (255, 215, 0))
+        stars_rect = stars_text.get_rect(center=(MIDDLE_CENTER_X, 235))
+        window.blit(stars_text, stars_rect)
 
-# Prestige System
 michelin_stars = 0 
 prestige_count = 0
 
@@ -146,20 +144,15 @@ def calculate_prestige_rewards(current_stage):
 
 def trigger_prestige(monster_manager):
     global pocket_money, michelin_stars, prestige_count
-    
     stars_to_gain = calculate_prestige_rewards(monster_manager.stage)
-    
     if stars_to_gain > 0:
         for callback in _prestige_callbacks:
             callback()
-        
         michelin_stars += stars_to_gain
         prestige_count += 1
         pocket_money = 0
-        
         monster_manager.stage = get_advanced_start(monster_manager.stage)
         monster_manager.progression_index = (monster_manager.stage - 1) * 10
         monster_manager.current_monster = monster_manager.spawn_monster()
-        
         return True
     return False

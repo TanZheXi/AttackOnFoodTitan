@@ -1,8 +1,9 @@
 import pygame as pg
 import random
-import Gear_System
+import Equipment_System
 import time
 import Player_Upgrade_System
+
 class Monster:
     def __init__(self, name, max_hp, color):
         self.name = name
@@ -79,29 +80,39 @@ class MonsterManager:
 
 class DamageText:
     def __init__(self, damage, pos, is_critical=False):
-        self.damage = float(damage)   # ✅ store as float
+        self.damage = float(damage)   # store as float
         self.x, self.y = float(pos[0]), float(pos[1])
-        self.vy = -80.0
+        self.vy = -60.0
         self.alpha = 255
-        self.lifetime_ms = 900
+        self.lifetime_ms = 800
         self.start_ms = pg.time.get_ticks()
         self.color = (0, 0, 0) if not is_critical else (220, 40, 40)
         self.font = pg.font.SysFont(None, 28 if not is_critical else 36)
         self.is_critical = is_critical
 
     def update(self, dt_ms):
+        # Limit maximum time step to avoid large jumps
+        dt_ms = min(dt_ms, 50)
+        
         elapsed = pg.time.get_ticks() - self.start_ms
         if elapsed >= self.lifetime_ms:
             return True
+        
+        # Gravity effect (negative gravity makes it slow down as it rises)
+        gravity = -20.0
+        self.vy += gravity * (dt_ms / 1000.0)
         self.y += self.vy * (dt_ms / 1000.0)
-        fade_start = self.lifetime_ms * 0.7
+        
+        # Fade out effect
+        fade_start = self.lifetime_ms * 0.6
         if elapsed > fade_start:
             fade_ratio = (elapsed - fade_start) / (self.lifetime_ms - fade_start)
             self.alpha = max(0, int(255 * (1 - fade_ratio)))
+        
         return False
 
     def draw(self, surface):
-        # ✅ format decimals here
+        # Format decimal display
         if self.is_critical:
             text_str = f"{self.damage:.2f}!"
         else:
@@ -113,33 +124,53 @@ class DamageText:
         surface.blit(txt_surf, rect)
 
     def is_alive(self):
-        return self.lifetime > 0
+        elapsed = pg.time.get_ticks() - self.start_ms
+        return elapsed < self.lifetime_ms
 
 
 # Damage System 
-# Use Gear_System.base_damage if available, otherwise fallback
-damage_per_click = getattr(Gear_System, "base_damage", 1)
+# Use Equipment_System.base_damage if available, otherwise fallback
+damage_per_click = getattr(Equipment_System, "base_damage", 1)
 
 # Base critical values
 crit_chance = 0.05        # 5% default crit chance
 crit_multiplier = 2.0     # critical hits deal 200% damage
 
-def calculate_damage(extra_chance=0.0, extra_multi=1.0):
+def calculate_damage(base_damage=None, extra_chance=0.0, extra_multi=1.0):
     """
-    Gear + upgrades + crit. Abilities applied outside.
+    Calculate final damage with critical hits.
+    
+    Parameters:
+    - base_damage: optional base damage (if None, uses Equipment_System.base_damage)
+    - extra_chance: additional critical chance from abilities (CrispyPrecision)
+    - extra_multi: additional critical multiplier from abilities (CrispyPrecision)
+    
+    Returns:
+    - final_damage (int): the calculated damage value
+    - is_critical (bool): whether the hit was critical
     """
-    damage = float(Gear_System.base_damage) + float(Gear_System.bonus_damage)
-    damage *= float(Gear_System.total_damage_multiplier)
-
+    # Get base damage
+    if base_damage is None:
+        damage = float(Equipment_System.base_damage)
+    else:
+        damage = float(base_damage)
+    
+    # Apply equipment multiplier
+    damage *= float(Equipment_System.total_damage_multiplier)
+    
+    # Apply upgrade bonus from Player Upgrade System
     upgrade_level = getattr(Player_Upgrade_System, "level", 0)
     damage += upgrade_level
     if upgrade_level > 0 and upgrade_level % 50 == 0:
         damage *= 1.2
-
-    base_crit_multi = 2.0
-    is_critical = False
-    if random.random() < float(extra_chance):
-        damage *= base_crit_multi * float(extra_multi)
-        is_critical = True
-
-    return damage, is_critical
+    
+    # Calculate total critical chance and multiplier
+    total_crit_chance = crit_chance + float(extra_chance)
+    total_crit_multi = crit_multiplier * float(extra_multi)
+    
+    # Determine if hit is critical
+    is_critical = random.random() < total_crit_chance
+    if is_critical:
+        damage *= total_crit_multi
+    
+    return int(damage), is_critical
