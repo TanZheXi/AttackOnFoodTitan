@@ -9,7 +9,7 @@ import Currency_System
 import Equipment_System
 from DailyQuest_System import DailyQuestSystem
 from Abilities import SpicySurge, CrispyPrecision, ManaSystem
-
+from Player_Upgrade_System import PlayerUpgradeSystem
 
 # ========== UI LAYOUT ==========
 WINDOW_WIDTH = 1300
@@ -99,6 +99,20 @@ crispy_precision = CrispyPrecision(
 )
 
 mana_system = ManaSystem()
+
+# =========================
+# Initialize upgrade system
+# =========================
+player_upgrade_system = PlayerUpgradeSystem(
+    x=RIGHT_AREA_X + 20,
+    y=100,
+    width=400,
+    height=400
+)
+
+# Link abilities to upgrade system
+player_upgrade_system.spicy_ability = damage_boost
+player_upgrade_system.crispy_ability = crispy_precision
 
 def on_prestige_reset():
     if Button_System.panel_manager.shop_system:
@@ -243,19 +257,28 @@ while IsRunning:
                    current_monster.rect.x = MIDDLE_CENTER_X - MONSTER_SIZE // 2
                    current_monster.rect.y = 275
 
+        # Handle upgrades
+        player_upgrade_system.handle_event(event)
+
         # Ability events
         if event.type == pg.MOUSEBUTTONDOWN and event.button == 1:
            if damage_boost.rect.collidepoint(event.pos):
               damage_boost.activate(mana_system)
            elif crispy_precision.rect.collidepoint(event.pos):
                 crispy_precision.activate(mana_system)
+        
+        # --- Update ---
+        damage_boost.update()
+        crispy_precision.update()
+        mana_system.update()
 
         # UI Event
         Button_System.panel_manager.monster_manager = monster_manager
         Button_System.panel_manager.handle_event(event)
         for button in Button_System.buttons:
             button.handle_event(event)
-
+            
+        
     # ========== PET AUTO ATTACK ==========
     current_time = time.time()
     if current_time - last_pet_attack_time >= PET_ATTACK_INTERVAL:

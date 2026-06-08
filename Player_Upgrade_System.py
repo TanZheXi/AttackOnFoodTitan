@@ -48,6 +48,21 @@ class PlayerUpgradeSystem:
 
         self.button_rect = None
 
+        # Spicy Surge upgrade tracking
+        self.spicy_level = 0
+        self.spicy_cost = 20000   # base cost 20k
+        self.spicy_ratio = 1.30
+        self.spicy_max_level = 30
+        self.spicy_damage_boost = 0.0  # cumulative boost
+
+        # Crispy Precision upgrade tracking
+        self.crispy_level = 0
+        self.crispy_cost = 150000  # base cost 150k
+        self.crispy_ratio = 1.25
+        self.crispy_max_level = 30
+        self.crispy_crit_damage = 0.0
+        self.crispy_crit_chance = 0.0
+
         # Companion (placeholder for future updates)
         self.companion_level = 0
         self.companion_cost = 100
@@ -81,8 +96,6 @@ class PlayerUpgradeSystem:
         return int(self.current_cost)
 
     def handle_event(self, event):
-        # (Delete the example loop I gave you with 'upgrade_buttons')
-
         if self.current_category == 0:  # Player upgrade
             if event.type == pg.MOUSEBUTTONDOWN and event.button == 1:
                 # YOUR REAL BUTTON IS HERE:
@@ -91,6 +104,37 @@ class PlayerUpgradeSystem:
                     if GLOBAL_CLICK: GLOBAL_CLICK.play
                     
                     self.purchase_upgrade()
+
+                # Spicy Surge upgrade
+                if hasattr(self, "spicy_rect") and self.spicy_rect.collidepoint(event.pos):
+                   if self.level >= 50 and self.spicy_level < self.spicy_max_level:
+                      if Currency_System.pocket_money >= self.spicy_cost:
+                         Currency_System.pocket_money -= self.spicy_cost
+                         self.spicy_level += 1
+                         self.spicy_damage_boost += 0.15
+                         self.spicy_cost = int(self.spicy_cost * self.spicy_ratio)
+
+                         # ✅ Sync with ability instance
+                         if hasattr(self, "spicy_ability"):
+                            self.spicy_ability.set_upgrade_bonus(self.spicy_damage_boost)
+
+                         print(f"[SPICY SURGE] Lv {self.spicy_level} → Damage Boost +{self.spicy_damage_boost:.2f}, Next Cost: {self.spicy_cost}")
+        
+                # Crispy Precision upgrade
+                if hasattr(self, "crispy_rect") and self.crispy_rect.collidepoint(event.pos):
+                   if self.level >= 125 and self.crispy_level < self.crispy_max_level:
+                      if Currency_System.pocket_money >= self.crispy_cost:
+                         Currency_System.pocket_money -= self.crispy_cost
+                         self.crispy_level += 1
+                         self.crispy_crit_damage += 0.25
+                         self.crispy_crit_chance += 0.01
+                         self.crispy_cost = int(self.crispy_cost * self.crispy_ratio)
+
+                         # ✅ Sync with ability instance
+                         if hasattr(self, "crispy_ability"):
+                            self.crispy_ability.set_upgrade_bonus(self.crispy_crit_chance, self.crispy_crit_damage)
+
+                         print(f"[CRISPY PRECISION] Lv {self.crispy_level} → Crit +{self.crispy_crit_chance:.2f}, Damage +{self.crispy_crit_damage:.2f}, Next Cost: {self.crispy_cost}")
                     
         elif self.current_category == 1:  # Companion upgrade
             if event.type == pg.MOUSEBUTTONDOWN and event.button == 1:
@@ -153,6 +197,40 @@ class PlayerUpgradeSystem:
             else:
                 btn_color = (100, 100, 100)
             text_color = (180, 180, 180)
+
+        # Spicy Surge upgrade box
+        self.spicy_rect = pg.Rect(self.rect.x + 20, self.rect.y + 170, self.rect.width - 40, 50)
+        if self.level < 50:
+           pg.draw.rect(screen, (100, 100, 100), self.spicy_rect)
+           txt = self.font_text.render("Reach Player Level 50 to Unlock", True, (255, 255, 255))
+           screen.blit(txt, txt.get_rect(center=self.spicy_rect.center))
+        elif self.spicy_level >= self.spicy_max_level:
+           pg.draw.rect(screen, (60, 60, 60), self.spicy_rect)
+           txt = self.font_text.render("Max Level", True, (255, 255, 255))
+           screen.blit(txt, txt.get_rect(center=self.spicy_rect.center))
+        else:
+           color = (0, 128, 200) if not self.spicy_rect.collidepoint(mouse_pos) else (0, 180, 220)
+           pg.draw.rect(screen, color, self.spicy_rect)
+           pg.draw.rect(screen, (200, 200, 200), self.spicy_rect, 2)
+           txt = self.font_text.render(f"Spicy Surge Lv {self.spicy_level} - Cost: {self.spicy_cost}", True, (255, 255, 255))
+           screen.blit(txt, txt.get_rect(center=self.spicy_rect.center))
+
+        # Crispy Precision upgrade box
+        self.crispy_rect = pg.Rect(self.rect.x + 20, self.rect.y + 230, self.rect.width - 40, 50)
+        if self.level < 125:
+           pg.draw.rect(screen, (100, 100, 100), self.crispy_rect)
+           txt = self.font_text.render("Reach Player Level 125 to Unlock", True, (255, 255, 255))
+           screen.blit(txt, txt.get_rect(center=self.crispy_rect.center))
+        elif self.crispy_level >= self.crispy_max_level:
+           pg.draw.rect(screen, (60, 60, 60), self.crispy_rect)
+           txt = self.font_text.render("Max Level", True, (255, 255, 255))
+           screen.blit(txt, txt.get_rect(center=self.crispy_rect.center))
+        else:
+           color = (0, 128, 100) if not self.crispy_rect.collidepoint(mouse_pos) else (0, 180, 140)
+           pg.draw.rect(screen, color, self.crispy_rect)
+           pg.draw.rect(screen, (200, 200, 200), self.crispy_rect, 2)
+           txt = self.font_text.render(f"Crispy Precision Lv {self.crispy_level} - Cost: {self.crispy_cost}", True, (255, 255, 255))
+           screen.blit(txt, txt.get_rect(center=self.crispy_rect.center))
 
         # Draw button
         pg.draw.rect(screen, btn_color, self.button_rect)

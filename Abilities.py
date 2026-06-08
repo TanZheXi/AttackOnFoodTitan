@@ -121,8 +121,12 @@ class AbilityBase:
 class SpicySurge(AbilityBase):
     def __init__(self, x, y, radius):
         super().__init__(x, y, radius)
-        self.damage_multiplier = 1.5
+        self.base_multiplier = 1.5
+        self.upgrade_bonus = 0.0
         self.mana_cost = 20
+
+    def set_upgrade_bonus(self, bonus):
+        self.upgrade_bonus = bonus
 
     def activate(self, mana_system=None):
         if mana_system and not mana_system.spend(self.mana_cost):
@@ -131,7 +135,9 @@ class SpicySurge(AbilityBase):
         super().activate()
 
     def get_multiplier(self):
-        return self.damage_multiplier if self.active else 1.0
+        if self.active:
+            return self.base_multiplier + self.upgrade_bonus
+        return 1.0
 
     def draw(self, surface, mana_system=None):
         self.rect = pg.Rect(self.x - self.radius, self.y - self.radius, self.radius * 2, self.radius * 2)
@@ -173,9 +179,15 @@ class SpicySurge(AbilityBase):
 class CrispyPrecision(AbilityBase):
     def __init__(self, x, y, radius):
         super().__init__(x, y, radius)
-        self.extra_crit_chance = 0.15
-        self.extra_crit_damage = 1.5
+        self.base_crit_chance = 0.15
+        self.base_crit_damage = 1.5
+        self.upgrade_bonus_chance = 0.0
+        self.upgrade_bonus_damage = 0.0
         self.mana_cost = 30
+
+    def set_upgrade_bonus(self, bonus_chance, bonus_damage):
+        self.upgrade_bonus_chance = bonus_chance
+        self.upgrade_bonus_damage = bonus_damage
 
     def activate(self, mana_system=None):
         if mana_system and not mana_system.spend(self.mana_cost):
@@ -185,8 +197,9 @@ class CrispyPrecision(AbilityBase):
 
     def get_crit_bonus(self):
         if self.active:
-            return self.extra_crit_chance, self.extra_crit_damage
-        return 0.0, 1.0
+            return (self.base_crit_chance + self.upgrade_bonus_chance,
+                    self.base_crit_damage + self.upgrade_bonus_damage)
+        return (0.0, 1.0)
 
     def draw(self, surface, mana_system=None):
         self.rect = pg.Rect(self.x - self.radius, self.y - self.radius, self.radius * 2, self.radius * 2)
