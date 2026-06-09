@@ -10,6 +10,71 @@ import Equipment_System
 from KitchenGuide_System import KitchenGuideSystem
 from Abilities import SpicySurge, CrispyPrecision
 
+class BoostIndicator: #(For Kitchen Guide Quest: x2 Currency Boost)
+    def __init__(self, x, y, width, height):
+        self.rect = pg.Rect(x, y, width, height)
+        self.font = pg.font.SysFont(None, 18)
+        self.font_small = pg.font.SysFont(None, 14)
+        self.visible = False
+        self.end_time = 0
+        self.duration = 3 * 60 * 60  # 3 hours in seconds
+
+    def activate(self, end_time):
+        self.visible = True
+        self.end_time = end_time
+        print(f"[BOOST] x2 Currency Boost activated! Expires in 3 hours.")
+
+    def update(self):
+        if self.visible:
+            if time.time() >= self.end_time:
+                self.visible = False
+                print("[BOOST] x2 Currency Boost has expired!")
+
+    def get_remaining_percentage(self):
+        if not self.visible or self.end_time == 0:
+            return 0
+        remaining = max(0, self.end_time - time.time())
+        return (remaining / self.duration) * 100
+
+    def get_remaining_text(self):
+        if not self.visible:
+            return ""
+        remaining = max(0, self.end_time - time.time())
+        hours = int(remaining // 3600)
+        minutes = int((remaining % 3600) // 60)
+        seconds = int(remaining % 60)
+        if hours > 0:
+            return f"{hours}h {minutes}m"
+        elif minutes > 0:
+            return f"{minutes}m {seconds}s"
+        else:
+            return f"{seconds}s"
+
+    def draw(self, screen):
+        if not self.visible:
+            return
+        
+        bg_rect = pg.Rect(self.rect.x, self.rect.y, self.rect.width, self.rect.height)
+        pg.draw.rect(screen, (30, 30, 40), bg_rect)
+        pg.draw.rect(screen, (255, 200, 100), bg_rect, 2)
+        
+        title = self.font.render("x2 CURRENCY BOOST ACTIVE!", True, (255, 220, 100))
+        screen.blit(title, (bg_rect.x + 10, bg_rect.y + 5))
+        
+        time_text = self.font_small.render(f"Time remaining: {self.get_remaining_text()}", True, (200, 200, 220))
+        screen.blit(time_text, (bg_rect.x + 10, bg_rect.y + 28))
+        
+        bar_bg = pg.Rect(bg_rect.x + 10, bg_rect.y + 48, bg_rect.width - 20, 12)
+        pg.draw.rect(screen, (60, 60, 80), bar_bg)
+        pg.draw.rect(screen, (100, 100, 120), bar_bg, 1)
+        
+        progress = self.get_remaining_percentage() / 100
+        fill_width = int((bg_rect.width - 20) * progress)
+        fill_rect = pg.Rect(bg_rect.x + 10, bg_rect.y + 48, fill_width, 12)
+        pg.draw.rect(screen, (255, 200, 100), fill_rect)
+        
+        hint = self.font_small.render("Earn 2x money from defeating monsters!", True, (180, 180, 200))
+        screen.blit(hint, (bg_rect.x + 10, bg_rect.y + 65))
 
 # ========== UI LAYOUT ==========
 WINDOW_WIDTH = 1300
@@ -85,6 +150,14 @@ Button_System.panel_manager.pending_money = Currency_System.pocket_money
 
 data_restored = False
 damage_texts = []
+
+# init Boost Indicator
+boost_indicator = BoostIndicator(
+    x=MIDDLE_CENTER_X - 200,
+    y=10,
+    width=400,
+    height=85
+)
 
 # Initialize abilities (positioned below monster, beside left partition line)
 damage_boost = SpicySurge(

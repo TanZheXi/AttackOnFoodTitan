@@ -12,7 +12,7 @@ class GuideQuest:
         self.description = description
         self.requirement_text = requirement_text
         self.requirement_target = requirement_target
-        self.reward_type = reward_type
+        self.reward_type = reward_type  # "weapon", "equipment", "pet", "boost"
         self.completed = False
         self.claimed = False
         self.progress = 0
@@ -26,7 +26,7 @@ class GuideQuest:
         return True
 
     def set_progress(self, value):
-        """Directly set the progress value (use this for initialization or restoring progress)"""
+        """Directly set the progress value (used for initialization or setting initial values)"""
         self.progress = min(value, self.requirement_target)
         if self.progress >= self.requirement_target:
             self.completed = True
@@ -57,6 +57,7 @@ class GuideManager:
         self.boost_end_time = 0
         self.boost_multiplier = 2.0
         self.all_rewards_claimed = False
+        self.external_callbacks = {}
         self._init_quests()
 
     def _init_quests(self):
@@ -84,8 +85,8 @@ class GuideManager:
             "Each stage contains 10 Food Titans. Defeat them all and reach Stage 2 to prove your growth as a chef!",
             "Reach Stage", 2, "boost"
         )
-        # set the progress to stage 1 for Kitchen Guide's quest 4
-        quest4.set_progress(1)
+
+        quest4.set_progress(1) # Start with Stage 1 progress to encourage players to reach Stage 2
 
         self.quests = [quest1, quest2, quest3, quest4]
 
@@ -108,21 +109,19 @@ class GuideManager:
                     quest.set_progress(amount)
 
     def grant_reward(self, reward_type):
+        """Grant reward based on type"""
         if reward_type == "weapon":
             print("[KITCHEN GUIDE] Reward granted: Beginner Wok")
-            if hasattr(self, 'external_callbacks'):
-                self.external_callbacks.get("add_to_inventory", lambda x: None)("Beginner Wok")
-                self.external_callbacks.get("gain_equipment", lambda x: None)("Beginner Wok")
+            self.external_callbacks.get("add_to_inventory", lambda x: None)("Beginner Wok")
+            self.external_callbacks.get("gain_equipment", lambda x: None)("Beginner Wok")
         elif reward_type == "equipment":
             print("[KITCHEN GUIDE] Reward granted: Beginner Apron")
-            if hasattr(self, 'external_callbacks'):
-                self.external_callbacks.get("add_to_inventory", lambda x: None)("Beginner Apron")
-                self.external_callbacks.get("gain_equipment", lambda x: None)("Beginner Apron")
+            self.external_callbacks.get("add_to_inventory", lambda x: None)("Beginner Apron")
+            self.external_callbacks.get("gain_equipment", lambda x: None)("Beginner Apron")
         elif reward_type == "pet":
             print("[KITCHEN GUIDE] Reward granted: Beginner Assistant Fairy")
-            if hasattr(self, 'external_callbacks'):
-                self.external_callbacks.get("add_to_inventory", lambda x: None)("Beginner Assistant Fairy")
-                self.external_callbacks.get("add_pet", lambda x: None)("Beginner Assistant Fairy")
+            self.external_callbacks.get("add_to_inventory", lambda x: None)("Beginner Assistant Fairy")
+            self.external_callbacks.get("add_pet", lambda x: None)("Beginner Assistant Fairy")
         elif reward_type == "boost":
             print("[KITCHEN GUIDE] Reward granted: x2 Currency Boost for 3 hours!")
             self.boost_active = True
@@ -186,11 +185,9 @@ class KitchenGuideSystem:
         self.message = ""
         self.message_timer = 0
         self.hovered_quest_index = -1
-        self.external_callbacks = {}
 
     def set_callbacks(self, callbacks):
         self.guide_manager.external_callbacks = callbacks
-        self.external_callbacks = callbacks
 
     def update(self):
         if self.message_timer > 0:
@@ -213,7 +210,8 @@ class KitchenGuideSystem:
                 if btn_rect.collidepoint(mouse_pos):
                     if quest.can_claim():
                         if quest.claim(self.guide_manager):
-                            reward_names = {0: "Beginner Wok", 1: "Beginner Apron", 2: "Beginner Assistant Fairy", 3: "x2 Boost (3h)"}
+                            reward_names = {0: "Beginner Wok", 1: "Beginner Apron", 
+                                           2: "Beginner Assistant Fairy", 3: "x2 Boost (3h)"}
                             self.message = f"Claimed: {reward_names.get(quest.quest_id, 'Reward')}!"
                             self.message_timer = 180
                         else:
