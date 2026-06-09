@@ -177,6 +177,15 @@ class PetSystem:
     def handle_event(self, event):
         if event.type == pg.MOUSEBUTTONDOWN and event.button == 1:
             
+            # ========== Click for Catogory bar ==========
+            if hasattr(self, 'category_buttons') and self.category_buttons:
+                for btn_info in self.category_buttons:
+                    if btn_info["rect"].collidepoint(event.pos):
+                        if GLOBAL_CLICK: GLOBAL_CLICK.play()
+                        self.set_category(btn_info["category_id"])
+                        return
+            # ============================================
+            
             # Detect left and right scroll arrows
             if hasattr(self, 'arrow_left_rect') and self.arrow_left_rect.collidepoint(event.pos):
                 if GLOBAL_CLICK: GLOBAL_CLICK.play()
@@ -250,14 +259,17 @@ class PetSystem:
         descriptions = {
             "Baby Slime": "A jiggly baby slime that loves to bounce.",
             "Bat": "A swift bat that strikes from above.",
+            "Beginner Assistant Fairy": "A helpful fairy that boosts your cooking skills.",
             "Wolf": "A loyal wolf that fights alongside you.",
             "Hawk": "A keen-eyed hawk that never misses.",
             "Tiger": "A fierce tiger with powerful claws.",
             "Dragon": "A small dragon that breathes fire.",
-            "Phoenix": "A majestic bird that rises from ashes.",
-            "Unicorn": "A magical unicorn that brings luck.",
+            "Fire Spirit": "A blazing spirit that burns enemies.",
+            "Fairy": "A magical fairy that heals wounds.",
+            "Dragon Whelp": "A baby dragon learning to fly.",
             "Hydra": "A multi-headed beast of legend.",
             "Cerberus": "A three-headed guardian of the underworld.",
+            "Phoenix": "A majestic bird that rises from ashes.",
             "Bahamut": "The king of dragons, immensely powerful."
         }
         return descriptions.get(pet_name, "A mysterious pet with great potential.")

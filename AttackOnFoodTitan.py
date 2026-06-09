@@ -81,17 +81,16 @@ class BoostIndicator:
         if data and data.get("visible", False):
             self.visible = True
             self.end_time = data.get("end_time", 0)
-            # 检查是否已经过期
             if time.time() >= self.end_time:
                 self.visible = False
-                print("[BOOST] Boost expired during offline time.")
+                print("[BOOST] Boost expired during offline time")
             else:
                 print(f"[BOOST] Boost restored. Expires at {time.ctime(self.end_time)}")
 
     def draw(self, screen):
         if not self.visible:
             return
-        
+
         bg_rect = pg.Rect(self.rect.x, self.rect.y, self.rect.width, self.rect.height)
         pg.draw.rect(screen, (30, 30, 40), bg_rect)
         pg.draw.rect(screen, (255, 200, 100), bg_rect, 2)
@@ -184,7 +183,7 @@ boost_indicator = BoostIndicator(
 if saved_boost_data:
     boost_indicator.restore_save_data(saved_boost_data)
 
-# Initialize abilities
+# Initialize abilities (positioned below monster, beside left partition line)
 damage_boost = SpicySurge(
     x=LEFT_WIDTH + 5 + 35,
     y=current_monster.rect.y + current_monster.rect.height + 90,
@@ -239,7 +238,7 @@ if Button_System.panel_manager.kitchen_guide_system:
 # Main Game Loop
 # =========================
 while IsRunning:
-    dt_ms = clock.tick(60)
+    dt_ms = clock.tick(60)   # frame delta in ms
     
     # Update boost indicator
     boost_indicator.update()
@@ -440,36 +439,14 @@ while IsRunning:
         
         boost_data = boost_indicator.get_save_data()
 
-        AFK_System.afk_system.save_game_data(
-            pocket_money=Currency_System.pocket_money,
-            monster_hp=current_monster.hp,
-            monster_max_hp=current_monster.max_hp,
-            monster_name=current_monster.name,
-            monster_color=current_monster.color,
-            progression_index=monster_manager.progression_index,
-            stage=monster_manager.stage,
-            inventory_items=inventory_state,
-            shop_items_state=shop_state,
-            pet_data=pet_data,
-            upgrade_level=upgrade_level,
-            guide_data=guide_data,
-            boost_data=boost_data
-        )
-        AFK_System.afk_system.update_save_time()
-        Equipment_System.save_equipment()
-        last_auto_save = current_time
-
-    for button in Button_System.buttons:
-        button.update()
-
     # -------------------------
     # Drawing
     # -------------------------
     window.fill((227, 227, 227))
     
-    # Draw Boost indicator
+    # Draw Boost indicator (if active)
     boost_indicator.draw(window)
-    
+
     pg.draw.line(window, (0, 0, 0), (MIDDLE_AREA_X, 0), (MIDDLE_AREA_X, WINDOW_HEIGHT), 3)
     pg.draw.line(window, (0, 0, 0), (RIGHT_AREA_X, 0), (RIGHT_AREA_X, WINDOW_HEIGHT), 3)
 

@@ -137,6 +137,9 @@ class GuideManager:
     def get_boost_multiplier(self):
         return self.boost_multiplier if self.is_boost_active() else 1.0
 
+    def get_boost_end_time(self):
+        return self.boost_end_time
+
     def check_all_completed(self):
         all_claimed = all(q.claimed for q in self.quests)
         if all_claimed and not self.all_rewards_claimed:

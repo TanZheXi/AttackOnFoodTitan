@@ -44,7 +44,7 @@ class AFKSystem:
             "pet_data": pet_data if pet_data else [],
             "upgrade_level": upgrade_level,
             "guide_data": guide_data if guide_data else {},
-            "boost_data": boost_data if boost_data else {}
+            "boost_data": boost_data if boost_data else {"visible": False}
         }
         try:
             with open(self.save_file, 'w') as f:
@@ -55,7 +55,7 @@ class AFKSystem:
     
     def load_and_calculate_afk_rewards(self):
         if not os.path.exists(self.save_file):
-            return 0, None, 0, 1, 1, [], [], [], 0, {}, {}
+            return 0, None, 0, 1, 1, [], [], [], 0, {}, {"visible": False}
         
         try:
             with open(self.save_file, 'r') as f:
@@ -77,13 +77,13 @@ class AFKSystem:
             pet_data = save_data.get("pet_data", [])
             upgrade_level = save_data.get("upgrade_level", 0)
             guide_data = save_data.get("guide_data", {})
-            boost_data = save_data.get("boost_data", {})
+            boost_data = save_data.get("boost_data", {"visible": False})
             
             return afk_earnings, monster_data, saved_money, progression_index, stage, inventory, shop_state, pet_data, upgrade_level, guide_data, boost_data
             
         except Exception as e:
             print(f"Loading failed: {e}")
-            return 0, None, 0, 1, 1, [], [], [], 0, {}, {}
+            return 0, None, 0, 1, 1, [], [], [], 0, {}, {"visible": False}
     
     def update_save_time(self):
         self.last_save_time = time.time()
