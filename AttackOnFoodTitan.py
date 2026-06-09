@@ -13,8 +13,8 @@ from Abilities import SpicySurge, CrispyPrecision
 class BoostIndicator: #(For Kitchen Guide Quest: x2 Currency Boost)
     def __init__(self, x, y, width, height):
         self.rect = pg.Rect(x, y, width, height)
-        self.font = pg.font.SysFont(None, 18)
-        self.font_small = pg.font.SysFont(None, 14)
+        self.font = pg.font.SysFont(None, 16)
+        self.font_small = pg.font.SysFont(None, 12)
         self.visible = False
         self.end_time = 0
         self.duration = 3 * 60 * 60  # 3 hours in seconds
@@ -50,10 +50,28 @@ class BoostIndicator: #(For Kitchen Guide Quest: x2 Currency Boost)
         else:
             return f"{seconds}s"
 
+    def get_save_data(self):
+        if self.visible:
+            return {
+                "visible": True,
+                "end_time": self.end_time
+            }
+        return {"visible": False}
+
+    def restore_save_data(self, data):
+        if data and data.get("visible", False):
+            self.visible = True
+            self.end_time = data.get("end_time", 0)
+            if time.time() >= self.end_time:
+                self.visible = False
+                print("[BOOST] Boost expired during offline time")
+            else:
+                print(f"[BOOST] Boost restored. Expires at {time.ctime(self.end_time)}")
+
     def draw(self, screen):
         if not self.visible:
             return
-        
+
         bg_rect = pg.Rect(self.rect.x, self.rect.y, self.rect.width, self.rect.height)
         pg.draw.rect(screen, (30, 30, 40), bg_rect)
         pg.draw.rect(screen, (255, 200, 100), bg_rect, 2)
@@ -64,13 +82,13 @@ class BoostIndicator: #(For Kitchen Guide Quest: x2 Currency Boost)
         time_text = self.font_small.render(f"Time remaining: {self.get_remaining_text()}", True, (200, 200, 220))
         screen.blit(time_text, (bg_rect.x + 10, bg_rect.y + 28))
         
-        bar_bg = pg.Rect(bg_rect.x + 10, bg_rect.y + 48, bg_rect.width - 20, 12)
+        bar_bg = pg.Rect(bg_rect.x + 10, bg_rect.y + 48, bg_rect.width - 20, 10)
         pg.draw.rect(screen, (60, 60, 80), bar_bg)
         pg.draw.rect(screen, (100, 100, 120), bar_bg, 1)
         
         progress = self.get_remaining_percentage() / 100
         fill_width = int((bg_rect.width - 20) * progress)
-        fill_rect = pg.Rect(bg_rect.x + 10, bg_rect.y + 48, fill_width, 12)
+        fill_rect = pg.Rect(bg_rect.x + 10, bg_rect.y + 48, fill_width, 10)
         pg.draw.rect(screen, (255, 200, 100), fill_rect)
         
         hint = self.font_small.render("Earn 2x money from defeating monsters!", True, (180, 180, 200))
@@ -101,8 +119,8 @@ pg.display.set_caption("Attack On Food Titan")
 # Setup clock
 clock = pg.time.Clock()
 
-# Load AFK rewards and saved game data (returns 10 values including guide_data)
-afk_earnings, saved_monster_data, saved_money, saved_progression_index, saved_stage, saved_inventory, saved_shop_state, saved_pet_data, saved_upgrade_level, saved_guide_data = AFK_System.afk_system.load_and_calculate_afk_rewards()
+# Load AFK rewards and saved game data (returns 11 values including boost_data)
+afk_earnings, saved_monster_data, saved_money, saved_progression_index, saved_stage, saved_inventory, saved_shop_state, saved_pet_data, saved_upgrade_level, saved_guide_data, saved_boost_data = AFK_System.afk_system.load_and_calculate_afk_rewards()
 
 # Load saved equipment data
 Equipment_System.load_equipment()
@@ -153,11 +171,15 @@ damage_texts = []
 
 # init Boost Indicator
 boost_indicator = BoostIndicator(
-    x=MIDDLE_CENTER_X - 200,
-    y=10,
-    width=400,
+    x=LEFT_AREA_X + 10,
+    y=WINDOW_HEIGHT - 100,
+    width=280,
     height=85
 )
+
+# Restore boost state from saved data
+if saved_boost_data:
+    boost_indicator.restore_save_data(saved_boost_data)
 
 # Initialize abilities (positioned below monster, beside left partition line)
 damage_boost = SpicySurge(
@@ -199,8 +221,16 @@ Equipment_System.set_equip_callback(lambda: (
     if Button_System.panel_manager.kitchen_guide_system else None
 ))
 
-# Pet equip callback (will be set after pet system is created)
-# Player upgrade callback (will be set after upgrade system is created)
+# Enhance grant_reward to activate boost indicator
+if Button_System.panel_manager.kitchen_guide_system:
+    original_grant_reward = Button_System.panel_manager.kitchen_guide_system.guide_manager.grant_reward
+    
+    def enhanced_grant_reward(reward_type):
+        original_grant_reward(reward_type)
+        if reward_type == "boost":
+            boost_indicator.activate(Button_System.panel_manager.kitchen_guide_system.guide_manager.boost_end_time)
+    
+    Button_System.panel_manager.kitchen_guide_system.guide_manager.grant_reward = enhanced_grant_reward
 # ====================================================
 
 # =========================
@@ -208,6 +238,10 @@ Equipment_System.set_equip_callback(lambda: (
 # =========================
 while IsRunning:
     dt_ms = clock.tick(60)   # frame delta in ms
+    
+    # Update boost indicator
+    boost_indicator.update()
+    
     damage_boost.update()
     crispy_precision.update()
 
@@ -220,6 +254,10 @@ while IsRunning:
             upgrade_level = 0
             if Button_System.panel_manager.player_upgrade_system:
                 upgrade_level = Button_System.panel_manager.player_upgrade_system.level
+            
+            # Get boost save data
+            boost_data = boost_indicator.get_save_data()
+            
             AFK_System.afk_system.save_game_data(
                 pocket_money=Currency_System.pocket_money,
                 monster_hp=current_monster.hp,
@@ -232,7 +270,8 @@ while IsRunning:
                 shop_items_state=shop_state,
                 pet_data=pet_data,
                 upgrade_level=upgrade_level,
-                guide_data=guide_data
+                guide_data=guide_data,
+                boost_data=boost_data
             )
             IsRunning = False
             break
@@ -419,35 +458,16 @@ while IsRunning:
         upgrade_level = 0
         if Button_System.panel_manager.player_upgrade_system:
             upgrade_level = Button_System.panel_manager.player_upgrade_system.level
-
-        AFK_System.afk_system.save_game_data(
-            pocket_money=Currency_System.pocket_money,
-            monster_hp=current_monster.hp,
-            monster_max_hp=current_monster.max_hp,
-            monster_name=current_monster.name,
-            monster_color=current_monster.color,
-            progression_index=monster_manager.progression_index,
-            stage=monster_manager.stage,
-            inventory_items=inventory_state,
-            shop_items_state=shop_state,
-            pet_data=pet_data,
-            upgrade_level=upgrade_level,
-            guide_data=guide_data
-        )
-        AFK_System.afk_system.update_save_time()
-
-        # Equipment system auto save
-        Equipment_System.save_equipment()
-
-        last_auto_save = current_time
-
-    for button in Button_System.buttons:
-        button.update()
+        
+        boost_data = boost_indicator.get_save_data()
 
     # -------------------------
     # Drawing
     # -------------------------
     window.fill((227, 227, 227))
+    
+    # Draw Boost indicator (if active)
+    boost_indicator.draw(window)
 
     pg.draw.line(window, (0, 0, 0), (MIDDLE_AREA_X, 0), (MIDDLE_AREA_X, WINDOW_HEIGHT), 3)
     pg.draw.line(window, (0, 0, 0), (RIGHT_AREA_X, 0), (RIGHT_AREA_X, WINDOW_HEIGHT), 3)
