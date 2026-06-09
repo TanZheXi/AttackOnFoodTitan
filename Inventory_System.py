@@ -88,10 +88,10 @@ class InventorySystem:
             print(f"[INVENTORY] {item_name} already in inventory")
 
     def _get_item_category(self, item_name):
-        weapon_items = ["Rusty Spatula", "Golden Spatula", "Chef's Wok", "Mythic Pan", "OP WEAPON"]
-        equipment_items = ["Master Chef Hat", "Titanium Apron", "Roasted Garlic Aroma", "Speed Boots", "Magic Ring"]
+        weapon_items = ["Rusty Spatula", "Golden Spatula", "Chef's Wok", "Mythic Pan", "OP WEAPON", "Beginner Wok"]
+        equipment_items = ["Master Chef Hat", "Titanium Apron", "Roasted Garlic Aroma", "Speed Boots", "Magic Ring", "Beginner Apron"]
         scrap_items = ["Scrap Pack S", "Scrap Pack M", "Scrap Pack L", "Scrap Pack XL", "Scrap Pack XXL"]
-        pet_items = ["Baby Slime", "Fire Spirit", "Fairy", "Dragon Whelp", "Phoenix"]
+        pet_items = ["Baby Slime", "Beginner Assistant Fairy", "Fire Spirit", "Fairy", "Dragon Whelp", "Phoenix"]
         
         if item_name in weapon_items:
             return "weapon"

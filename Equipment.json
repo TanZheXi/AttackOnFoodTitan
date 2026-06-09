@@ -1,6 +1,6 @@
 {
     "OP WEAPON": {
-        "owned": false,
+        "owned": true,
         "multiplier": 1000001.5,
         "cost": 999999,
         "scrap_value": 50000,
@@ -42,8 +42,24 @@
         "rarity": "Mythic",
         "slot": "weapon"
     },
+    "Beginner Wok": {
+        "owned": true,
+        "multiplier": 2.5,
+        "cost": 0,
+        "scrap_value": 5,
+        "rarity": "Common",
+        "slot": "weapon"
+    },
+    "Beginner Apron": {
+        "owned": true,
+        "multiplier": 2.5,
+        "cost": 0,
+        "scrap_value": 5,
+        "rarity": "Common",
+        "slot": "armor"
+    },
     "Master Chef Hat": {
-        "owned": false,
+        "owned": true,
         "multiplier": 6.0,
         "cost": 1500,
         "scrap_value": 150,
@@ -70,10 +86,10 @@
         "level": 3
     },
     "Player_Data": {
-        "scraps": 0,
+        "scraps": 50010,
         "equipped": {
             "weapon": null,
-            "hat": null,
+            "hat": "Master Chef Hat",
             "armor": null,
             "aroma": null
         }

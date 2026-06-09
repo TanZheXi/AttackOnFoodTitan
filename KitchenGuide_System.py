@@ -12,7 +12,7 @@ class GuideQuest:
         self.description = description
         self.requirement_text = requirement_text
         self.requirement_target = requirement_target
-        self.reward_type = reward_type  # "weapon", "equipment", "pet", "boost"
+        self.reward_type = reward_type
         self.completed = False
         self.claimed = False
         self.progress = 0
@@ -24,6 +24,12 @@ class GuideQuest:
         if self.progress >= self.requirement_target:
             self.completed = True
         return True
+
+    def set_progress(self, value):
+        """Directly set the progress value (use this for initialization or restoring progress)"""
+        self.progress = min(value, self.requirement_target)
+        if self.progress >= self.requirement_target:
+            self.completed = True
 
     def get_progress_percentage(self):
         if self.requirement_target == 0:
@@ -54,35 +60,36 @@ class GuideManager:
         self._init_quests()
 
     def _init_quests(self):
-        # Quest 1: Start Cooking
+        # Quest 1: Start Cooking - Reward: Beginner Wok (Weapon)
         quest1 = GuideQuest(
             0, "Start Cooking",
-            "Click on any place on middle area to deal damage to monster",
+            "Click on any place in the middle area to deal damage to the monster. Defeat 10 Food Titans to prove your cooking skills!",
             "Cook Food Titan", 10, "weapon"
         )
-        # Quest 2: Equip an Equipment
+        # Quest 2: Equip an Equipment - Reward: Beginner Apron (Equipment)
         quest2 = GuideQuest(
             1, "Equip an Equipment",
-            "Buy an equipment at shop and equip it in inventory",
+            "Visit the Shop to buy an equipment, then go to Inventory and equip it. Master Chef Hat is a great starter choice!",
             "Equip any equipment", 1, "equipment"
         )
-        # Quest 3: Equip a pet
+        # Quest 3: Equip a pet - Reward: Beginner Assistant Fairy (Pet)
         quest3 = GuideQuest(
             2, "Equip a Pet",
-            "Buy a pet at shop and equip it in pet inventory",
+            "Buy a pet from the Shop's Pet category, then equip it in the Pet panel. Baby Slime is a cheap and friendly companion!",
             "Equip any pet", 1, "pet"
         )
-        # Quest 4: Show your improvement
+        # Quest 4: Show your improvement - Reward: x2 Currency Boost for 3 hours
         quest4 = GuideQuest(
             3, "Show your improvement!",
-            "Each stage contains 10 Food Titans, defeat them and reach stage 2! All the best Chef!",
+            "Each stage contains 10 Food Titans. Defeat them all and reach Stage 2 to prove your growth as a chef!",
             "Reach Stage", 2, "boost"
         )
+        # set the progress to stage 1 for Kitchen Guide's quest 4
+        quest4.set_progress(1)
 
         self.quests = [quest1, quest2, quest3, quest4]
 
     def update_progress(self, progress_type, amount=1):
-        """Update quest progress based on game events"""
         for quest in self.quests:
             if quest.completed or quest.claimed:
                 continue
@@ -98,33 +105,30 @@ class GuideManager:
                     quest.update_progress(amount)
             elif progress_type == "stage_reached":
                 if quest.quest_id == 3:
-                    quest.update_progress(amount)
+                    quest.set_progress(amount)
 
     def grant_reward(self, reward_type):
-        """Grant reward based on type"""
         if reward_type == "weapon":
-            print("[KITCHEN GUIDE] Reward granted: Weapon (Rusty Spatula)")
-            # Add to inventory and equipment system
+            print("[KITCHEN GUIDE] Reward granted: Beginner Wok")
             if hasattr(self, 'external_callbacks'):
-                self.external_callbacks.get("add_to_inventory", lambda x: None)("Rusty Spatula")
-                self.external_callbacks.get("gain_equipment", lambda x: None)("Rusty Spatula")
+                self.external_callbacks.get("add_to_inventory", lambda x: None)("Beginner Wok")
+                self.external_callbacks.get("gain_equipment", lambda x: None)("Beginner Wok")
         elif reward_type == "equipment":
-            print("[KITCHEN GUIDE] Reward granted: Equipment (Master Chef Hat)")
+            print("[KITCHEN GUIDE] Reward granted: Beginner Apron")
             if hasattr(self, 'external_callbacks'):
-                self.external_callbacks.get("add_to_inventory", lambda x: None)("Master Chef Hat")
-                self.external_callbacks.get("gain_equipment", lambda x: None)("Master Chef Hat")
+                self.external_callbacks.get("add_to_inventory", lambda x: None)("Beginner Apron")
+                self.external_callbacks.get("gain_equipment", lambda x: None)("Beginner Apron")
         elif reward_type == "pet":
-            print("[KITCHEN GUIDE] Reward granted: Pet (Baby Slime)")
+            print("[KITCHEN GUIDE] Reward granted: Beginner Assistant Fairy")
             if hasattr(self, 'external_callbacks'):
-                self.external_callbacks.get("add_to_inventory", lambda x: None)("Baby Slime")
-                self.external_callbacks.get("add_pet", lambda x: None)("Baby Slime")
+                self.external_callbacks.get("add_to_inventory", lambda x: None)("Beginner Assistant Fairy")
+                self.external_callbacks.get("add_pet", lambda x: None)("Beginner Assistant Fairy")
         elif reward_type == "boost":
             print("[KITCHEN GUIDE] Reward granted: x2 Currency Boost for 3 hours!")
             self.boost_active = True
-            self.boost_end_time = time.time() + (3 * 60 * 60)  # 3 hours
+            self.boost_end_time = time.time() + (3 * 60 * 60)
 
     def is_boost_active(self):
-        """Check if boost is still active"""
         if self.boost_active:
             if time.time() >= self.boost_end_time:
                 self.boost_active = False
@@ -135,7 +139,6 @@ class GuideManager:
         return self.boost_multiplier if self.is_boost_active() else 1.0
 
     def check_all_completed(self):
-        """Check if all quests are claimed"""
         all_claimed = all(q.claimed for q in self.quests)
         if all_claimed and not self.all_rewards_claimed:
             self.all_rewards_claimed = True
@@ -175,9 +178,10 @@ class KitchenGuideSystem:
     def __init__(self, x, y, width, height):
         self.rect = pg.Rect(x, y, width, height)
         self.font_small = pg.font.SysFont(None, 14)
-        self.font_medium = pg.font.SysFont(None, 20)
-        self.font_large = pg.font.SysFont(None, 26)
-        self.font_desc = pg.font.SysFont(None, 16)
+        self.font_medium = pg.font.SysFont(None, 18)
+        self.font_large = pg.font.SysFont(None, 24)
+        self.font_desc = pg.font.SysFont(None, 15)
+        self.font_title = pg.font.SysFont(None, 20, bold=True)
         self.guide_manager = GuideManager()
         self.message = ""
         self.message_timer = 0
@@ -185,7 +189,6 @@ class KitchenGuideSystem:
         self.external_callbacks = {}
 
     def set_callbacks(self, callbacks):
-        """Set external callbacks for rewards"""
         self.guide_manager.external_callbacks = callbacks
         self.external_callbacks = callbacks
 
@@ -199,18 +202,18 @@ class KitchenGuideSystem:
         if event.type == pg.MOUSEBUTTONDOWN and event.button == 1:
             mouse_pos = event.pos
             quests = self.guide_manager.quests
-            card_height = 90
+            card_height = 100
             card_spacing = 10
-            start_y = self.rect.y + 45
+            start_y = self.rect.y + 15
 
             for i, quest in enumerate(quests):
                 card_rect = pg.Rect(self.rect.x + 15, start_y + i * (card_height + card_spacing),
                                    self.rect.width - 30, card_height)
-                btn_rect = pg.Rect(card_rect.right - 65, card_rect.bottom - 25, 55, 20)
+                btn_rect = pg.Rect(card_rect.right - 70, card_rect.bottom - 25, 60, 20)
                 if btn_rect.collidepoint(mouse_pos):
                     if quest.can_claim():
-                        if self.guide_manager.claim_quest(i):  # Need to implement claim_quest method
-                            reward_names = {0: "Weapon", 1: "Equipment", 2: "Pet", 3: "x2 Boost (3h)"}
+                        if quest.claim(self.guide_manager):
+                            reward_names = {0: "Beginner Wok", 1: "Beginner Apron", 2: "Beginner Assistant Fairy", 3: "x2 Boost (3h)"}
                             self.message = f"Claimed: {reward_names.get(quest.quest_id, 'Reward')}!"
                             self.message_timer = 180
                         else:
@@ -224,25 +227,13 @@ class KitchenGuideSystem:
                         self.message_timer = 120
                     return
 
-    def claim_quest(self, quest_index):
-        """Helper method to claim quest"""
-        if quest_index < len(self.guide_manager.quests):
-            return self.guide_manager.quests[quest_index].claim(self.guide_manager)
-        return False
-
-    def get_boost_multiplier(self):
-        return self.guide_manager.get_boost_multiplier()
-
-    def is_guide_completed(self):
-        return self.guide_manager.check_all_completed()
-
     def draw(self, screen):
         # Panel background
         pg.draw.rect(screen, (45, 45, 55), self.rect)
         pg.draw.rect(screen, (150, 150, 170), self.rect, 2)
 
         quests = self.guide_manager.quests
-        card_height = 90
+        card_height = 100
         card_spacing = 10
         start_y = self.rect.y + 15
 
@@ -267,27 +258,33 @@ class KitchenGuideSystem:
                 color = (50, 50, 65)
 
             pg.draw.rect(screen, color, card_rect)
-            pg.draw.rect(screen, (200, 200, 220), card_rect, 1)
+            pg.draw.rect(screen, (200, 200, 220), card_rect, 2)
 
             # Quest name
-            name_text = self.font_medium.render(quest.name, True, (255, 220, 100))
-            screen.blit(name_text, (card_rect.x + 10, card_rect.y + 5))
+            name_text = self.font_large.render(quest.name, True, (255, 220, 100))
+            screen.blit(name_text, (card_rect.x + 12, card_rect.y + 6))
 
             # Requirement text
             req_text = quest.get_requirement_text()
-            req_surface = self.font_small.render(req_text, True, (200, 200, 220))
-            screen.blit(req_surface, (card_rect.x + 15, card_rect.y + 30))
+            req_surface = self.font_medium.render(req_text, True, (200, 200, 220))
+            screen.blit(req_surface, (card_rect.x + 15, card_rect.y + 32))
 
             # Progress bar
             progress_pct = quest.get_progress_percentage()
-            bar_rect = pg.Rect(card_rect.x + 15, card_rect.y + 50, card_rect.width - 100, 10)
+            bar_rect = pg.Rect(card_rect.x + 15, card_rect.y + 58, card_rect.width - 100, 10)
             pg.draw.rect(screen, (60, 60, 80), bar_rect)
             pg.draw.rect(screen, (100, 100, 120), bar_rect, 1)
             fill_rect = pg.Rect(bar_rect.x, bar_rect.y, int(bar_rect.width * progress_pct / 100), bar_rect.height)
             pg.draw.rect(screen, (220, 220, 240), fill_rect)
 
+            # Reward text
+            reward_names = {0: "Wok", 1: "Apron", 2: "Fairy", 3: "x2 Boost"}
+            reward_text = f"Reward: {reward_names.get(quest.quest_id, '')}"
+            reward_surface = self.font_small.render(reward_text, True, (255, 200, 100))
+            screen.blit(reward_surface, (card_rect.x + 15, card_rect.y + 78))
+
             # Claim button
-            btn_rect = pg.Rect(card_rect.right - 65, card_rect.bottom - 25, 55, 20)
+            btn_rect = pg.Rect(card_rect.right - 70, card_rect.bottom - 22, 60, 18)
 
             if quest.claimed:
                 btn_color = (80, 80, 80)
@@ -305,45 +302,48 @@ class KitchenGuideSystem:
             btn_rect_center = btn_render.get_rect(center=btn_rect.center)
             screen.blit(btn_render, btn_rect_center)
 
-        # ========== DESCRIPTION BOX (shows quest description on hover) ==========
-        desc_y = self.rect.y + 15 + 4 * (card_height + card_spacing) + 10
-        desc_height = 100
+        # ========== DESCRIPTION BOX ==========
+        desc_y = self.rect.y + 15 + 4 * (card_height + card_spacing) + 5
+        desc_height = 110
         desc_rect = pg.Rect(self.rect.x + 15, desc_y, self.rect.width - 30, desc_height)
 
         pg.draw.rect(screen, (35, 35, 45), desc_rect)
         pg.draw.rect(screen, (100, 100, 120), desc_rect, 2)
 
-        desc_title = self.font_medium.render("QUEST INFO", True, (255, 220, 100))
-        screen.blit(desc_title, (desc_rect.x + 10, desc_rect.y + 5))
+        desc_title = self.font_title.render("QUEST INFO", True, (255, 220, 100))
+        screen.blit(desc_title, (desc_rect.x + 12, desc_rect.y + 8))
 
         if self.hovered_quest_index >= 0 and self.hovered_quest_index < len(quests):
             quest = quests[self.hovered_quest_index]
             # Quest name
-            name_text = self.font_small.render(quest.name, True, (255, 255, 200))
-            screen.blit(name_text, (desc_rect.x + 10, desc_rect.y + 30))
+            name_text = self.font_medium.render(quest.name, True, (255, 255, 200))
+            screen.blit(name_text, (desc_rect.x + 12, desc_rect.y + 32))
 
             # Description (wrapped)
-            desc_lines = self._wrap_text(quest.description, self.font_desc, desc_rect.width - 20)
-            y_offset = desc_rect.y + 52
+            desc_lines = self._wrap_text(quest.description, self.font_desc, desc_rect.width - 24)
+            y_offset = desc_rect.y + 55
             for line in desc_lines:
                 line_surface = self.font_desc.render(line, True, (180, 180, 200))
-                screen.blit(line_surface, (desc_rect.x + 10, y_offset))
+                screen.blit(line_surface, (desc_rect.x + 12, y_offset))
                 y_offset += 18
 
             # Reward info
-            reward_names = {0: "Reward: Weapon", 1: "Reward: Equipment", 2: "Reward: Pet", 3: "Reward: x2 Currency Boost (3h)"}
+            reward_names = {0: "Reward: Beginner Wok (Weapon, x2.5 DMG)", 
+                           1: "Reward: Beginner Apron (Gear, x2.5 DMG)", 
+                           2: "Reward: Beginner Assistant Fairy (Pet, 2 DMG)", 
+                           3: "Reward: x2 Currency Boost (3 hours)"}
             reward_text = reward_names.get(quest.quest_id, "")
             reward_surface = self.font_small.render(reward_text, True, (255, 200, 100))
-            screen.blit(reward_surface, (desc_rect.x + 10, desc_rect.bottom - 22))
+            screen.blit(reward_surface, (desc_rect.x + 12, desc_rect.bottom - 20))
         else:
             hint_text = self.font_small.render("Hover over a quest to see details", True, (150, 150, 170))
             hint_rect = hint_text.get_rect(center=(desc_rect.centerx, desc_rect.centery))
             screen.blit(hint_text, hint_rect)
-        # ================================================================
+        # ====================================
 
         if self.message and self.message_timer > 0:
             msg_surface = self.font_medium.render(self.message, True, (255, 255, 150))
-            msg_rect = msg_surface.get_rect(center=(self.rect.centerx, self.rect.bottom - 10))
+            msg_rect = msg_surface.get_rect(center=(self.rect.centerx, self.rect.bottom - 12))
             screen.blit(msg_surface, msg_rect)
 
     def _wrap_text(self, text, font, max_width):

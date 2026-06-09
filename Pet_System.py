@@ -37,6 +37,7 @@ class PetSystem:
             # Common (Pet Shop)
             Pet("Baby Slime", "common", 1, (100, 200, 100), price=100),
             Pet("Bat", "common", 1, (100, 100, 150), price=100),
+            Pet("Beginner Assistant Fairy", "common", 2, (200, 200, 255), price=0),
             # Uncommon
             Pet("Wolf", "uncommon", 2, (150, 150, 200), price=300),
             Pet("Hawk", "uncommon", 2, (200, 180, 100), price=300),
@@ -89,7 +90,7 @@ class PetSystem:
         self.desc_panel_rect = None
         
         # ========== Kitchen Guide callback ==========
-        self.guide_callback = None  # 外部设置的回调函数
+        self.guide_callback = None
         # ===========================================
 
     def update_pets_by_category(self):
@@ -162,7 +163,7 @@ class PetSystem:
                 self.message = f"{pet.name} equipped!"
                 self.message_timer = 120
                 
-                # ========== 通知 Kitchen Guide 宠物已装备 ==========
+                # ========== Announce Kitchen Guide Pet Equipped ==========
                 if self.guide_callback:
                     self.guide_callback()
                 # =================================================

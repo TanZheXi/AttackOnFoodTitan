@@ -12,7 +12,7 @@ from KitchenGuide_System import KitchenGuideSystem
 try:
     # load it ONCE here at the top of the file
     GLOBAL_CLICK = pg.mixer.Sound("Sound_Effects/Click_sfx.wav")
-    GLOBAL_CLICK.set_volume(0.3) # 50% volume
+    GLOBAL_CLICK.set_volume(0.3)
 except Exception as e:
     GLOBAL_CLICK = None
     print(f"Warning: Could not load click sound: {e}")
@@ -33,12 +33,8 @@ class Main_button:
     def handle_event(self, event):
         if event.type == pg.MOUSEBUTTONDOWN and event.button == 1:
             if self.rect.collidepoint(event.pos):
-                
-                # 1. Play the global sound!
                 if GLOBAL_CLICK:
                     GLOBAL_CLICK.play()
-                
-                # 2. Run the button's normal code
                 if self.callback:
                     self.callback()
                 return True
@@ -111,6 +107,7 @@ class VerticalScrollButton:
         text_surf = self.font.render(self.text, True, (255, 255, 255))
         text_rect = text_surf.get_rect(center=self.rect.center)
         screen.blit(text_surf, text_rect)
+
 
 class GuideSystem:
     def __init__(self, x, y, width, height):
@@ -231,8 +228,7 @@ class GuideSystem:
                 self.scroll_offset = min(max_scroll, getattr(self, 'scroll_offset', 0) + 1)
         
         return False
-
-
+    
 class PanelManager:
     def __init__(self, screen_width, screen_height):
         self.active_panel = None
@@ -286,15 +282,16 @@ class PanelManager:
         self.current_stage = 1
         self.wants_to_prestige = False
         
-        # ========== Middle Area Right Side Buttons ==========
+        # ========== Middle Area Right Side Buttons (Single Column) ==========
         MIDDLE_RIGHT_BORDER = 850
         BUTTON_WIDTH = 30
         BUTTON_HEIGHT = 30
         SPACING = 5
         BUTTON_START_Y = 12
         
-        BUTTON_AREA_X = MIDDLE_RIGHT_BORDER - BUTTON_WIDTH - 5
+        BUTTON_AREA_X = MIDDLE_RIGHT_BORDER - BUTTON_WIDTH - 5  # 815
         
+        # 所有按钮文字和回调（按顺序排列）
         button_texts = ["U", "P", "C", "I", "S", "R", "Pr", "G"]
         button_callbacks = [
             lambda: self.toggle_panel("Upgrade"),
@@ -306,14 +303,22 @@ class PanelManager:
             lambda: self.toggle_panel("Prestige"),
             lambda: self.toggle_panel("Guide")
         ]
-
+        
         self.left_column_buttons = []
         for i, (text, callback) in enumerate(zip(button_texts, button_callbacks)):
             y = BUTTON_START_Y + i * (BUTTON_HEIGHT + SPACING)
             btn = VerticalScrollButton(BUTTON_AREA_X, y, BUTTON_WIDTH, BUTTON_HEIGHT, text, callback)
             self.left_column_buttons.append(btn)
-
+        
         self.right_column_buttons = []
+
+    def update_guide_button_visibility(self):
+        """如果 Kitchen Guide 所有任务已完成，则隐藏 G 按钮"""
+        if self.kitchen_guide_system and self.kitchen_guide_system.guide_manager.check_all_completed():
+            for btn in self.left_column_buttons:
+                if btn.text == "G":
+                    btn.rect.x = -100
+                    break
 
     def handle_button_events(self, event):
         if event.type == pg.MOUSEBUTTONDOWN and event.button == 1:
@@ -321,10 +326,17 @@ class PanelManager:
                 if btn.rect.collidepoint(event.pos):
                     btn.callback()
                     return True
+            for btn in self.right_column_buttons:
+                if btn.rect.collidepoint(event.pos):
+                    btn.callback()
+                    return True
         return False
 
     def draw_buttons(self, screen):
         for btn in self.left_column_buttons:
+            btn.update(pg.mouse.get_pos())
+            btn.draw(screen)
+        for btn in self.right_column_buttons:
             btn.update(pg.mouse.get_pos())
             btn.draw(screen)
 
@@ -374,29 +386,23 @@ class PanelManager:
             self.inventory_system.reset_inventory()
         if self.pet_system:
             self.pet_system.reset_on_prestige()
-        # Kitchen Guide will not be reset on prestige
-    
+
     def handle_event(self, event):
         # If Guide panel is visible
         if self.guide_system.visible:
-            # Let Guide handle its own events (close button, scrolling)
             self.guide_system.handle_event(event)
             
-            # Check if any main button was clicked
             if event.type == pg.MOUSEBUTTONDOWN and event.button == 1:
-                # Check left column buttons
                 for btn in self.left_column_buttons:
                     if btn.rect.collidepoint(event.pos):
                         self.guide_system.visible = False
                         btn.callback()
                         return
-                # Check right column buttons
                 for btn in self.right_column_buttons:
                     if btn.rect.collidepoint(event.pos):
                         self.guide_system.visible = False
                         btn.callback()
                         return
-                # Check Guide button itself
                 if hasattr(self, 'guide_button_rect') and self.guide_button_rect.collidepoint(event.pos):
                     self.guide_system.visible = False
                     return
@@ -423,14 +429,9 @@ class PanelManager:
             stars_to_gain = Currency_System.calculate_prestige_rewards(self.current_stage)
             
             if event.type == pg.MOUSEBUTTONDOWN and event.button == 1:
-                # 1. Did they click the button?
                 if hasattr(self, 'prestige_btn_rect') and self.prestige_btn_rect.collidepoint(event.pos):
-                    
-                    # --- PLAY SOUND ONCE HERE! ---
                     if GLOBAL_CLICK: 
                         GLOBAL_CLICK.play()
-
-                    # --- RUN THE PRESTIGE LOGIC ---
                     if stars_to_gain > 0:
                         if not getattr(self, 'confirm_prestige', False):
                             self.confirm_prestige = True  
@@ -442,10 +443,8 @@ class PanelManager:
                                     self.prestige_sound.play()
                                 self.active_panel = None
                                 self.confirm_prestige = False
-                
-                # 2. Did they click anywhere ELSE on the screen?
                 else:
-                    self.confirm_prestige = False # Only cancel if they clicked away!
+                    self.confirm_prestige = False
             return
 
     def add_to_inventory(self, item_name):
@@ -480,6 +479,9 @@ class PanelManager:
         return None
     
     def draw(self, screen):
+        # 更新 Kitchen Guide 按钮可见性
+        self.update_guide_button_visibility()
+        
         # ========== Make sure kitchen_guide_system exists ==========
         if self.kitchen_guide_system is None:
             self.kitchen_guide_system = KitchenGuideSystem(0, 0, 1, 1)
@@ -588,7 +590,6 @@ class PanelManager:
                 self.pet_system.draw(screen, self.panel_rect, self.desc_panel_rect)
                 
             elif self.active_panel == "Guide":
-                # Refresh position for kitchen guide
                 if self.kitchen_guide_system:
                     self.kitchen_guide_system.rect = pg.Rect(
                         self.panel_rect.x + 10,
@@ -596,7 +597,6 @@ class PanelManager:
                         self.panel_rect.width - 20,
                         self.panel_rect.height - 80
                     )
-                    # Set callbacks for rewards
                     self.kitchen_guide_system.set_callbacks({
                         "add_to_inventory": self.add_to_inventory,
                         "gain_equipment": Equipment_System.gain_equipment,
