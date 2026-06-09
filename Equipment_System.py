@@ -7,6 +7,7 @@ with open('Equipment.json', 'r') as file:
 
 """Variables"""
 total_damage_multiplier = 1.0
+base_damage = 1
 crafting_scraps = 0
 
 # --- Kitchen Guide callback ---

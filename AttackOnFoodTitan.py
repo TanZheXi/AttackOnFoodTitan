@@ -504,9 +504,6 @@ while IsRunning:
             name_text = font_pet.render(pet.name, True, (0, 0, 0))
             name_rect = name_text.get_rect(center=(pet_rect.centerx, pet_rect.centery))
             window.blit(name_text, name_rect)
-
-    # Set boost state for Currency_System
-    Currency_System.draw_ui.is_boost_active = lambda: boost_indicator.visible
     
     Currency_System.draw_ui(window)
 

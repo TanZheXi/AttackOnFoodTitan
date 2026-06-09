@@ -18,6 +18,19 @@ scrap_font = pg.font.SysFont(None, 36)
 
 MIDDLE_CENTER_X = 575
 
+# ========== BOOST STATE MANAGEMENT ==========
+_boost_active = False
+
+def set_boost_active(active):
+    """Set up boost active state"""
+    global _boost_active
+    _boost_active = active
+
+def is_boost_active():
+    """Check if boost is active"""
+    return _boost_active
+# ============================================================
+
 # Load coin icon
 try:
     raw_coin_image = pg.image.load("Icon/pocket_money.png")
@@ -37,7 +50,7 @@ def spend_money(amount):
     return False
 
 def update_economy(monster_hp, progression_index):
-    """更新经济，返回获得的金额"""
+    """Update currency and return the amount earned"""
     global pocket_money
     current_stage = (progression_index // 10) + 1
     tier = current_stage // 10
@@ -66,9 +79,11 @@ def update_economy(monster_hp, progression_index):
     else:
         money_earned = final_base_drop
         
+    if is_boost_active():
+        money_earned = int(money_earned * 2)
+        
     pocket_money += money_earned
     
-    # 返回获得的金额，用于显示飘字提示
     return money_earned
 
 def format_money(amount):
@@ -87,26 +102,11 @@ def format_money(amount):
     return f"{temp_amount:.2f}{suffixes[magnitude]}"
         
 def draw_ui(window):
-    """绘制UI，包括金钱、星星和金钱获得提示"""
     global michelin_stars
     
-    # 获取 boost 状态（从 main.py 设置）
-    is_boost_active = getattr(draw_ui, 'is_boost_active', lambda: False)()
-    
-    # 绘制金钱时，如果 boost 激活则添加特效
-    if is_boost_active:
-        # 闪烁效果：每0.5秒切换颜色
-        flash = (pg.time.get_ticks() // 500) % 2
-        if flash == 0:
-            money_color = (255, 215, 0)  # 金色
-        else:
-            money_color = (255, 180, 50)  # 橙金色
-        # 添加发光效果（绘制阴影）
-        shadow_text = ui_font.render(f"{format_money(pocket_money)}", True, (255, 200, 0))
-        shadow_rect = shadow_text.get_rect(center=(MIDDLE_CENTER_X + 2, 162))
-        window.blit(shadow_text, shadow_rect)
-    else:
-        money_color = (34, 139, 34)  # 绿色
+    boost_active = is_boost_active()
+
+    money_color = (34, 139, 34)
     
     money_text = ui_font.render(f"{format_money(pocket_money)}", True, money_color)
     
