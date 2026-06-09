@@ -10,11 +10,30 @@ import Equipment_System
 from KitchenGuide_System import KitchenGuideSystem
 from Abilities import SpicySurge, CrispyPrecision
 
-class BoostIndicator: #(For Kitchen Guide Quest: x2 Currency Boost)
+
+# ========== UI LAYOUT ==========
+WINDOW_WIDTH = 1300
+WINDOW_HEIGHT = 750
+
+LEFT_WIDTH = 300
+MIDDLE_WIDTH = 550
+RIGHT_WIDTH = WINDOW_WIDTH - LEFT_WIDTH - MIDDLE_WIDTH
+
+LEFT_AREA_X = 0
+MIDDLE_AREA_X = LEFT_WIDTH
+RIGHT_AREA_X = LEFT_WIDTH + MIDDLE_WIDTH
+
+MIDDLE_CENTER_X = MIDDLE_AREA_X + MIDDLE_WIDTH // 2
+
+Currency_System.MIDDLE_CENTER_X = MIDDLE_CENTER_X
+# =================================================================
+
+
+class BoostIndicator:
     def __init__(self, x, y, width, height):
         self.rect = pg.Rect(x, y, width, height)
-        self.font = pg.font.SysFont(None, 18)
-        self.font_small = pg.font.SysFont(None, 14)
+        self.font = pg.font.SysFont(None, 16)
+        self.font_small = pg.font.SysFont(None, 12)
         self.visible = False
         self.end_time = 0
         self.duration = 3 * 60 * 60  # 3 hours in seconds
@@ -50,6 +69,25 @@ class BoostIndicator: #(For Kitchen Guide Quest: x2 Currency Boost)
         else:
             return f"{seconds}s"
 
+    def get_save_data(self):
+        if self.visible:
+            return {
+                "visible": True,
+                "end_time": self.end_time
+            }
+        return {"visible": False}
+
+    def restore_save_data(self, data):
+        if data and data.get("visible", False):
+            self.visible = True
+            self.end_time = data.get("end_time", 0)
+            # 检查是否已经过期
+            if time.time() >= self.end_time:
+                self.visible = False
+                print("[BOOST] Boost expired during offline time.")
+            else:
+                print(f"[BOOST] Boost restored. Expires at {time.ctime(self.end_time)}")
+
     def draw(self, screen):
         if not self.visible:
             return
@@ -64,45 +102,28 @@ class BoostIndicator: #(For Kitchen Guide Quest: x2 Currency Boost)
         time_text = self.font_small.render(f"Time remaining: {self.get_remaining_text()}", True, (200, 200, 220))
         screen.blit(time_text, (bg_rect.x + 10, bg_rect.y + 28))
         
-        bar_bg = pg.Rect(bg_rect.x + 10, bg_rect.y + 48, bg_rect.width - 20, 12)
+        bar_bg = pg.Rect(bg_rect.x + 10, bg_rect.y + 48, bg_rect.width - 20, 10)
         pg.draw.rect(screen, (60, 60, 80), bar_bg)
         pg.draw.rect(screen, (100, 100, 120), bar_bg, 1)
         
         progress = self.get_remaining_percentage() / 100
         fill_width = int((bg_rect.width - 20) * progress)
-        fill_rect = pg.Rect(bg_rect.x + 10, bg_rect.y + 48, fill_width, 12)
+        fill_rect = pg.Rect(bg_rect.x + 10, bg_rect.y + 48, fill_width, 10)
         pg.draw.rect(screen, (255, 200, 100), fill_rect)
         
         hint = self.font_small.render("Earn 2x money from defeating monsters!", True, (180, 180, 200))
         screen.blit(hint, (bg_rect.x + 10, bg_rect.y + 65))
 
-# ========== UI LAYOUT ==========
-WINDOW_WIDTH = 1300
-WINDOW_HEIGHT = 750
-
-LEFT_WIDTH = 300        # Stats section
-MIDDLE_WIDTH = 550      # Monster UI section
-RIGHT_WIDTH = WINDOW_WIDTH - LEFT_WIDTH - MIDDLE_WIDTH  # 450px, Player interaction section
-
-LEFT_AREA_X = 0
-MIDDLE_AREA_X = LEFT_WIDTH
-RIGHT_AREA_X = LEFT_WIDTH + MIDDLE_WIDTH
-
-MIDDLE_CENTER_X = MIDDLE_AREA_X + MIDDLE_WIDTH // 2
-
-Currency_System.MIDDLE_CENTER_X = MIDDLE_CENTER_X
-# =================================================================
 
 pg.init()
 pg.mixer.init()
 window = pg.display.set_mode((WINDOW_WIDTH, WINDOW_HEIGHT))
 pg.display.set_caption("Attack On Food Titan")
 
-# Setup clock
 clock = pg.time.Clock()
 
-# Load AFK rewards and saved game data (returns 10 values including guide_data)
-afk_earnings, saved_monster_data, saved_money, saved_progression_index, saved_stage, saved_inventory, saved_shop_state, saved_pet_data, saved_upgrade_level, saved_guide_data = AFK_System.afk_system.load_and_calculate_afk_rewards()
+# Load AFK rewards and saved game data (returns 11 values including boost_data)
+afk_earnings, saved_monster_data, saved_money, saved_progression_index, saved_stage, saved_inventory, saved_shop_state, saved_pet_data, saved_upgrade_level, saved_guide_data, saved_boost_data = AFK_System.afk_system.load_and_calculate_afk_rewards()
 
 # Load saved equipment data
 Equipment_System.load_equipment()
@@ -151,15 +172,19 @@ Button_System.panel_manager.pending_money = Currency_System.pocket_money
 data_restored = False
 damage_texts = []
 
-# init Boost Indicator
+# Initialize Boost indicator
 boost_indicator = BoostIndicator(
-    x=MIDDLE_CENTER_X - 200,
-    y=10,
-    width=400,
+    x=LEFT_AREA_X + 10,
+    y=WINDOW_HEIGHT - 100,
+    width=280,
     height=85
 )
 
-# Initialize abilities (positioned below monster, beside left partition line)
+# Restore boost state from saved data
+if saved_boost_data:
+    boost_indicator.restore_save_data(saved_boost_data)
+
+# Initialize abilities
 damage_boost = SpicySurge(
     x=LEFT_WIDTH + 5 + 35,
     y=current_monster.rect.y + current_monster.rect.height + 90,
@@ -193,21 +218,32 @@ if saved_guide_data:
     Button_System.panel_manager.kitchen_guide_system.guide_manager.restore_save_data(saved_guide_data)
 
 # ========== Set Kitchen Guide Callbacks ==========
-# Equipment equip callback
 Equipment_System.set_equip_callback(lambda: (
     Button_System.panel_manager.kitchen_guide_system.guide_manager.update_progress("equip_equipment", 1)
     if Button_System.panel_manager.kitchen_guide_system else None
 ))
 
-# Pet equip callback (will be set after pet system is created)
-# Player upgrade callback (will be set after upgrade system is created)
+# Enhance grant_reward to activate boost indicator
+if Button_System.panel_manager.kitchen_guide_system:
+    original_grant_reward = Button_System.panel_manager.kitchen_guide_system.guide_manager.grant_reward
+    
+    def enhanced_grant_reward(reward_type):
+        original_grant_reward(reward_type)
+        if reward_type == "boost":
+            boost_indicator.activate(Button_System.panel_manager.kitchen_guide_system.guide_manager.boost_end_time)
+    
+    Button_System.panel_manager.kitchen_guide_system.guide_manager.grant_reward = enhanced_grant_reward
 # ====================================================
 
 # =========================
 # Main Game Loop
 # =========================
 while IsRunning:
-    dt_ms = clock.tick(60)   # frame delta in ms
+    dt_ms = clock.tick(60)
+    
+    # Update boost indicator
+    boost_indicator.update()
+    
     damage_boost.update()
     crispy_precision.update()
 
@@ -220,6 +256,10 @@ while IsRunning:
             upgrade_level = 0
             if Button_System.panel_manager.player_upgrade_system:
                 upgrade_level = Button_System.panel_manager.player_upgrade_system.level
+            
+            # Get boost save data
+            boost_data = boost_indicator.get_save_data()
+            
             AFK_System.afk_system.save_game_data(
                 pocket_money=Currency_System.pocket_money,
                 monster_hp=current_monster.hp,
@@ -232,14 +272,14 @@ while IsRunning:
                 shop_items_state=shop_state,
                 pet_data=pet_data,
                 upgrade_level=upgrade_level,
-                guide_data=guide_data
+                guide_data=guide_data,
+                boost_data=boost_data
             )
             IsRunning = False
             break
 
         elif event.type == pg.KEYDOWN:
             if event.key == pg.K_g:
-                # Sync between Equipment_System and Inventory_System when gaining new equipment
                 Equipment_System.gain_equipment("OP WEAPON")
                 Button_System.panel_manager.add_to_inventory("OP WEAPON")
                 print("[DEBUG] Gained OP WEAPON and added to inventory")
@@ -252,7 +292,6 @@ while IsRunning:
                     print("[DEBUG] No valid item selected to equip")
             elif event.key == pg.K_u:
                 Equipment_System.unequip_equipment("weapon")
-            # Press 'C' to craft the item (Consumes scraps)
             elif event.key == pg.K_c:
                 if Equipment_System.craft_item("Golden Spatula"):
                     Button_System.panel_manager.add_to_inventory("Golden Spatula")
@@ -272,31 +311,24 @@ while IsRunning:
         # --- Click event handling ---
         elif event.type == pg.MOUSEBUTTONDOWN and event.button == 1:
             if current_monster.rect.collidepoint(event.pos):
-                # Get crit bonuses from Crispy Precision ability
                 extra_chance, extra_multi = crispy_precision.get_crit_bonus()
-
-                # Get base damage from Equipment_System or default
                 base_damage = getattr(Equipment_System, "base_damage", Click_Damage_Feature.damage_per_click)
-
-                # Calculate damage using the imported function
                 final_damage, is_critical = calculate_damage(base_damage, extra_chance, extra_multi)
-
-                # Apply ability multipliers (Spicy Surge) and prestige multiplier
                 final_damage = int(final_damage * damage_boost.get_multiplier() * Currency_System.get_prestige_multiplier())
-
-                # Apply damage to monster
                 current_monster.take_damage(final_damage)
-
-                # Create floating damage text
+                
                 popup_x = current_monster.rect.x + random.randint(20, max(20, current_monster.rect.width - 40))
                 popup_y = current_monster.rect.y + random.randint(20, max(20, current_monster.rect.height - 40))
                 damage_texts.append(DamageText(str(final_damage), (popup_x, popup_y), is_critical))
 
-                # Check if monster is defeated
                 if current_monster.is_defeated():
-                    Currency_System.update_economy(current_monster.hp, monster_manager.progression_index + 1)
-
-                    # Update Kitchen Guide progress (Quest 1: Cook Food Titan)
+                    earned = Currency_System.update_economy(current_monster.hp, monster_manager.progression_index + 1)
+                    
+                    # Show money gain popup
+                    money_popup_x = current_monster.rect.x + random.randint(20, current_monster.rect.width - 40)
+                    money_popup_y = current_monster.rect.y - 20
+                    damage_texts.append(DamageText(str(earned), (money_popup_x, money_popup_y), is_critical=False))
+                    
                     if Button_System.panel_manager.kitchen_guide_system:
                         Button_System.panel_manager.kitchen_guide_system.guide_manager.update_progress("defeat_titan", 1)
 
@@ -305,11 +337,9 @@ while IsRunning:
                     current_monster.rect.x = MIDDLE_CENTER_X - MONSTER_SIZE // 2
                     current_monster.rect.y = 275
 
-        # Ability events
         damage_boost.handle_event(event)
         crispy_precision.handle_event(event)
 
-        # UI Event
         Button_System.panel_manager.monster_manager = monster_manager
         Button_System.panel_manager.handle_event(event)
         for button in Button_System.buttons:
@@ -322,28 +352,19 @@ while IsRunning:
         if pet_system:
             base_pet_damage = pet_system.get_total_damage()
             if base_pet_damage > 0 and current_monster.hp > 0:
-                # Get crit bonuses from Crispy Precision ability
                 extra_chance, extra_multi = crispy_precision.get_crit_bonus()
-
-                # Calculate pet damage using the imported function
                 pet_damage, is_critical = calculate_damage(base_pet_damage, extra_chance, extra_multi)
-
-                # Apply ability multipliers and prestige multiplier
-                final_pet_damage = int(pet_damage * damage_boost.get_multiplier() * Currency_System.get_prestige_multiplier())
-
+                final_pet_damage = int(pet_damage)
                 current_monster.take_damage(final_pet_damage)
-
+                
                 popup_x = current_monster.rect.x + random.randint(20, max(20, current_monster.rect.width - 40))
                 popup_y = current_monster.rect.y + random.randint(20, max(20, current_monster.rect.height - 40))
                 damage_texts.append(DamageText(str(final_pet_damage), (popup_x, popup_y), is_critical))
 
                 if current_monster.is_defeated():
                     Currency_System.update_economy(current_monster.hp, monster_manager.progression_index)
-
-                    # Update Kitchen Guide progress (Quest 3: Defeat with pet)
                     if Button_System.panel_manager.kitchen_guide_system:
                         Button_System.panel_manager.kitchen_guide_system.guide_manager.update_progress("defeat_with_pet", 1)
-
                     monster_manager.next_monster()
                     current_monster = monster_manager.current_monster
                     current_monster.rect.x = MIDDLE_CENTER_X - MONSTER_SIZE // 2
@@ -351,7 +372,7 @@ while IsRunning:
         last_pet_attack_time = current_time
     # =================================
 
-    # ========== UPDATE DAMAGE TEXTS (ONLY ONE PLACE) ==========
+    # ========== UPDATE DAMAGE TEXTS ==========
     new_damage_texts = []
     for dt_obj in damage_texts:
         expired = dt_obj.update(dt_ms)
@@ -371,8 +392,7 @@ while IsRunning:
         )
         data_restored = True
 
-    # ========== Set callbacks after systems are created ==========
-    # Pet equip callback
+    # Set callbacks after systems are created
     if Button_System.panel_manager.pet_system and not hasattr(Button_System.panel_manager.pet_system, '_callback_set'):
         Button_System.panel_manager.pet_system.guide_callback = lambda: (
             Button_System.panel_manager.kitchen_guide_system.guide_manager.update_progress("equip_pet", 1)
@@ -380,14 +400,12 @@ while IsRunning:
         )
         Button_System.panel_manager.pet_system._callback_set = True
 
-    # Player upgrade callback
     if Button_System.panel_manager.player_upgrade_system and not hasattr(Button_System.panel_manager.player_upgrade_system, '_callback_set'):
         Button_System.panel_manager.player_upgrade_system.upgrade_callback = lambda: (
             Button_System.panel_manager.kitchen_guide_system.guide_manager.update_progress("upgrade_base_damage", 1)
             if Button_System.panel_manager.kitchen_guide_system else None
         )
         Button_System.panel_manager.player_upgrade_system._callback_set = True
-    # ==============================================================
 
     # Restore upgrade level
     if Button_System.panel_manager.player_upgrade_system and saved_upgrade_level > 0:
@@ -402,7 +420,7 @@ while IsRunning:
     # Sync Stage & Check for Prestige
     Button_System.panel_manager.current_stage = monster_manager.stage
 
-    # Update Kitchen Guide stage progress (Quest 4: Reach Stage)
+    # Update Kitchen Guide stage progress
     if Button_System.panel_manager.kitchen_guide_system:
         Button_System.panel_manager.kitchen_guide_system.guide_manager.update_progress("stage_reached", monster_manager.stage)
 
@@ -419,6 +437,8 @@ while IsRunning:
         upgrade_level = 0
         if Button_System.panel_manager.player_upgrade_system:
             upgrade_level = Button_System.panel_manager.player_upgrade_system.level
+        
+        boost_data = boost_indicator.get_save_data()
 
         AFK_System.afk_system.save_game_data(
             pocket_money=Currency_System.pocket_money,
@@ -432,13 +452,11 @@ while IsRunning:
             shop_items_state=shop_state,
             pet_data=pet_data,
             upgrade_level=upgrade_level,
-            guide_data=guide_data
+            guide_data=guide_data,
+            boost_data=boost_data
         )
         AFK_System.afk_system.update_save_time()
-
-        # Equipment system auto save
         Equipment_System.save_equipment()
-
         last_auto_save = current_time
 
     for button in Button_System.buttons:
@@ -448,7 +466,10 @@ while IsRunning:
     # Drawing
     # -------------------------
     window.fill((227, 227, 227))
-
+    
+    # Draw Boost indicator
+    boost_indicator.draw(window)
+    
     pg.draw.line(window, (0, 0, 0), (MIDDLE_AREA_X, 0), (MIDDLE_AREA_X, WINDOW_HEIGHT), 3)
     pg.draw.line(window, (0, 0, 0), (RIGHT_AREA_X, 0), (RIGHT_AREA_X, WINDOW_HEIGHT), 3)
 
@@ -484,6 +505,9 @@ while IsRunning:
             name_rect = name_text.get_rect(center=(pet_rect.centerx, pet_rect.centery))
             window.blit(name_text, name_rect)
 
+    # Set boost state for Currency_System
+    Currency_System.draw_ui.is_boost_active = lambda: boost_indicator.visible
+    
     Currency_System.draw_ui(window)
 
     if Button_System.panel_manager.pet_system:
@@ -503,7 +527,6 @@ while IsRunning:
 
     Button_System.panel_manager.draw(window)
 
-    # Abilities drawn last so they are visible on top
     damage_boost.draw(window)
     crispy_precision.draw(window)
 
