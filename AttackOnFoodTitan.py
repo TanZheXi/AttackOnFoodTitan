@@ -2,7 +2,6 @@ import pygame as pg
 import time
 import random
 import os
-import pygame.mixer
 import Click_Damage_Feature
 from Click_Damage_Feature import calculate_damage, DamageText
 import Button_System
@@ -193,6 +192,24 @@ pg.mixer.music.set_volume(0.5)
 
 # Start playing the background music
 start_background_music()
+# ===========================================
+
+# ========== STATS PANEL BACKGROUND ==========
+# Left side stats panel background image path
+stats_panel_folder = os.path.join(os.path.dirname(__file__), "Background", "Stats_panel")
+stats_panel_path = os.path.join(stats_panel_folder, "StatsPanel.png")
+
+# Load stats panel background image
+try:
+    stats_panel_bg = pg.image.load(stats_panel_path).convert()
+    # Scale to left area size (300 x 750)
+    stats_panel_bg = pg.transform.scale(stats_panel_bg, (LEFT_WIDTH, WINDOW_HEIGHT))
+    print(f"[STATS PANEL] Loaded: {stats_panel_path}")
+except Exception as e:
+    print(f"[STATS PANEL] Warning: Could not load background - {e}")
+    # If image loading fails, create a gray placeholder background
+    stats_panel_bg = pg.Surface((LEFT_WIDTH, WINDOW_HEIGHT))
+    stats_panel_bg.fill((40, 40, 50))
 # ===========================================
 
 # Load background images and scale them to fit the middle area (550 x 750)
@@ -603,6 +620,9 @@ while IsRunning:
     # -------------------------
     window.fill((227, 227, 227))
     
+    # Draw stats panel background
+    window.blit(stats_panel_bg, (LEFT_AREA_X, 0))
+
     # Draw background (placed at the bottom, won't cover other UI)
     current_bg = get_current_background(monster_manager.stage)
     window.blit(current_bg, (MIDDLE_AREA_X, 0))
