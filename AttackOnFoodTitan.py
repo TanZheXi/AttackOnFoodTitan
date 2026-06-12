@@ -194,6 +194,19 @@ pg.mixer.music.set_volume(0.5)
 start_background_music()
 # ===========================================
 
+# ========== SOUND EFFECTS ==========
+# Monster defeated sound effect
+titan_defeated_sound = None
+try:
+    sound_folder = os.path.join(os.path.dirname(__file__), "Sound_Effects")
+    titan_defeated_path = os.path.join(sound_folder, "TitansDefeated.MP3")
+    titan_defeated_sound = pg.mixer.Sound(titan_defeated_path)
+    titan_defeated_sound.set_volume(0.6)  # Set volume to 60%
+    print(f"[SOUND] Loaded: TitansDefeated.MP3")
+except Exception as e:
+    print(f"[SOUND] Warning: Could not load TitansDefeated.MP3 - {e}")
+# ===================================
+
 # ========== STATS PANEL BACKGROUND ==========
 # Left side stats panel background image path
 stats_panel_folder = os.path.join(os.path.dirname(__file__), "Background", "Stats_panel")
@@ -467,6 +480,10 @@ while IsRunning:
                 if current_monster.is_defeated():
                     Currency_System.update_economy(current_monster.hp, monster_manager.progression_index + 1)
 
+                    # Play titan defeated sound effect
+                    if titan_defeated_sound:
+                        titan_defeated_sound.play()
+
                     # Update Kitchen Guide progress (Quest 1: Cook Food Titan)
                     if Button_System.panel_manager.kitchen_guide_system:
                         Button_System.panel_manager.kitchen_guide_system.guide_manager.update_progress("defeat_titan", 1)
@@ -510,6 +527,10 @@ while IsRunning:
 
                 if current_monster.is_defeated():
                     Currency_System.update_economy(current_monster.hp, monster_manager.progression_index)
+
+                    # Play titan defeated sound effect
+                    if titan_defeated_sound:
+                        titan_defeated_sound.play()
 
                     # Update Kitchen Guide progress (Quest 3: Defeat with pet)
                     if Button_System.panel_manager.kitchen_guide_system:
