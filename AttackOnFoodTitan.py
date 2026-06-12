@@ -2,6 +2,7 @@ import pygame as pg
 import time
 import random
 import os
+import pygame.mixer
 import Click_Damage_Feature
 from Click_Damage_Feature import calculate_damage, DamageText
 import Button_System
@@ -133,6 +134,67 @@ window = pg.display.set_mode((WINDOW_WIDTH, WINDOW_HEIGHT))
 pg.display.set_caption("Attack On Food Titan")
 
 # =================================================================
+
+# ========== BACKGROUND MUSIC SYSTEM ==========
+# BGM list
+MUSIC_FILES = [
+    "Opening1.MP3",
+    "Opening2.MP3", 
+    "Opening3.MP3"
+]
+
+# Obtain the BGM folder path
+bgm_folder = os.path.join(os.path.dirname(__file__), "BGM")
+
+# Build the complete music file paths
+music_paths = []
+for music_file in MUSIC_FILES:
+    music_path = os.path.join(bgm_folder, music_file)
+    music_paths.append(music_path)
+    print(f"[BGM] Found: {music_file} at {music_path}")
+
+# Current music index
+current_music_index = 0
+
+def play_next_music():
+    """Play the next background music, looping"""
+    global current_music_index
+    try:
+        # Stop current playback
+        pg.mixer.music.stop()
+        # Load and play the next song
+        pg.mixer.music.load(music_paths[current_music_index])
+        pg.mixer.music.play()
+        print(f"[BGM] Now playing: {MUSIC_FILES[current_music_index]}")
+        # Update index to the next song (looping)
+        current_music_index = (current_music_index + 1) % len(music_paths)
+    except Exception as e:
+        print(f"[BGM] Error playing music: {e}")
+
+def start_background_music():
+    """Start playing the background music loop"""
+    try:
+        # Set the callback for when the music finishes playing
+        pg.mixer.music.set_endevent(pg.USEREVENT + 1)
+        # Play the first song
+        play_next_music()
+    except Exception as e:
+        print(f"[BGM] Failed to start background music: {e}")
+
+# Initialize the mixer (if not already initialized)
+try:
+    pg.mixer.init()
+    print("[BGM] Mixer initialized")
+except Exception as e:
+    print(f"[BGM] Mixer init failed: {e}")
+
+# Set the volume (0.0 to 1.0, 0.5 represents 50% volume)
+pg.mixer.music.set_volume(0.5)
+
+# Start playing the background music
+start_background_music()
+# ===========================================
+
 # Load background images and scale them to fit the middle area (550 x 750)
 background_images = []
 for bg_name in BACKGROUNDS:
@@ -299,6 +361,9 @@ while IsRunning:
     # Event Handling
     # -------------------------
     for event in pg.event.get():
+        if event.type == pg.USEREVENT + 1: #Detect when a music track finishes and play the next one
+            play_next_music()
+
         if event.type == pg.QUIT:
             inventory_state, shop_state, pet_data, guide_data = Button_System.panel_manager.get_save_data()
             upgrade_level = 0
