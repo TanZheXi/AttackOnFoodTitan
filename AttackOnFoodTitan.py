@@ -205,6 +205,16 @@ try:
     print(f"[SOUND] Loaded: TitansDefeated.MP3")
 except Exception as e:
     print(f"[SOUND] Warning: Could not load TitansDefeated.MP3 - {e}")
+
+# Attack titan sound effect
+attack_titan_sound = None
+try:
+    attack_titan_path = os.path.join(sound_folder, "AttackTitans.MP3")
+    attack_titan_sound = pg.mixer.Sound(attack_titan_path)
+    attack_titan_sound.set_volume(0.5)  # Set volume to 50%
+    print(f"[SOUND] Loaded: AttackTitans.MP3")
+except Exception as e:
+    print(f"[SOUND] Warning: Could not load AttackTitans.MP3 - {e}")
 # ===================================
 
 # ========== STATS PANEL BACKGROUND ==========
@@ -456,6 +466,10 @@ while IsRunning:
         # --- Click event handling ---
         elif event.type == pg.MOUSEBUTTONDOWN and event.button == 1:
             if current_monster.rect.collidepoint(event.pos):
+
+                if attack_titan_sound:
+                    attack_titan_sound.play()
+
                 # Get crit bonuses from Crispy Precision ability
                 extra_chance, extra_multi = crispy_precision.get_crit_bonus()
 
