@@ -8,6 +8,7 @@ import Button_System
 import AFK_System
 import Currency_System
 import Equipment_System
+import Pet_System
 from KitchenGuide_System import KitchenGuideSystem
 from Abilities import SpicySurge, CrispyPrecision
 
@@ -228,49 +229,59 @@ except Exception as e:
 # ===================================
 
 # ========== ANIMATION SYSTEM ==========
-# Slash animation (player attack)
+# Slash animation (player attack) - 12 frames, horizontal strip
 slash_animation_frames = []
 try:
     image_folder = os.path.join(os.path.dirname(__file__), "Background", "Image")
-    slash_path = os.path.join(image_folder, "Slash.jpg")
-    slash_sheet = pg.image.load(slash_path).convert_alpha()
-    # Assuming the sprite sheet has 6 frames in a single row, each 100x100 pixels
-    frame_width = 100
-    frame_height = 100
-    for i in range(6):
+    slash_path = os.path.join(image_folder, "Slash.png")
+    
+    slash_sheet = pg.image.load(slash_path).convert()
+    # Set white as transparent color
+    slash_sheet.set_colorkey((255, 255, 255))
+    
+    # Assuming the sprite sheet has 12 frames in a single row
+    frame_width = slash_sheet.get_width() // 12
+    frame_height = slash_sheet.get_height()
+    
+    for i in range(12):
         frame = slash_sheet.subsurface((i * frame_width, 0, frame_width, frame_height))
         slash_animation_frames.append(frame)
-    print(f"[ANIMATION] Loaded Slash animation with {len(slash_animation_frames)} frames")
+    print(f"[ANIMATION] Loaded Slash.png, {len(slash_animation_frames)} frames, size {frame_width}x{frame_height}")
 except Exception as e:
-    print(f"[ANIMATION] Warning: Could not load Slash.jpg - {e}")
+    print(f"[ANIMATION] Warning: Could not load Slash.png - {e}")
     slash_animation_frames = []
 
-# Scratch animation (pet attack)
+# Scratch animation (pet attack) - 6 frames, horizontal strip
 scratch_animation_frames = []
 try:
-    scratch_path = os.path.join(image_folder, "Scratches.jpg")
-    scratch_sheet = pg.image.load(scratch_path).convert_alpha()
-    frame_width = 100
-    frame_height = 100
+    scratch_path = os.path.join(image_folder, "Scratches.png")
+    
+    scratch_sheet = pg.image.load(scratch_path).convert()
+    # Set white as transparent color
+    scratch_sheet.set_colorkey((255, 255, 255))
+    
+    frame_width = scratch_sheet.get_width() // 6
+    frame_height = scratch_sheet.get_height()
+    
     for i in range(6):
         frame = scratch_sheet.subsurface((i * frame_width, 0, frame_width, frame_height))
         scratch_animation_frames.append(frame)
-    print(f"[ANIMATION] Loaded Scratches animation with {len(scratch_animation_frames)} frames")
+    print(f"[ANIMATION] Loaded Scratches.png, {len(scratch_animation_frames)} frames, size {frame_width}x{frame_height}")
 except Exception as e:
-    print(f"[ANIMATION] Warning: Could not load Scratches.jpg - {e}")
+    print(f"[ANIMATION] Warning: Could not load Scratches.png - {e}")
     scratch_animation_frames = []
 
 class AttackAnimation:
     """Attack animation class"""
-    def __init__(self, x, y, frames, is_player_attack=True):
+    def __init__(self, x, y, frames, scale=1.0):
         self.x = x
         self.y = y
         self.frames = frames
         self.current_frame = 0
-        self.animation_speed = 0.05  # seconds per frame
+        self.animation_speed = 0.08  # seconds per frame
         self.time_since_last_frame = 0
         self.is_active = True
-        self.is_player_attack = is_player_attack  # True: Player attack (slash to the right), False: Pet attack (claw marks)
+        self.scale = scale  # scale factor, 1.0 = original size
     
     def update(self, dt):
         if not self.is_active:
@@ -286,6 +297,64 @@ class AttackAnimation:
         if not self.is_active or self.current_frame >= len(self.frames):
             return
         frame = self.frames[self.current_frame]
+        
+        # Scale (if needed)
+        if self.scale != 1.0:
+            new_width = int(frame.get_width() * self.scale)
+            new_height = int(frame.get_height() * self.scale)
+            frame = pg.transform.scale(frame, (new_width, new_height))
+        
+        draw_x = self.x - frame.get_width() // 2
+        draw_y = self.y - frame.get_height() // 2
+        screen.blit(frame, (draw_x, draw_y))
+    
+    def is_finished(self):
+        return not self.is_active
+# ===================================
+
+class AttackAnimation:
+    """Attack animation class"""
+    def __init__(self, x, y, frames, is_player_attack=True, scale=1.5):
+        self.x = x
+        self.y = y
+        self.frames = frames
+        self.current_frame = 0
+        self.animation_speed = 0.08  # seconds per frame
+        self.time_since_last_frame = 0
+        self.is_active = True
+        self.scale = scale
+        self.alpha = 255  # Start fully opaque
+    
+    def update(self, dt):
+        if not self.is_active:
+            return
+        self.time_since_last_frame += dt
+        if self.time_since_last_frame >= self.animation_speed:
+            self.time_since_last_frame = 0
+            self.current_frame += 1
+            if self.current_frame >= len(self.frames):
+                self.is_active = False
+            else:
+                # Apply fading effect in the second half of the animation
+                total_frames = len(self.frames)
+                if self.current_frame > total_frames * 0.6:
+                    fade_ratio = (self.current_frame - total_frames * 0.6) / (total_frames * 0.4)
+                    self.alpha = max(0, int(255 * (1 - fade_ratio)))
+                else:
+                    self.alpha = 255
+    
+    def draw(self, screen):
+        if not self.is_active or self.current_frame >= len(self.frames):
+            return
+        original_frame = self.frames[self.current_frame]
+
+        new_width = int(original_frame.get_width() * self.scale)
+        new_height = int(original_frame.get_height() * self.scale)
+        frame = pg.transform.scale(original_frame, (new_width, new_height))
+
+        # Apply alpha for fading effect
+        frame.set_alpha(self.alpha)
+
         # Calculate drawing position (center the animation on the click position)
         draw_x = self.x - frame.get_width() // 2
         draw_y = self.y - frame.get_height() // 2
@@ -554,7 +623,7 @@ while IsRunning:
                     attack_animations.append(AttackAnimation(
                         event.pos[0], event.pos[1], 
                         slash_animation_frames, 
-                        is_player_attack=True
+                        scale=0.5
                     ))
 
                 # Get crit bonuses from Crispy Precision ability
@@ -620,7 +689,7 @@ while IsRunning:
                         current_monster.rect.centerx, 
                         current_monster.rect.centery, 
                         scratch_animation_frames, 
-                        is_player_attack=False
+                        scale=0.2
                     ))
 
                 # Get crit bonuses from Crispy Precision ability
@@ -674,6 +743,14 @@ while IsRunning:
             new_animations.append(anim)
     attack_animations = new_animations
     # =============================================
+
+    # ========== Restore Pet Data ==========
+    if not data_restored and saved_pet_data:
+        if Button_System.panel_manager.pet_system is None:
+            Button_System.panel_manager.pet_system = Pet_System.PetSystem()
+        Button_System.panel_manager.pet_system.restore_save_data(saved_pet_data)
+        print("[MAIN] Pet data restored on game start")
+    # ========================================
 
     # Load Inventory or Shop data when activated
     if not data_restored and (Button_System.panel_manager.active_panel == "Shop" or Button_System.panel_manager.active_panel == "Inventory" or Button_System.panel_manager.active_panel == "Pet"):
@@ -871,6 +948,10 @@ pg.quit()
 #Link: None
 
 #8. Kitchen Guide system (KitchenGuide_System.py)
+#Source code: Deepseek
+#Link: None
+
+#8. Animation Tutorial (AttackOnFoodTitan.py)
 #Source code: Deepseek
 #Link: None
 

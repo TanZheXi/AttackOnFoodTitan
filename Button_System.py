@@ -363,6 +363,7 @@ class PanelManager:
             self.shop_system.restore_shop_state(self.pending_shop_state)
         if self.pet_system and self.pending_pet_data:
             self.pet_system.restore_save_data(self.pending_pet_data)
+            print(f"[BUTTON] Pet data restored: {len(self.pending_pet_data)} pets")
 
     def get_save_data(self):
         inventory_items = []

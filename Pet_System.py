@@ -241,16 +241,42 @@ class PetSystem:
         print(f"[PET] All pets unequipped on prestige.")
 
     def restore_save_data(self, data):
+        """Restore pet data from save file"""
         if not data:
+            print("[PET] No save data, starting fresh.")
             return
+        
+        # Ensure data is in expected format (list of dicts)
+        if not isinstance(data, list):
+            print("[PET] Invalid save data format, resetting.")
+            return
+        
+        # Reset all pets first to avoid leftover states
+        for pet in self.all_pets:
+            pet.owned = False
+            pet.equipped = False
+        
+        # Then restore from save data
         for saved in data:
             for pet in self.all_pets:
                 if pet.name == saved.get("name"):
                     pet.owned = saved.get("owned", False)
                     pet.equipped = saved.get("equipped", False)
+                    if pet.equipped:
+                        print(f"[PET] Restored equipped pet: {pet.name}")
                     break
+        
+        # Verify that the number of equipped pets does not exceed the limit
+        equipped_pets = self.get_equipped_pets()
+        if len(equipped_pets) > self.max_equip:
+            print(f"[PET] Too many equipped pets ({len(equipped_pets)})! Resetting equipped status.")
+            for pet in self.all_pets:
+                pet.equipped = False
+        
         self.update_pets_by_category()
-        print(f"[PET] Restored {len(data)} pets from save data")
+        owned_count = len([p for p in self.all_pets if p.owned])
+        equipped_count = len(self.get_equipped_pets())
+        print(f"[PET] Restored {owned_count} owned pets, {equipped_count} equipped pets from save data")
 
     def get_save_data(self):
         return [{"name": p.name, "owned": p.owned, "equipped": p.equipped} for p in self.all_pets]
