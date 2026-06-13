@@ -61,11 +61,9 @@ class PetSystem:
         self.message_timer = 0
         self.buttons_rect = {}
         
-        # Hover effects
         self.hovered_index = -1
         self.selected_pet = None
         
-        # Categorization settings
         self.categories = ["Common", "Uncommon", "Rare", "Epic", "Legendary", "Mythic"]
         self.category_map = {
             0: "common",
@@ -78,29 +76,23 @@ class PetSystem:
         self.current_category = 0
         self.category_buttons = []
         
-        # Scroll offset
         self.scroll_offset = 0
         self.max_scroll = max(0, len(self.categories) - 4)
         
-        # Pets currently displayed (only owned ones)
         self.pets = []
         self.update_pets_by_category()
         
         self.panel_rect = None
         self.desc_panel_rect = None
         
-        # ========== Kitchen Guide callback ==========
         self.guide_callback = None
-        # ===========================================
 
     def update_pets_by_category(self):
-        """Filter owned pets based on the current category"""
         category = self.category_map.get(self.current_category, "common")
         self.pets = [pet for pet in self.all_pets if pet.owned and pet.rarity == category]
         print(f"[PET] Updated pets: {len(self.pets)} in category {category}")
 
     def refresh_display(self):
-        """Refresh the display list"""
         self.update_pets_by_category()
 
     def set_category(self, category_index):
@@ -128,7 +120,6 @@ class PetSystem:
         return sum(pet.attack_damage for pet in self.get_equipped_pets())
 
     def add_pet(self, pet_name):
-        """Add a pet to the inventory by name. Returns True if added or already owned, False if not found."""
         print(f"[PET] add_pet called with: '{pet_name}'")
         
         for pet in self.all_pets:
@@ -163,10 +154,8 @@ class PetSystem:
                 self.message = f"{pet.name} equipped!"
                 self.message_timer = 120
                 
-                # ========== Announce Kitchen Guide Pet Equipped ==========
                 if self.guide_callback:
                     self.guide_callback()
-                # =================================================
 
     def update(self):
         if self.message_timer > 0:
@@ -175,18 +164,19 @@ class PetSystem:
             self.message = ""
 
     def handle_event(self, event):
+        if self.panel_rect is None:
+            # print("[PET] Warning: panel_rect is None, skipping event handling")
+            return
+        
         if event.type == pg.MOUSEBUTTONDOWN and event.button == 1:
             
-            # ========== Click for Catogory bar ==========
             if hasattr(self, 'category_buttons') and self.category_buttons:
                 for btn_info in self.category_buttons:
                     if btn_info["rect"].collidepoint(event.pos):
                         if GLOBAL_CLICK: GLOBAL_CLICK.play()
                         self.set_category(btn_info["category_id"])
                         return
-            # ============================================
             
-            # Detect left and right scroll arrows
             if hasattr(self, 'arrow_left_rect') and self.arrow_left_rect.collidepoint(event.pos):
                 if GLOBAL_CLICK: GLOBAL_CLICK.play()
                 self.scroll_categories("left")
@@ -196,7 +186,6 @@ class PetSystem:
                 self.scroll_categories("right")
                 return
             
-            # Handle pet equip buttons
             for key, rect in self.buttons_rect.items():
                 if rect.collidepoint(event.pos):
                     if GLOBAL_CLICK: GLOBAL_CLICK.play()
@@ -212,6 +201,9 @@ class PetSystem:
             mouse_pos = event.pos
             
             if not self.pets:
+                return
+            
+            if self.panel_rect is None:
                 return
             
             cols = 2
@@ -241,22 +233,18 @@ class PetSystem:
         print(f"[PET] All pets unequipped on prestige.")
 
     def restore_save_data(self, data):
-        """Restore pet data from save file"""
         if not data:
             print("[PET] No save data, starting fresh.")
             return
         
-        # Ensure data is in expected format (list of dicts)
         if not isinstance(data, list):
             print("[PET] Invalid save data format, resetting.")
             return
         
-        # Reset all pets first to avoid leftover states
         for pet in self.all_pets:
             pet.owned = False
             pet.equipped = False
         
-        # Then restore from save data
         for saved in data:
             for pet in self.all_pets:
                 if pet.name == saved.get("name"):
@@ -266,7 +254,6 @@ class PetSystem:
                         print(f"[PET] Restored equipped pet: {pet.name}")
                     break
         
-        # Verify that the number of equipped pets does not exceed the limit
         equipped_pets = self.get_equipped_pets()
         if len(equipped_pets) > self.max_equip:
             print(f"[PET] Too many equipped pets ({len(equipped_pets)})! Resetting equipped status.")
@@ -316,7 +303,7 @@ class PetSystem:
         if current_line:
             lines.append(' '.join(current_line))
         return lines if lines else [text]
-
+    
     def draw(self, screen, panel_rect, desc_panel_rect):
         if not panel_rect:
             return
@@ -327,12 +314,12 @@ class PetSystem:
         font_small = pg.font.SysFont(None, 14)
         font_medium = pg.font.SysFont(None, 18)
         
-        # ========== Black bolded background ==========
+        # Black background with border
         bg_rect = pg.Rect(panel_rect.x + 10, panel_rect.y + 50, panel_rect.width - 20, panel_rect.height - 60)
         pg.draw.rect(screen, (45, 45, 55), bg_rect)
         pg.draw.rect(screen, (150, 150, 170), bg_rect, 2)
         
-        # ========== Category button bar ==========
+        # Category buttons
         btn_width = 70
         btn_height = 24
         btn_spacing = 6
@@ -383,7 +370,7 @@ class PetSystem:
             screen.blit(arrow_text, arrow_text_rect)
             self.arrow_right_rect = arrow_right_rect
         
-        # ========== Pet list ==========
+        # Pet list
         cols = 2
         available_width = panel_rect.width - 40
         spacing_x = 12
