@@ -215,6 +215,84 @@ try:
     print(f"[SOUND] Loaded: AttackTitans.MP3")
 except Exception as e:
     print(f"[SOUND] Warning: Could not load AttackTitans.MP3 - {e}")
+
+# Pet attack sound effect
+pet_attack_sound = None
+try:
+    pet_attack_path = os.path.join(sound_folder, "Scratching.MP3")
+    pet_attack_sound = pg.mixer.Sound(pet_attack_path)
+    pet_attack_sound.set_volume(0.5)
+    print(f"[SOUND] Loaded: Scratching.MP3")
+except Exception as e:
+    print(f"[SOUND] Warning: Could not load Scratching.MP3 - {e}")
+# ===================================
+
+# ========== ANIMATION SYSTEM ==========
+# Slash animation (player attack)
+slash_animation_frames = []
+try:
+    image_folder = os.path.join(os.path.dirname(__file__), "Background", "Image")
+    slash_path = os.path.join(image_folder, "Slash.jpg")
+    slash_sheet = pg.image.load(slash_path).convert_alpha()
+    # Assuming the sprite sheet has 6 frames in a single row, each 100x100 pixels
+    frame_width = 100
+    frame_height = 100
+    for i in range(6):
+        frame = slash_sheet.subsurface((i * frame_width, 0, frame_width, frame_height))
+        slash_animation_frames.append(frame)
+    print(f"[ANIMATION] Loaded Slash animation with {len(slash_animation_frames)} frames")
+except Exception as e:
+    print(f"[ANIMATION] Warning: Could not load Slash.jpg - {e}")
+    slash_animation_frames = []
+
+# Scratch animation (pet attack)
+scratch_animation_frames = []
+try:
+    scratch_path = os.path.join(image_folder, "Scratches.jpg")
+    scratch_sheet = pg.image.load(scratch_path).convert_alpha()
+    frame_width = 100
+    frame_height = 100
+    for i in range(6):
+        frame = scratch_sheet.subsurface((i * frame_width, 0, frame_width, frame_height))
+        scratch_animation_frames.append(frame)
+    print(f"[ANIMATION] Loaded Scratches animation with {len(scratch_animation_frames)} frames")
+except Exception as e:
+    print(f"[ANIMATION] Warning: Could not load Scratches.jpg - {e}")
+    scratch_animation_frames = []
+
+class AttackAnimation:
+    """Attack animation class"""
+    def __init__(self, x, y, frames, is_player_attack=True):
+        self.x = x
+        self.y = y
+        self.frames = frames
+        self.current_frame = 0
+        self.animation_speed = 0.05  # seconds per frame
+        self.time_since_last_frame = 0
+        self.is_active = True
+        self.is_player_attack = is_player_attack  # True: Player attack (slash to the right), False: Pet attack (claw marks)
+    
+    def update(self, dt):
+        if not self.is_active:
+            return
+        self.time_since_last_frame += dt
+        if self.time_since_last_frame >= self.animation_speed:
+            self.time_since_last_frame = 0
+            self.current_frame += 1
+            if self.current_frame >= len(self.frames):
+                self.is_active = False
+    
+    def draw(self, screen):
+        if not self.is_active or self.current_frame >= len(self.frames):
+            return
+        frame = self.frames[self.current_frame]
+        # Calculate drawing position (center the animation on the click position)
+        draw_x = self.x - frame.get_width() // 2
+        draw_y = self.y - frame.get_height() // 2
+        screen.blit(frame, (draw_x, draw_y))
+    
+    def is_finished(self):
+        return not self.is_active
 # ===================================
 
 # ========== STATS PANEL BACKGROUND ==========
@@ -320,6 +398,7 @@ Button_System.panel_manager.pending_money = Currency_System.pocket_money
 
 data_restored = False
 damage_texts = []
+attack_animations = []
 
 # init Boost Indicator
 boost_indicator = BoostIndicator(
@@ -358,6 +437,7 @@ def on_prestige_reset():
     print("[PRESTIGE] Equipment reset")
 
     damage_texts.clear()
+    attack_animations.clear()
 
 Currency_System.register_prestige_callback(on_prestige_reset)
 
@@ -470,6 +550,13 @@ while IsRunning:
                 if attack_titan_sound:
                     attack_titan_sound.play()
 
+                if slash_animation_frames:
+                    attack_animations.append(AttackAnimation(
+                        event.pos[0], event.pos[1], 
+                        slash_animation_frames, 
+                        is_player_attack=True
+                    ))
+
                 # Get crit bonuses from Crispy Precision ability
                 extra_chance, extra_multi = crispy_precision.get_crit_bonus()
 
@@ -524,6 +611,18 @@ while IsRunning:
         if pet_system:
             base_pet_damage = pet_system.get_total_damage()
             if base_pet_damage > 0 and current_monster.hp > 0:
+
+                if pet_attack_sound:
+                    pet_attack_sound.play()
+
+                if scratch_animation_frames:
+                    attack_animations.append(AttackAnimation(
+                        current_monster.rect.centerx, 
+                        current_monster.rect.centery, 
+                        scratch_animation_frames, 
+                        is_player_attack=False
+                    ))
+
                 # Get crit bonuses from Crispy Precision ability
                 extra_chance, extra_multi = crispy_precision.get_crit_bonus()
 
@@ -565,6 +664,16 @@ while IsRunning:
             new_damage_texts.append(dt_obj)
     damage_texts = new_damage_texts
     # =========================================================
+
+    # ========== UPDATE ATTACK ANIMATIONS ==========
+    dt_sec = dt_ms / 1000.0  # convert ms to seconds for animation timing
+    new_animations = []
+    for anim in attack_animations:
+        anim.update(dt_sec)
+        if not anim.is_finished():
+            new_animations.append(anim)
+    attack_animations = new_animations
+    # =============================================
 
     # Load Inventory or Shop data when activated
     if not data_restored and (Button_System.panel_manager.active_panel == "Shop" or Button_System.panel_manager.active_panel == "Inventory" or Button_System.panel_manager.active_panel == "Pet"):
@@ -713,6 +822,9 @@ while IsRunning:
 
     for dt in damage_texts:
         dt.draw(window)
+
+    for anim in attack_animations:
+        anim.draw(window)
 
     for button in Button_System.buttons:
         button.draw(window)
