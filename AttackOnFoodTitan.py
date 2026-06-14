@@ -99,16 +99,12 @@ crispy_precision = CrispyPrecision(
 )
 
 def on_prestige_reset():
+    # Only reset the shop so players can re-buy things if needed
     if Button_System.panel_manager.shop_system:
         Button_System.panel_manager.shop_system.reset_shop()
-    if Button_System.panel_manager.inventory_system:
-        Button_System.panel_manager.inventory_system.reset_inventory()
-    if Button_System.panel_manager.pet_system:
-        Button_System.panel_manager.pet_system.reset_on_prestige()
-        print("[PRESTIGE] Pets unequipped.")
-
-    Equipment_System.lose_all_equipment()
-    print("[PRESTIGE] Equipment reset")
+        
+    # We removed the inventory and equipment wipes from here!
+    print("[PRESTIGE] Prestige completed. Gear was kept safe!")
 
     damage_texts.clear()
 
