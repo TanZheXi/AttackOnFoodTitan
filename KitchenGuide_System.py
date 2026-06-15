@@ -82,8 +82,8 @@ class GuideManager:
         # Quest 4: Show your improvement - Reward: x2 Currency Boost for 3 hours
         quest4 = GuideQuest(
             3, "Show your improvement!",
-            "Each stage contains 10 Food Titans. Defeat them all and reach Stage 2 to prove your growth as a chef!",
-            "Reach Stage", 2, "boost"
+            "Each stage contains 10 Food Titans. Defeat them all and reach Stage 5 to prove your growth as a chef!",
+            "Reach Stage", 5, "boost"
         )
 
         quest4.set_progress(1) # Start with Stage 1 progress to encourage players to reach Stage 2
