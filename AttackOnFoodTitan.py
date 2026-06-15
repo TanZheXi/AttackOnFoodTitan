@@ -589,26 +589,12 @@ while IsRunning:
                 extra_chance, extra_multi = crispy_precision.get_crit_bonus()
                 base_damage = getattr(Equipment_System, "base_damage", Click_Damage_Feature.damage_per_click)
                 final_damage, is_critical = calculate_damage(base_damage, extra_chance, extra_multi)
-<<<<<<< HEAD
-
-                # Apply ability multipliers (Spicy Surge) and prestige multiplier
-                final_damage *= damage_boost.get_multiplier() * Currency_System.get_prestige_multiplier()
-                
-                # Apply damage to monster
-                current_monster.take_damage(final_damage)
-
-                # Create floating damage text
-                popup_x = current_monster.rect.x + random.randint(20, max(20, current_monster.rect.width - 40))
-                popup_y = current_monster.rect.y + random.randint(20, max(20, current_monster.rect.height - 40))
-                damage_texts.append(DamageText(f"{final_damage:.1f}", (popup_x, popup_y), is_critical))
-=======
                 final_damage = int(final_damage * damage_boost.get_multiplier() * Currency_System.get_prestige_multiplier())
                 current_monster.take_damage(final_damage)
 
                 popup_x = current_monster.rect.x + random.randint(20, current_monster.rect.width - 20)
                 popup_y = current_monster.rect.y + random.randint(20, current_monster.rect.height - 20)
                 damage_texts.append(DamageText(str(final_damage), (popup_x, popup_y), is_critical))
->>>>>>> af5802cd84c4224a404010ee41e9b94d9e444695
 
                 if current_monster.is_defeated():
                     Currency_System.update_economy(current_monster.hp, monster_manager.progression_index + 1)
@@ -651,24 +637,12 @@ while IsRunning:
 
                 extra_chance, extra_multi = crispy_precision.get_crit_bonus()
                 pet_damage, is_critical = calculate_damage(base_pet_damage, extra_chance, extra_multi)
-<<<<<<< HEAD
-
-                # Apply ability multipliers and prestige multiplier
-                final_pet_damage = pet_damage * damage_boost.get_multiplier() * Currency_System.get_prestige_multiplier()
-
-                current_monster.take_damage(final_pet_damage)
-
-                popup_x = current_monster.rect.x + random.randint(20, max(20, current_monster.rect.width - 40))
-                popup_y = current_monster.rect.y + random.randint(20, max(20, current_monster.rect.height - 40))
-                damage_texts.append(DamageText(f"{final_pet_damage:.1f}", (popup_x, popup_y), is_critical))
-=======
                 final_pet_damage = int(pet_damage * damage_boost.get_multiplier() * Currency_System.get_prestige_multiplier())
                 current_monster.take_damage(final_pet_damage)
 
                 popup_x = current_monster.rect.x + random.randint(20, current_monster.rect.width - 20)
                 popup_y = current_monster.rect.y + random.randint(20, current_monster.rect.height - 20)
                 damage_texts.append(DamageText(str(final_pet_damage), (popup_x, popup_y), is_critical))
->>>>>>> af5802cd84c4224a404010ee41e9b94d9e444695
 
                 if current_monster.is_defeated():
                     Currency_System.update_economy(current_monster.hp, monster_manager.progression_index)
