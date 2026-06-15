@@ -13,7 +13,7 @@ class AFKSystem:
         self.afk_income_rate = 1 / 3600
         self.max_afk_earnings = 100
         
-    def save_game_data(self, pocket_money, monster_hp, monster_max_hp, monster_name, monster_color, progression_index, stage, inventory_items=None, shop_items_state=None, pet_data=None, upgrade_level=0, daily_data=None):
+    def save_game_data(self, pocket_money, monster_hp, monster_max_hp, monster_name, monster_color, progression_index, stage, inventory_items=None, shop_items_state=None, pet_data=None, upgrade_level=0, guide_data=None, boost_data=None):
         shop_state = []
         if shop_items_state:
             for item in shop_items_state:
@@ -43,7 +43,8 @@ class AFKSystem:
             "shop_items": shop_state,
             "pet_data": pet_data if pet_data else [],
             "upgrade_level": upgrade_level,
-            "daily_data": daily_data if daily_data else {}
+            "guide_data": guide_data if guide_data else {},
+            "boost_data": boost_data if boost_data else {"visible": False}
         }
         try:
             with open(self.save_file, 'w') as f:
@@ -54,7 +55,7 @@ class AFKSystem:
     
     def load_and_calculate_afk_rewards(self):
         if not os.path.exists(self.save_file):
-            return 0, None, 0, 1, 1, [], [], [], 0, {}
+            return 0, None, 0, 1, 1, [], [], [], 0, {}, {"visible": False}
         
         try:
             with open(self.save_file, 'r') as f:
@@ -75,13 +76,14 @@ class AFKSystem:
             shop_state = save_data.get("shop_items", [])
             pet_data = save_data.get("pet_data", [])
             upgrade_level = save_data.get("upgrade_level", 0)
-            daily_data = save_data.get("daily_data", {})
+            guide_data = save_data.get("guide_data", {})
+            boost_data = save_data.get("boost_data", {"visible": False})
             
-            return afk_earnings, monster_data, saved_money, progression_index, stage, inventory, shop_state, pet_data, upgrade_level, daily_data
+            return afk_earnings, monster_data, saved_money, progression_index, stage, inventory, shop_state, pet_data, upgrade_level, guide_data, boost_data
             
         except Exception as e:
             print(f"Loading failed: {e}")
-            return 0, None, 0, 1, 1, [], [], [], 0, {}
+            return 0, None, 0, 1, 1, [], [], [], 0, {}, {"visible": False}
     
     def update_save_time(self):
         self.last_save_time = time.time()

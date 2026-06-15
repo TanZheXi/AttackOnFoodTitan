@@ -56,6 +56,10 @@ class PlayerUpgradeSystem:
         if not hasattr(Equipment_System, "base_damage"):
             Equipment_System.base_damage = 1
 
+        # ========== Kitchen Guide callback ==========
+        self.upgrade_callback = None  # 外部设置的回调函数
+        # ===========================================
+
     def _init_category_buttons(self):
         btn_width = 100
         btn_height = 30
@@ -81,14 +85,12 @@ class PlayerUpgradeSystem:
         return int(self.current_cost)
 
     def handle_event(self, event):
-        # (Delete the example loop I gave you with 'upgrade_buttons')
-
         if self.current_category == 0:  # Player upgrade
             if event.type == pg.MOUSEBUTTONDOWN and event.button == 1:
                 # YOUR REAL BUTTON IS HERE:
                 if self.button_rect and self.button_rect.collidepoint(event.pos):
                     
-                    if GLOBAL_CLICK: GLOBAL_CLICK.play
+                    if GLOBAL_CLICK: GLOBAL_CLICK.play()
                     
                     self.purchase_upgrade()
                     
@@ -117,6 +119,11 @@ class PlayerUpgradeSystem:
                 self.current_cost = self.current_cost * self.common_ratio
 
             print(f"[UPGRADE] Base Damage Lv {self.level} → {Equipment_System.base_damage}, Next Cost: {self.get_upgrade_cost()}")
+
+            # ========== 通知 Kitchen Guide 升级完成 ==========
+            if self.upgrade_callback:
+                self.upgrade_callback()
+            # =================================================
 
     def draw(self, screen):
         # Panel background
