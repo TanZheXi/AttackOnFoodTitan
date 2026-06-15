@@ -1,5 +1,6 @@
 import pygame as pg
 import Equipment_System
+import os
 
 try:
     GLOBAL_CLICK = pg.mixer.Sound("Sfx/click.wav")
@@ -17,14 +18,22 @@ class CategoryButton:
         self.category_id = category_id
         self.is_selected = False
         self.font = pg.font.SysFont(None, 14)
+        self.icon_image = None
 
     def draw(self, screen):
         color = (100, 100, 150) if self.is_selected else (60, 60, 80)
         pg.draw.rect(screen, color, self.rect)
         pg.draw.rect(screen, (200, 200, 200), self.rect, 1)
-        text_surf = self.font.render(self.text, True, (255, 255, 255))
-        text_rect = text_surf.get_rect(center=self.rect.center)
-        screen.blit(text_surf, text_rect)
+        
+        if self.icon_image:
+            # Draw
+            icon_rect = self.icon_image.get_rect(center=self.rect.center)
+            screen.blit(self.icon_image, icon_rect)
+        else:
+            # Use original text button if can't load its image
+            text_surf = self.font.render(self.text, True, (255, 255, 255))
+            text_rect = text_surf.get_rect(center=self.rect.center)
+            screen.blit(text_surf, text_rect)
 
 
 class InventorySystem:
@@ -66,10 +75,25 @@ class InventorySystem:
         y = self.rect.y + 8
         
         categories = ["Weapon", "Equipment", "Scraps"]
-        for i, cat in enumerate(categories):
+        icon_names = ["Weapon", "Equipment", "Scraps"]
+        
+        for i, (cat, icon_name) in enumerate(zip(categories, icon_names)):
             btn_rect = pg.Rect(start_x + i * (btn_width + spacing), y, btn_width, btn_height)
             btn = CategoryButton(btn_rect, cat, i)
             btn.is_selected = (i == self.current_category)
+            
+            # Load icon
+            icon_folder = os.path.join(os.path.dirname(__file__), "Icon")
+            icon_path = os.path.join(icon_folder, f"{icon_name}.png")
+            try:
+                if os.path.exists(icon_path):
+                    icon_img = pg.image.load(icon_path).convert_alpha()
+                    # Scale as button size
+                    icon_img = pg.transform.scale(icon_img, (btn_width - 10, btn_height - 6))
+                    btn.icon_image = icon_img
+            except Exception as e:
+                pass
+            
             self.category_buttons.append(btn)
 
     def set_category(self, category_index):
@@ -88,10 +112,10 @@ class InventorySystem:
             print(f"[INVENTORY] {item_name} already in inventory")
 
     def _get_item_category(self, item_name):
-        weapon_items = ["Rusty Spatula", "Golden Spatula", "Chef's Wok", "Mythic Pan", "OP WEAPON"]
-        equipment_items = ["Master Chef Hat", "Titanium Apron", "Roasted Garlic Aroma", "Speed Boots", "Magic Ring"]
+        weapon_items = ["Rusty Spatula", "Golden Spatula", "Chef's Wok", "Mythic Pan", "OP WEAPON", "Beginner Wok"]
+        equipment_items = ["Master Chef Hat", "Titanium Apron", "Roasted Garlic Aroma", "Speed Boots", "Magic Ring", "Beginner Apron"]
         scrap_items = ["Scrap Pack S", "Scrap Pack M", "Scrap Pack L", "Scrap Pack XL", "Scrap Pack XXL"]
-        pet_items = ["Baby Slime", "Fire Spirit", "Fairy", "Dragon Whelp", "Phoenix"]
+        pet_items = ["Baby Slime", "Beginner Assistant Fairy", "Fire Spirit", "Fairy", "Dragon Whelp", "Phoenix"]
         
         if item_name in weapon_items:
             return "weapon"

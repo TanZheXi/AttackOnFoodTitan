@@ -1,6 +1,6 @@
 {
     "OP WEAPON": {
-        "owned": true,
+        "owned": false,
         "multiplier": 1000001.5,
         "cost": 999999,
         "scrap_value": 50000,
@@ -9,7 +9,7 @@
         "level": 4
     },
     "Rusty Spatula": {
-        "owned": true,
+        "owned": false,
         "multiplier": 3.0,
         "cost": 100,
         "scrap_value": 10,
@@ -18,7 +18,7 @@
         "level": 4
     },
     "Golden Spatula": {
-        "owned": true,
+        "owned": false,
         "multiplier": 7.5,
         "cost": 500,
         "scrap_value": 50,
@@ -27,7 +27,7 @@
         "level": 10
     },
     "Chef's Wok": {
-        "owned": true,
+        "owned": false,
         "multiplier": 8.0,
         "cost": 2000,
         "scrap_value": 200,
@@ -35,12 +35,28 @@
         "slot": "weapon"
     },
     "Mythic Pan": {
-        "owned": true,
+        "owned": false,
         "multiplier": 20.0,
         "cost": 10000,
         "scrap_value": 1000,
         "rarity": "Mythic",
         "slot": "weapon"
+    },
+    "Beginner Wok": {
+        "owned": false,
+        "multiplier": 2.5,
+        "cost": 0,
+        "scrap_value": 5,
+        "rarity": "Common",
+        "slot": "weapon"
+    },
+    "Beginner Apron": {
+        "owned": false,
+        "multiplier": 2.5,
+        "cost": 0,
+        "scrap_value": 5,
+        "rarity": "Common",
+        "slot": "armor"
     },
     "Master Chef Hat": {
         "owned": false,
@@ -70,7 +86,7 @@
         "level": 3
     },
     "Player_Data": {
-        "scraps": 234560,
+        "scraps": 0,
         "equipped": {
             "weapon": null,
             "hat": null,
