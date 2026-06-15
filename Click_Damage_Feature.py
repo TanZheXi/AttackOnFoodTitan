@@ -79,8 +79,9 @@ class MonsterManager:
 
 
 class DamageText:
-    def __init__(self, damage, pos, is_critical=False):
+    def __init__(self, damage, pos, is_critical=False, suffix=""):
         self.damage = float(damage)   # store as float
+        self.display_text = f"+${self.damage}{suffix}" #Use to display symbol
         self.x, self.y = float(pos[0]), float(pos[1])
         self.vy = -60.0
         self.alpha = 255

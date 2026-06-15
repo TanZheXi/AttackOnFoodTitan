@@ -1,5 +1,6 @@
 import pygame as pg
 import Currency_System
+import os
 
 pg.init()
 pg.font.init()
@@ -120,10 +121,24 @@ class ShopSystem:
         y = self.rect.y + 8
         
         categories = ["Weapon", "Equipment", "Pet", "Scraps"]
-        for i, cat in enumerate(categories):
+        icon_names = ["Weapon", "Equipment", "Pet", "Scraps"]
+        
+        for i, (cat, icon_name) in enumerate(zip(categories, icon_names)):
             btn_rect = pg.Rect(start_x + i * (btn_width + spacing), y, btn_width, btn_height)
             btn = CategoryButton(btn_rect, cat, i)
             btn.is_selected = (i == self.current_category)
+            
+            # Load icon
+            icon_folder = os.path.join(os.path.dirname(__file__), "Icon")
+            icon_path = os.path.join(icon_folder, f"{icon_name}.png")
+            try:
+                if os.path.exists(icon_path):
+                    icon_img = pg.image.load(icon_path).convert_alpha()
+                    icon_img = pg.transform.scale(icon_img, (btn_width - 10, btn_height - 6))
+                    btn.icon_image = icon_img
+            except Exception as e:
+                pass
+            
             self.category_buttons.append(btn)
 
     def set_category(self, category_index):
