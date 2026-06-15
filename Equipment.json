@@ -10,12 +10,12 @@
     },
     "Rusty Spatula": {
         "owned": true,
-        "multiplier": 6.0,
+        "multiplier": 6.5,
         "cost": 100,
         "scrap_value": 10,
         "rarity": "Common",
         "slot": "weapon",
-        "level": 10
+        "level": 11
     },
     "Golden Spatula": {
         "owned": true,
@@ -72,7 +72,7 @@
         "level": 3
     },
     "Player_Data": {
-        "scraps": 196110,
+        "scraps": 195910,
         "equipped": {
             "weapon": null,
             "hat": null,

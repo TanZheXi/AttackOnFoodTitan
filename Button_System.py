@@ -541,7 +541,7 @@ class PanelManager:
             screen.blit(panel_surface, (self.panel_rect.x, self.panel_rect.y))
             pg.draw.rect(screen, self.border_color, self.panel_rect, 3)
             
-            if self.active_panel != "Prestige":
+            if self.active_panel not in ["Prestige", "Crafting"]:
                 desc_surface = pg.Surface((self.desc_panel_rect.width, self.desc_panel_rect.height))
                 desc_surface.set_alpha(self.panel_color[3])
                 desc_surface.fill(self.panel_color[:3])
