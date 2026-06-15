@@ -1,4 +1,5 @@
 import pygame as pg
+import os
 from Shop_System import ShopSystem
 from Inventory_System import InventorySystem
 import Currency_System
@@ -21,7 +22,7 @@ pg.init()
 pg.font.init()  
 
 class Main_button:
-    def __init__(self, x, y, width, height, text, color, hover_color, callback=None):
+    def __init__(self, x, y, width, height, text, color, hover_color, callback=None, icon_name=None):
         self.rect = pg.Rect(x, y, width, height)
         self.text = text
         self.color = color
@@ -29,6 +30,61 @@ class Main_button:
         self.callback = callback
         self.font = pg.font.SysFont(None, 16)
         self.is_hovered = False
+        self.icon_name = icon_name
+        self.icon_image = None
+        self.icon_loaded = False
+    
+    def load_icon(self):
+        """Loading icon late a bit"""
+        print(f"[DEBUG] load_icon called for: {self.icon_name}")
+        
+        if self.icon_loaded or not self.icon_name:
+            print(f"[DEBUG] Skipping {self.icon_name}, icon_loaded={self.icon_loaded}")
+            return
+        
+        icon_folder = os.path.join(os.path.dirname(__file__), "Icon")
+        icon_path_png = os.path.join(icon_folder, f"{self.icon_name}.png")
+        
+        print(f"[DEBUG] Looking for: {icon_path_png}")
+        print(f"[DEBUG] File exists: {os.path.exists(icon_path_png)}")
+        
+        try:
+            if os.path.exists(icon_path_png):
+                original = pg.image.load(icon_path_png).convert_alpha()
+                
+                # Remove white color background
+                for x in range(original.get_width()):
+                    for y in range(original.get_height()):
+                        r, g, b, a = original.get_at((x, y))
+                        if r > 240 and g > 240 and b > 240:
+                            original.set_at((x, y), (0, 0, 0, 0))
+                
+                target_w = self.rect.width
+                target_h = self.rect.height
+                original_w = original.get_width()
+                original_h = original.get_height()
+                
+                scale_w = target_w / original_w
+                scale_h = target_h / original_h
+                scale = max(scale_w, scale_h)
+                
+                new_w = int(original_w * scale)
+                new_h = int(original_h * scale)
+                
+                self.icon_image = pg.transform.scale(original, (new_w, new_h))
+                
+                crop_x = (new_w - target_w) // 2
+                crop_y = (new_h - target_h) // 2
+                if crop_x > 0 or crop_y > 0:
+                    self.icon_image = self.icon_image.subsurface((crop_x, crop_y, target_w, target_h))
+                
+                print(f"[BUTTON] Loaded icon: {self.icon_name}.png (scaled to {target_w}x{target_h})")
+            else:
+                print(f"[BUTTON] File not found: {icon_path_png}")
+            self.icon_loaded = True
+        except Exception as e:
+            print(f"[BUTTON] Error loading {self.icon_name} - {e}")
+            self.icon_loaded = True
 
     def handle_event(self, event):
         if event.type == pg.MOUSEBUTTONDOWN and event.button == 1:
@@ -44,13 +100,28 @@ class Main_button:
         self.is_hovered = self.rect.collidepoint(pg.mouse.get_pos())
 
     def draw(self, screen):
-        color = self.hover_color if self.is_hovered else self.color
-        pg.draw.rect(screen, color, self.rect)
-        pg.draw.rect(screen, (200, 200, 200), self.rect, 1)
+        # Try loading the image
+        if not self.icon_loaded and self.icon_name:
+            self.load_icon()
         
-        text_surf = self.font.render(self.text, True, (255, 255, 255))
-        text_rect = text_surf.get_rect(center=self.rect.center)
-        screen.blit(text_surf, text_rect)
+        if self.icon_image:
+            if self.is_hovered:
+                scale = 1.1
+                new_w = int(self.rect.width * scale)
+                new_h = int(self.rect.height * scale)
+                hover_img = pg.transform.scale(self.icon_image, (new_w, new_h))
+                draw_x = self.rect.centerx - new_w // 2
+                draw_y = self.rect.centery - new_h // 2
+                screen.blit(hover_img, (draw_x, draw_y))
+            else:
+                screen.blit(self.icon_image, self.rect)
+        else:
+            color = self.hover_color if self.is_hovered else self.color
+            pg.draw.rect(screen, color, self.rect)
+            pg.draw.rect(screen, (200, 200, 200), self.rect, 1)
+            text_surf = self.font.render(self.text, True, (255, 255, 255))
+            text_rect = text_surf.get_rect(center=self.rect.center)
+            screen.blit(text_surf, text_rect)
 
 
 class ToolbarButton:
@@ -82,12 +153,64 @@ class ToolbarButton:
 
 
 class VerticalScrollButton:
-    def __init__(self, x, y, width, height, text, callback):
+    def __init__(self, x, y, width, height, text, callback, icon_name=None):
         self.rect = pg.Rect(x, y, width, height)
         self.text = text
         self.callback = callback
         self.font = pg.font.SysFont(None, 14)
         self.is_hovered = False
+        self.icon_name = icon_name
+        self.icon_image = None
+        self.icon_loaded = False
+    
+    def load_icon(self):
+        """Loading icon late a bit"""
+        print(f"[DEBUG] VScroll load_icon: {self.icon_name}")
+        
+        if self.icon_loaded or not self.icon_name:
+            return
+        
+        icon_folder = os.path.join(os.path.dirname(__file__), "Icon")
+        icon_path_png = os.path.join(icon_folder, f"{self.icon_name}.png")
+        
+        print(f"[DEBUG] VScroll looking for: {icon_path_png}")
+        print(f"[DEBUG] VScroll exists: {os.path.exists(icon_path_png)}")
+        
+        try:
+            if os.path.exists(icon_path_png):
+                original = pg.image.load(icon_path_png).convert_alpha()
+                
+                #Remove white color background
+                for x in range(original.get_width()):
+                    for y in range(original.get_height()):
+                        r, g, b, a = original.get_at((x, y))
+                        if r > 240 and g > 240 and b > 240:
+                            original.set_at((x, y), (0, 0, 0, 0))
+                
+                target_w = self.rect.width
+                target_h = self.rect.height
+                original_w = original.get_width()
+                original_h = original.get_height()
+                
+                scale_w = target_w / original_w
+                scale_h = target_h / original_h
+                scale = max(scale_w, scale_h)
+                
+                new_w = int(original_w * scale)
+                new_h = int(original_h * scale)
+                
+                self.icon_image = pg.transform.scale(original, (new_w, new_h))
+                
+                crop_x = (new_w - target_w) // 2
+                crop_y = (new_h - target_h) // 2
+                if crop_x > 0 or crop_y > 0:
+                    self.icon_image = self.icon_image.subsurface((crop_x, crop_y, target_w, target_h))
+                
+                print(f"[BUTTON] Loaded icon: {self.icon_name}.png (scaled to {target_w}x{target_h})")
+            self.icon_loaded = True
+        except Exception as e:
+            print(f"[BUTTON] Warning: Could not load {self.icon_name} - {e}")
+            self.icon_loaded = True
 
     def handle_event(self, event):
         if event.type == pg.MOUSEBUTTONDOWN and event.button == 1:
@@ -101,12 +224,28 @@ class VerticalScrollButton:
         self.is_hovered = self.rect.collidepoint(mouse_pos)
 
     def draw(self, screen):
-        color = (100, 100, 120) if self.is_hovered else (60, 60, 80)
-        pg.draw.rect(screen, color, self.rect)
-        pg.draw.rect(screen, (200, 200, 200), self.rect, 1)
-        text_surf = self.font.render(self.text, True, (255, 255, 255))
-        text_rect = text_surf.get_rect(center=self.rect.center)
-        screen.blit(text_surf, text_rect)
+        #Try loading the image
+        if not self.icon_loaded and self.icon_name:
+            self.load_icon()
+        
+        if self.icon_image:
+            if self.is_hovered:
+                scale = 1.1
+                new_w = int(self.rect.width * scale)
+                new_h = int(self.rect.height * scale)
+                hover_img = pg.transform.scale(self.icon_image, (new_w, new_h))
+                draw_x = self.rect.centerx - new_w // 2
+                draw_y = self.rect.centery - new_h // 2
+                screen.blit(hover_img, (draw_x, draw_y))
+            else:
+                screen.blit(self.icon_image, self.rect)
+        else:
+            color = (100, 100, 120) if self.is_hovered else (60, 60, 80)
+            pg.draw.rect(screen, color, self.rect)
+            pg.draw.rect(screen, (200, 200, 200), self.rect, 1)
+            text_surf = self.font.render(self.text, True, (255, 255, 255))
+            text_rect = text_surf.get_rect(center=self.rect.center)
+            screen.blit(text_surf, text_rect)
 
 
 class GuideSystem:
@@ -284,36 +423,38 @@ class PanelManager:
         
         # ========== Middle Area Right Side Buttons (Single Column) ==========
         MIDDLE_RIGHT_BORDER = 850
-        BUTTON_WIDTH = 30
-        BUTTON_HEIGHT = 30
-        SPACING = 5
+        BUTTON_WIDTH = 40
+        BUTTON_HEIGHT = 40
+        SPACING = 8
         BUTTON_START_Y = 12
-        
-        BUTTON_AREA_X = MIDDLE_RIGHT_BORDER - BUTTON_WIDTH - 5  # 815
-        
-        # 所有按钮文字和回调（按顺序排列）
-        button_texts = ["U", "P", "C", "I", "S", "R", "Pr", "G"]
-        button_callbacks = [
-            lambda: self.toggle_panel("Upgrade"),
-            lambda: self.toggle_panel("Pet"),
-            lambda: self.toggle_panel("Crafting"),
-            lambda: self.toggle_panel("Inventory"),
-            lambda: self.toggle_panel("Shop"),
-            lambda: self.toggle_panel("Raids"),
-            lambda: self.toggle_panel("Prestige"),
-            lambda: self.toggle_panel("Guide")
+
+        BUTTON_AREA_X = MIDDLE_RIGHT_BORDER - BUTTON_WIDTH - 5  # 805
+
+        # Add buttons in the order they should appear in the left column
+        button_configs = [
+            {"text": "U", "callback": lambda: self.toggle_panel("Upgrade"), "icon": "Upgrade"},
+            {"text": "P", "callback": lambda: self.toggle_panel("Pet"), "icon": "Pet"},
+            {"text": "C", "callback": lambda: self.toggle_panel("Crafting"), "icon": "Crafting"},
+            {"text": "I", "callback": lambda: self.toggle_panel("Inventory"), "icon": "Inventory"},
+            {"text": "S", "callback": lambda: self.toggle_panel("Shop"), "icon": "Shop"},
+            {"text": "Pr", "callback": lambda: self.toggle_panel("Prestige"), "icon": "Prestige_icon"},
+            {"text": "G", "callback": lambda: self.toggle_panel("Guide"), "icon": "KGuide"}
         ]
-        
+
         self.left_column_buttons = []
-        for i, (text, callback) in enumerate(zip(button_texts, button_callbacks)):
+        for i, config in enumerate(button_configs):
             y = BUTTON_START_Y + i * (BUTTON_HEIGHT + SPACING)
-            btn = VerticalScrollButton(BUTTON_AREA_X, y, BUTTON_WIDTH, BUTTON_HEIGHT, text, callback)
+            btn = VerticalScrollButton(
+                BUTTON_AREA_X, y, BUTTON_WIDTH, BUTTON_HEIGHT, 
+                config["text"], config["callback"], 
+                icon_name=config["icon"]
+            )
             self.left_column_buttons.append(btn)
-        
+
         self.right_column_buttons = []
 
     def update_guide_button_visibility(self):
-        """如果 Kitchen Guide 所有任务已完成，则隐藏 G 按钮"""
+        """If the player has completed all guide tasks, hide the Guide button."""
         if self.kitchen_guide_system and self.kitchen_guide_system.guide_manager.check_all_completed():
             for btn in self.left_column_buttons:
                 if btn.text == "G":
@@ -706,9 +847,11 @@ def guide_callback():
 # ========== Button list (only Guide button) ==========
 buttons = []
 
-GUIDE_BUTTON_X = 310
+GUIDE_BUTTON_X = 305
 GUIDE_BUTTON_Y = 12
-guide_button = Main_button(GUIDE_BUTTON_X, GUIDE_BUTTON_Y, 30, 30, "?", (80, 80, 100), (120, 120, 140), guide_callback)
+GUIDE_BUTTON_WIDTH = 40
+GUIDE_BUTTON_HEIGHT = 40
+guide_button = Main_button(GUIDE_BUTTON_X, GUIDE_BUTTON_Y, 30, 30, "?", (80, 80, 100), (120, 120, 140), guide_callback, icon_name="Guide")
 buttons.append(guide_button)
 
 # ========== Assign button list to panel_manager ==========
