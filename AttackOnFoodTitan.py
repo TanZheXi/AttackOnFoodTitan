@@ -576,16 +576,6 @@ while IsRunning:
                 if attack_titan_sound:
                     attack_titan_sound.play()
 
-                if slash_animation_frames:
-                    attack_animations.append(AttackAnimation(
-                        current_monster.rect.centerx,
-                        current_monster.rect.centery,
-                        slash_animation_frames,
-                        scale=0.6,
-                        offset_x=0,
-                        offset_y=0
-                    ))
-
                 extra_chance, extra_multi = crispy_precision.get_crit_bonus()
                 base_damage = getattr(Equipment_System, "base_damage", Click_Damage_Feature.damage_per_click)
                 final_damage, is_critical = calculate_damage(base_damage, extra_chance, extra_multi)

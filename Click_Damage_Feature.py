@@ -2,35 +2,265 @@ import pygame as pg
 import random
 import Equipment_System
 import time
+import math
+import os
 import Player_Upgrade_System
 
 class Monster:
     def __init__(self, name, max_hp, color):
         self.name = name
-        self.max_hp = float(max_hp)   # store as float
+        self.max_hp = float(max_hp)   
         self.hp = float(max_hp)
         self.color = color
         self.rect = pg.Rect(0, 0, 200, 200)
+        
+        self.creation_time = time.time()
+        self.hurt_time = 0
+        
+        self.anim_timer = time.time()
+        self.anim_speed = 0.15 
+        
+        self.state = "idle" 
+        self.death_time = 0
+        self.current_frame = 0
+
+        # --- 1. LOAD NORMAL & DEAD SHEETS ---
+        self.idle_frames = self._load_sheet(name, "")
+        self.dead_frames = self._load_sheet(name, " Dead") 
+
+        # --- 2. LOAD MULTIPLE HURT VARIATIONS! ---
+        self.hurt_variations = []
+        
+        # This will look for " Hurt.png", " Hurt2.png", and " Hurt3.png"
+        for suffix in [" Hurt", " Hurt2", " Hurt3"]:
+            frames = self._load_sheet(name, suffix)
+            if frames:
+                self.hurt_variations.append(frames)
+                
+        self.current_hurt_frames = None # Will hold the randomly picked one
+
+    def _load_sheet(self, name, suffix):
+        """Helper function to load and slice a specific state's sprite sheet"""
+        frames = []
+        try:
+            img_path = os.path.join(os.path.dirname(__file__), "Monster_Images", f"{name}{suffix}.png")
+            if os.path.exists(img_path):
+                raw_img = pg.image.load(img_path).convert_alpha()
+                img_w = raw_img.get_width()
+                img_h = raw_img.get_height()
+                
+                if img_w > img_h * 1.5:
+                    # Slicing Horizontal Strip
+                    frame_size = img_h
+                    for i in range(img_w // frame_size):
+                        frame = raw_img.subsurface((i * frame_size, 0, frame_size, frame_size))
+                        frames.append(pg.transform.scale(frame, (200, 200)))
+                else:
+                    # Slicing 2x2 Grid 
+                    frame_w = img_w // 2
+                    frame_h = img_h // 2
+                    for row in range(2):
+                        for col in range(2):
+                            frame = raw_img.subsurface((col * frame_w, row * frame_h, frame_w, frame_h))
+                            frames.append(pg.transform.scale(frame, (200, 200)))
+        except Exception as e:
+            # We don't need to print an error for Hurt2/Hurt3 if they don't exist for every monster
+            pass 
+        return frames
 
     def take_damage(self, dmg):
-        # Accept float damage, clamp to zero
+        if self.state == "dead":
+            return
+            
         self.hp = max(self.hp - float(dmg), 0.0)
+        self.hurt_time = time.time()
+        
+        # --- 3. PICK A RANDOM HURT ANIMATION ON EVERY CLICK! ---
+        if self.hurt_variations:
+            self.current_hurt_frames = random.choice(self.hurt_variations)
+        
+        if self.is_defeated():
+            self.state = "dead"
+            self.death_time = time.time()
+        else:
+            self.state = "hurt"
 
     def is_defeated(self):
         return self.hp <= 0.0
 
     def draw(self, surface):
-        pg.draw.rect(surface, self.color, self.rect)
-        # Background bar
-        pg.draw.rect(surface, (100, 100, 100), (self.rect.x, self.rect.y - 20, self.rect.width, 10))
-        # Current HP bar
-        hp_bar_width = int((self.hp / self.max_hp) * self.rect.width)
-        pg.draw.rect(surface, (255, 0, 0), (self.rect.x, self.rect.y - 20, hp_bar_width, 10))
-        # Text with decimals
-        font = pg.font.SysFont(None, 30)
-        text = font.render(f"{self.name} HP: {self.hp:.1f}/{self.max_hp:.1f}", True, (0, 0, 0))
-        text_rect = text.get_rect(center=(self.rect.centerx, self.rect.y - 35))
-        surface.blit(text, text_rect)
+        now = time.time()
+        
+        # --- CALCULATE DURATIONS ---
+        hurt_duration = 0.16  
+        hurt_anim_speed = 0.04 
+        
+        # Return to idle when hurt animation finishes
+        is_hurt_flash = (now - self.hurt_time) < hurt_duration 
+        if self.state == "hurt" and not is_hurt_flash:
+            self.state = "idle"
+            self.current_frame = 0 
+            
+        # --- CHOOSE ACTIVE ANIMATION LIST ---
+        active_frames = self.idle_frames
+        
+        if self.state == "dead":
+            if self.dead_frames:
+                active_frames = self.dead_frames
+            elif self.current_hurt_frames:
+                active_frames = self.current_hurt_frames 
+        elif self.state == "hurt" and self.current_hurt_frames:
+            active_frames = self.current_hurt_frames
+            
+        # --- ANIMATION LOGIC ---
+        if self.state == "dead":
+            if active_frames:
+                self.current_frame = len(active_frames) - 1
+                
+        elif self.state == "hurt" and self.current_hurt_frames:
+            time_since_hit = now - self.hurt_time
+            self.current_frame = int(time_since_hit / hurt_anim_speed)
+            self.current_frame = min(self.current_frame, len(active_frames) - 1)
+            
+        else:
+            self.anim_speed = 0.15 
+            if active_frames and (now - self.anim_timer > self.anim_speed):
+                self.current_frame = (self.current_frame + 1) % len(active_frames)
+                self.anim_timer = now
+
+        # --- JUICE & TRANSFORMATIONS ---
+        if self.state != "dead":
+            float_offset = math.sin((now - self.creation_time) * 4) * 4
+            draw_y = self.rect.y + float_offset
+            current_img = active_frames[self.current_frame] if active_frames else None
+        else:
+            elapsed_death = now - self.death_time
+            fall_speed = elapsed_death * 600  
+            draw_y = self.rect.y + fall_speed
+            
+            if active_frames:
+                spin_angle = elapsed_death * 360  
+                current_img = pg.transform.rotate(active_frames[self.current_frame], -spin_angle)
+            else:
+                current_img = None
+
+        # --- DRAW THE ACTUAL MONSTER ---
+        if current_img:
+            img_rect = current_img.get_rect(center=(self.rect.centerx, draw_y + 100))
+            surface.blit(current_img, img_rect.topleft)
+        else:
+            draw_rect = pg.Rect(self.rect.x, draw_y, self.rect.width, self.rect.height)
+            display_color = (255, 100, 100) if is_hurt_flash else self.color
+            pg.draw.rect(surface, display_color, draw_rect, border_radius=15)
+
+        # --- DRAW HEALTH BARS ---
+        if self.state != "dead":
+            bar_y = self.rect.y - 25
+            pg.draw.rect(surface, (100, 100, 100), (self.rect.x, bar_y, self.rect.width, 10))
+            hp_bar_width = int((self.hp / self.max_hp) * self.rect.width)
+            pg.draw.rect(surface, (255, 0, 0), (self.rect.x, bar_y, hp_bar_width, 10))
+            
+            font = pg.font.SysFont(None, 30)
+            text = font.render(f"{self.name} HP: {self.hp:.1f}/{self.max_hp:.1f}", True, (0, 0, 0))
+            text_rect = text.get_rect(center=(self.rect.centerx, bar_y - 15))
+            surface.blit(text, text_rect)
+
+    def take_damage(self, dmg):
+        if self.state == "dead":
+            return
+            
+        self.hp = max(self.hp - float(dmg), 0.0)
+        self.hurt_time = time.time()
+        
+        # --- 3. PICK A RANDOM HURT ANIMATION ON EVERY CLICK! ---
+        if self.hurt_variations:
+            self.current_hurt_frames = random.choice(self.hurt_variations)
+        
+        if self.is_defeated():
+            self.state = "dead"
+            self.death_time = time.time()
+        else:
+            self.state = "hurt"
+
+    def is_defeated(self):
+        return self.hp <= 0.0
+
+    def draw(self, surface):
+        now = time.time()
+        
+        # --- CALCULATE DURATIONS ---
+        hurt_duration = 0.16  
+        hurt_anim_speed = 0.04 
+        
+        # Return to idle when hurt animation finishes
+        is_hurt_flash = (now - self.hurt_time) < hurt_duration 
+        if self.state == "hurt" and not is_hurt_flash:
+            self.state = "idle"
+            self.current_frame = 0 
+            
+        # --- CHOOSE ACTIVE ANIMATION LIST ---
+        active_frames = self.idle_frames
+        
+        if self.state == "dead":
+            if self.dead_frames:
+                active_frames = self.dead_frames
+            elif self.current_hurt_frames:
+                active_frames = self.current_hurt_frames 
+        elif self.state == "hurt" and self.current_hurt_frames:
+            active_frames = self.current_hurt_frames
+            
+        # --- ANIMATION LOGIC ---
+        if self.state == "dead":
+            if active_frames:
+                self.current_frame = len(active_frames) - 1
+                
+        elif self.state == "hurt" and self.current_hurt_frames:
+            time_since_hit = now - self.hurt_time
+            self.current_frame = int(time_since_hit / hurt_anim_speed)
+            self.current_frame = min(self.current_frame, len(active_frames) - 1)
+            
+        else:
+            self.anim_speed = 0.15 
+            if active_frames and (now - self.anim_timer > self.anim_speed):
+                self.current_frame = (self.current_frame + 1) % len(active_frames)
+                self.anim_timer = now
+
+        # --- JUICE & TRANSFORMATIONS ---
+        if self.state != "dead":
+            float_offset = math.sin((now - self.creation_time) * 4) * 4
+            draw_y = self.rect.y + float_offset
+            current_img = active_frames[self.current_frame] if active_frames else None
+        else:
+            elapsed_death = now - self.death_time
+            fall_speed = elapsed_death * 600  
+            draw_y = self.rect.y + fall_speed
+            
+            if active_frames:
+                spin_angle = elapsed_death * 360  
+                current_img = pg.transform.rotate(active_frames[self.current_frame], -spin_angle)
+            else:
+                current_img = None
+
+        # --- DRAW THE ACTUAL MONSTER ---
+        if current_img:
+            img_rect = current_img.get_rect(center=(self.rect.centerx, draw_y + 100))
+            surface.blit(current_img, img_rect.topleft)
+        else:
+            draw_rect = pg.Rect(self.rect.x, draw_y, self.rect.width, self.rect.height)
+            display_color = (255, 100, 100) if is_hurt_flash else self.color
+            pg.draw.rect(surface, display_color, draw_rect, border_radius=15)
+
+        # --- DRAW HEALTH BARS ---
+        if self.state != "dead":
+            bar_y = self.rect.y - 25
+            pg.draw.rect(surface, (100, 100, 100), (self.rect.x, bar_y, self.rect.width, 10))
+            hp_bar_width = int((self.hp / self.max_hp) * self.rect.width)
+            pg.draw.rect(surface, (255, 0, 0), (self.rect.x, bar_y, hp_bar_width, 10))
+            
+            font = pg.font.SysFont(None, 30)
+            text = font.render(f"{self.name} HP: {self.hp:.1f}/{self.max_hp:.1f}", True, (0, 0, 0))
+            text_rect = text.get_rect(center=(self.rect.centerx, bar_y - 15))
+            surface.blit(text, text_rect)
 
 
 class MonsterManager:

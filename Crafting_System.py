@@ -8,6 +8,15 @@ class CraftingSystem:
         self.font_title = pg.font.SysFont(None, 32)
         self.font_med = pg.font.SysFont(None, 22)
         self.font_small = pg.font.SysFont(None, 16)
+
+# LOAD CRAFTING SOUND ---
+        try:
+            # Make sure you have a sound file named this in your folder!
+            self.craft_sound = pg.mixer.Sound("Sound_Effects/Upgrade_sfx.mp3") 
+            self.craft_sound.set_volume(0.6)
+        except Exception as e:
+            self.craft_sound = None
+            print(f"[WARN] Crafting sound not found: {e}")
         
         # --- LAYOUT SECTIONS ---
         self.forge_area = pg.Rect(self.rect.x + 10, self.rect.y + 50, self.rect.width - 20, 240)
@@ -188,17 +197,16 @@ class CraftingSystem:
                     # NEW: Cancel any pending upgrade confirmation if they switch items!
                     self.confirming_upgrade = False
                     return
-
-            # 2. Did they click COMBINE / CONFIRM?
+# 2. Did they click the UPGRADE button?
             if self.selected_weapon and self.upgrade_btn_rect.collidepoint(event.pos):
                 item = Equipment_System.equipment_database.get(self.selected_weapon, {})
                 lvl = item.get("level", 1)
                 cost = item.get("scrap_value", 10) * lvl
                 
                 if Equipment_System.crafting_scraps >= cost:
-                    if GLOBAL_CLICK: GLOBAL_CLICK.play()
+                    if GLOBAL_CLICK: GLOBAL_CLICK.play() # Standard click sound
                     
-                    # --- NEW: Two-step confirmation logic ---
+                    # --- Two-step confirmation logic ---
                     if not self.confirming_upgrade:
                         # First Click: Ask for confirmation
                         self.confirming_upgrade = True
@@ -206,6 +214,11 @@ class CraftingSystem:
                         # Second Click: Actually consume the scraps and upgrade
                         Equipment_System.upgrade_weapon_by_name(self.selected_weapon)
                         self.confirming_upgrade = False
+                        
+                        # --- NEW: PLAY THE HEAVY CRAFTING SOUND HERE! ---
+                        if self.craft_sound:
+                            self.craft_sound.play()
+                        # -------------------------------------------------
                 return
 
             # 3. Saftey Net: If they click anywhere else in the forge, cancel the confirmation!
