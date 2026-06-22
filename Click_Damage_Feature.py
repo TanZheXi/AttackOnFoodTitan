@@ -31,8 +31,8 @@ class Monster:
         # --- 2. LOAD MULTIPLE HURT VARIATIONS! ---
         self.hurt_variations = []
         
-        # This will look for " Hurt.png", " Hurt2.png", and " Hurt3.png"
-        for suffix in [" Hurt", " Hurt2", " Hurt3"]:
+        # This will look for " Hurt 1.png", " Hurt 2.png", and " Hurt 3.png"
+        for suffix in [" Hurt 1", " Hurt 2", " Hurt 3"]:
             frames = self._load_sheet(name, suffix)
             if frames:
                 self.hurt_variations.append(frames)
@@ -40,32 +40,54 @@ class Monster:
         self.current_hurt_frames = None # Will hold the randomly picked one
 
     def _load_sheet(self, name, suffix):
-        """Helper function to load and slice a specific state's sprite sheet"""
+        """Helper function to universally load and slice ANY sprite sheet layout"""
         frames = []
         try:
+            # Look for the file in your Monster_Images folder
             img_path = os.path.join(os.path.dirname(__file__), "Monster_Images", f"{name}{suffix}.png")
+            
             if os.path.exists(img_path):
                 raw_img = pg.image.load(img_path).convert_alpha()
                 img_w = raw_img.get_width()
                 img_h = raw_img.get_height()
                 
-                if img_w > img_h * 1.5:
-                    # Slicing Horizontal Strip
-                    frame_size = img_h
-                    for i in range(img_w // frame_size):
-                        frame = raw_img.subsurface((i * frame_size, 0, frame_size, frame_size))
-                        frames.append(pg.transform.scale(frame, (200, 200)))
+                # --- UNIVERSAL SLICER CONFIGURATION ---
+                # Tell the game how many columns and rows each monster uses!
+                layouts = {
+                    "Sushi Serpent": (2, 2),  # 2 columns, 2 rows (Square Grid)
+                    "Bread Monster": (2, 2),  # 2 columns, 2 rows (Square Grid)
+                    "Ice Cream Overlord": (2, 2), # 2 columns, 2 rows (Horizontal Strip)
+                    "Cake Emperor": (2, 2), # 2 columns, 2 rows (Horizontal Strip)
+                }
+                
+                # Check if we have a custom layout for this monster
+                if name in layouts:
+                    cols, rows = layouts[name]
                 else:
-                    # Slicing 2x2 Grid 
-                    frame_w = img_w // 2
-                    frame_h = img_h // 2
-                    for row in range(2):
-                        for col in range(2):
-                            frame = raw_img.subsurface((col * frame_w, row * frame_h, frame_w, frame_h))
+                    # If not listed above, automatically assume it is a 1-Row horizontal strip
+                    rows = 1
+                    cols = max(1, img_w // img_h)
+
+                # Calculate the exact size of a single frame
+                frame_w = img_w // cols
+                frame_h = img_h // rows
+                
+                # Slice the image based on our rows and columns
+                for row in range(rows):
+                    for col in range(cols):
+                        # Cut out the current frame
+                        frame = raw_img.subsurface((col * frame_w, row * frame_h, frame_w, frame_h))
+                        
+                        # --- MAGIC TRICK: SKIP EMPTY FRAMES ---
+                        # If the frame is completely blank, get_bounding_rect().width will be 0. 
+                        # We only add frames that have actual pixel art in them!
+                        if frame.get_bounding_rect().width > 0:
                             frames.append(pg.transform.scale(frame, (200, 200)))
+                            
         except Exception as e:
-            # We don't need to print an error for Hurt2/Hurt3 if they don't exist for every monster
+            # Silently pass if the file doesn't exist (like Hurt2/Hurt3)
             pass 
+            
         return frames
 
     def take_damage(self, dmg):
@@ -95,7 +117,6 @@ class Monster:
         hurt_duration = 0.16  
         hurt_anim_speed = 0.04 
         
-        # Return to idle when hurt animation finishes
         is_hurt_flash = (now - self.hurt_time) < hurt_duration 
         if self.state == "hurt" and not is_hurt_flash:
             self.state = "idle"
@@ -103,7 +124,6 @@ class Monster:
             
         # --- CHOOSE ACTIVE ANIMATION LIST ---
         active_frames = self.idle_frames
-        
         if self.state == "dead":
             if self.dead_frames:
                 active_frames = self.dead_frames
@@ -112,39 +132,37 @@ class Monster:
         elif self.state == "hurt" and self.current_hurt_frames:
             active_frames = self.current_hurt_frames
             
-        # --- ANIMATION LOGIC ---
+        # --- ANIMATION FRAME LOGIC ---
         if self.state == "dead":
-            if active_frames:
-                self.current_frame = len(active_frames) - 1
-                
+            self.current_frame = 0 # Freeze completely on frame 0, no extra animations
         elif self.state == "hurt" and self.current_hurt_frames:
             time_since_hit = now - self.hurt_time
             self.current_frame = int(time_since_hit / hurt_anim_speed)
             self.current_frame = min(self.current_frame, len(active_frames) - 1)
-            
         else:
-            self.anim_speed = 0.15 
-            if active_frames and (now - self.anim_timer > self.anim_speed):
-                self.current_frame = (self.current_frame + 1) % len(active_frames)
-                self.anim_timer = now
+            self.current_frame = 0 # Safe global idle fallback
 
-        # --- JUICE & TRANSFORMATIONS ---
-        if self.state != "dead":
-            float_offset = math.sin((now - self.creation_time) * 4) * 4
-            draw_y = self.rect.y + float_offset
-            current_img = active_frames[self.current_frame] if active_frames else None
-        else:
-            elapsed_death = now - self.death_time
-            fall_speed = elapsed_death * 600  
-            draw_y = self.rect.y + fall_speed
-            
-            if active_frames:
-                spin_angle = elapsed_death * 360  
-                current_img = pg.transform.rotate(active_frames[self.current_frame], -spin_angle)
+        # --- POSITION TRANSFORMATIONS ---
+        # Keep the exact same float running so it doesn't jarringly freeze or drop out of the air
+        float_offset = math.sin((now - self.creation_time) * self.hover_speed) * self.hover_height
+        draw_y = self.rect.y + float_offset
+        
+        # --- ALPHA VANISH TRANSPARENCY ---
+        if active_frames:
+            if self.state == "dead":
+                # Create a volatile copy of the frame to modify its transparency channel safely
+                current_img = active_frames[self.current_frame].copy()
+                elapsed_death = now - self.death_time
+                
+                # Fades alpha from 255 (fully visible) to 0 (invisible) over 1 second
+                alpha_value = max(255 - int(elapsed_death * 255), 0)
+                current_img.set_alpha(alpha_value)
             else:
-                current_img = None
+                current_img = active_frames[self.current_frame]
+        else:
+            current_img = None
 
-        # --- DRAW THE ACTUAL MONSTER ---
+        # --- DRAW MONSTER ---
         if current_img:
             img_rect = current_img.get_rect(center=(self.rect.centerx, draw_y + 100))
             surface.blit(current_img, img_rect.topleft)
@@ -153,7 +171,7 @@ class Monster:
             display_color = (255, 100, 100) if is_hurt_flash else self.color
             pg.draw.rect(surface, display_color, draw_rect, border_radius=15)
 
-        # --- DRAW HEALTH BARS ---
+        # --- DRAW HEALTH BARS (Only if alive) ---
         if self.state != "dead":
             bar_y = self.rect.y - 25
             pg.draw.rect(surface, (100, 100, 100), (self.rect.x, bar_y, self.rect.width, 10))
@@ -212,7 +230,7 @@ class Monster:
         # --- ANIMATION LOGIC ---
         if self.state == "dead":
             if active_frames:
-                self.current_frame = len(active_frames) - 1
+                self.current_frame = 0  # Just freeze on the first frame, no extra animation!
                 
         elif self.state == "hurt" and self.current_hurt_frames:
             time_since_hit = now - self.hurt_time
@@ -220,26 +238,27 @@ class Monster:
             self.current_frame = min(self.current_frame, len(active_frames) - 1)
             
         else:
-            self.anim_speed = 0.15 
-            if active_frames and (now - self.anim_timer > self.anim_speed):
-                self.current_frame = (self.current_frame + 1) % len(active_frames)
-                self.anim_timer = now
+            self.current_frame = 0
 
         # --- JUICE & TRANSFORMATIONS ---
-        if self.state != "dead":
-            float_offset = math.sin((now - self.creation_time) * 4) * 4
-            draw_y = self.rect.y + float_offset
-            current_img = active_frames[self.current_frame] if active_frames else None
-        else:
-            elapsed_death = now - self.death_time
-            fall_speed = elapsed_death * 600  
-            draw_y = self.rect.y + fall_speed
-            
-            if active_frames:
-                spin_angle = elapsed_death * 360  
-                current_img = pg.transform.rotate(active_frames[self.current_frame], -spin_angle)
+        # Keep the exact same float running so it doesn't freeze or drop!
+        # (Assuming your anim_speed or hover variables are hardcoded here based on your file)
+        float_offset = math.sin((now - self.creation_time) * 4) * 4
+        draw_y = self.rect.y + float_offset
+        
+        if active_frames:
+            if self.state == "dead":
+                # --- PURE VANISH EFFECT ---
+                current_img = active_frames[self.current_frame].copy()
+                elapsed_death = now - self.death_time
+                
+                # Fades from 255 (solid) to 0 (invisible) over 1 second
+                alpha_value = max(255 - int(elapsed_death * 255), 0)
+                current_img.set_alpha(alpha_value)
             else:
-                current_img = None
+                current_img = active_frames[self.current_frame]
+        else:
+            current_img = None
 
         # --- DRAW THE ACTUAL MONSTER ---
         if current_img:
