@@ -794,7 +794,6 @@ while IsRunning:
 
 pg.quit()
 
-pg.quit()
 
 # ==========================================
 # References
