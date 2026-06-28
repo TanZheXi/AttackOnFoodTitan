@@ -482,13 +482,13 @@ damage_boost = SpicySurge(x=LEFT_WIDTH + 5 + 35, y=current_monster.rect.y + curr
 crispy_precision = CrispyPrecision(x=damage_boost.x + 100, y=damage_boost.y, radius=35)
 
 def on_prestige_reset():
+    # Only reset the shop so players can re-buy things if needed
     if Button_System.panel_manager.shop_system:
         Button_System.panel_manager.shop_system.reset_shop()
-    if Button_System.panel_manager.inventory_system:
-        Button_System.panel_manager.inventory_system.reset_inventory()
-    if Button_System.panel_manager.pet_system:
-        Button_System.panel_manager.pet_system.reset_on_prestige()
-    Equipment_System.lose_all_equipment()
+        
+    # We removed the inventory and equipment wipes from here!
+    print("[PRESTIGE] Prestige completed. Gear was kept safe!")
+
     damage_texts.clear()
     attack_animations.clear()
 
@@ -576,16 +576,6 @@ while IsRunning:
                 if attack_titan_sound:
                     attack_titan_sound.play()
 
-                if slash_animation_frames:
-                    attack_animations.append(AttackAnimation(
-                        current_monster.rect.centerx,
-                        current_monster.rect.centery,
-                        slash_animation_frames,
-                        scale=0.6,
-                        offset_x=0,
-                        offset_y=0
-                    ))
-
                 extra_chance, extra_multi = crispy_precision.get_crit_bonus()
                 base_damage = getattr(Equipment_System, "base_damage", Click_Damage_Feature.damage_per_click)
                 final_damage, is_critical = calculate_damage(base_damage, extra_chance, extra_multi)
@@ -596,16 +586,9 @@ while IsRunning:
                 popup_y = current_monster.rect.y + random.randint(20, current_monster.rect.height - 20)
                 damage_texts.append(DamageText(str(final_damage), (popup_x, popup_y), is_critical))
 
-                if current_monster.is_defeated():
-                    Currency_System.update_economy(current_monster.hp, monster_manager.progression_index + 1)
-                    if titan_defeated_sound:
-                        titan_defeated_sound.play()
-                    if Button_System.panel_manager.kitchen_guide_system:
-                        Button_System.panel_manager.kitchen_guide_system.guide_manager.update_progress("defeat_titan", 1)
-                    monster_manager.next_monster()
-                    current_monster = monster_manager.current_monster
-                    current_monster.rect.x = MIDDLE_CENTER_X - MONSTER_SIZE // 2
-                    current_monster.rect.y = 275
+                # Track if player got the final hit
+                if current_monster.is_defeated() and not hasattr(current_monster, "last_hit_by"):
+                    current_monster.last_hit_by = "player"
 
         damage_boost.handle_event(event)
         crispy_precision.handle_event(event)
@@ -644,17 +627,34 @@ while IsRunning:
                 popup_y = current_monster.rect.y + random.randint(20, current_monster.rect.height - 20)
                 damage_texts.append(DamageText(str(final_pet_damage), (popup_x, popup_y), is_critical))
 
-                if current_monster.is_defeated():
-                    Currency_System.update_economy(current_monster.hp, monster_manager.progression_index)
-                    if titan_defeated_sound:
-                        titan_defeated_sound.play()
-                    if Button_System.panel_manager.kitchen_guide_system:
-                        Button_System.panel_manager.kitchen_guide_system.guide_manager.update_progress("defeat_with_pet", 1)
-                    monster_manager.next_monster()
-                    current_monster = monster_manager.current_monster
-                    current_monster.rect.x = MIDDLE_CENTER_X - MONSTER_SIZE // 2
-                    current_monster.rect.y = 275
+                # Track if pet got the final hit
+                if current_monster.is_defeated() and not hasattr(current_monster, "last_hit_by"):
+                    current_monster.last_hit_by = "pet"
+                    
         last_pet_attack_time = current_time
+
+        # ========== Monster Death & Respawn Logic ==========
+    if current_monster.state == "dead":
+        # 1. Give rewards ONLY ONCE
+        if not hasattr(current_monster, "rewards_given"):
+            current_monster.rewards_given = True
+            
+            Currency_System.update_economy(current_monster.max_hp, monster_manager.progression_index + 1)
+            if titan_defeated_sound:
+                titan_defeated_sound.play()
+            
+            if Button_System.panel_manager.kitchen_guide_system:
+                if getattr(current_monster, "last_hit_by", "player") == "pet":
+                    Button_System.panel_manager.kitchen_guide_system.guide_manager.update_progress("defeat_with_pet", 1)
+                else:
+                    Button_System.panel_manager.kitchen_guide_system.guide_manager.update_progress("defeat_titan", 1)
+        
+        # 2. Wait 1 second for the fade out vanish to finish!
+        if time.time() - current_monster.death_time > 1.0:
+            monster_manager.next_monster()
+            current_monster = monster_manager.current_monster
+            current_monster.rect.x = MIDDLE_CENTER_X - MONSTER_SIZE // 2
+            current_monster.rect.y = 275
 
     # ========== Update Damage Texts ==========
     new_damage_texts = []
@@ -794,7 +794,6 @@ while IsRunning:
 
 pg.quit()
 
-pg.quit()
 
 # ==========================================
 # References
