@@ -451,6 +451,19 @@ class PanelManager:
             )
             self.left_column_buttons.append(btn)
 
+        # ========== Button column background board ==========
+        button_count = len(button_configs)
+        bg_padding = 10
+        bg_width = BUTTON_WIDTH + bg_padding * 2
+        bg_height = button_count * (BUTTON_HEIGHT + SPACING) + bg_padding * 2 - SPACING
+        bg_x = BUTTON_AREA_X - bg_padding
+        bg_y = BUTTON_START_Y - bg_padding
+
+        self.button_bg_rect = pg.Rect(bg_x, bg_y, bg_width, bg_height)
+        self.button_bg_color = (40, 40, 50)
+        self.button_bg_border_color = (80, 80, 100)
+        # ===================================================
+
         self.right_column_buttons = []
 
     def update_guide_button_visibility(self):
@@ -474,6 +487,9 @@ class PanelManager:
         return False
 
     def draw_buttons(self, screen):
+        if hasattr(self, 'button_bg_rect'):
+            pg.draw.rect(screen, self.button_bg_color, self.button_bg_rect)
+            pg.draw.rect(screen, self.button_bg_border_color, self.button_bg_rect, 2)
         for btn in self.left_column_buttons:
             btn.update(pg.mouse.get_pos())
             btn.draw(screen)
