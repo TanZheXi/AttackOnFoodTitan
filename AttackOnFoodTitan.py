@@ -11,7 +11,7 @@ import Equipment_System
 from KitchenGuide_System import KitchenGuideSystem
 from Abilities import SpicySurge, CrispyPrecision,ManaSystem
 from Player_Upgrade_System import PlayerUpgradeSystem
-from CompanionSystem import CompanionSystem
+
 
 
 
@@ -442,10 +442,6 @@ if afk_earnings > 0:
 monster_manager = Click_Damage_Feature.MonsterManager()
 MONSTER_SIZE = 200
 
-companion_system = CompanionSystem(
-    RIGHT_AREA_X + 20, 520, 400, 200, monster_manager.current_monster.rect
-)
-
 if saved_monster_data:
     monster_manager.progression_index = saved_progression_index
     monster_manager.stage = saved_stage
@@ -625,9 +621,6 @@ while IsRunning:
         for button in Button_System.buttons:
             button.handle_event(event)
 
-        # Companion system event handling
-        companion_system.handle_event(event)
-
     # ========== Pet auto attack ==========
     current_time = time.time()
     if current_time - last_pet_attack_time >= PET_ATTACK_INTERVAL:
@@ -666,10 +659,11 @@ while IsRunning:
     # ========== Companion auto attack ==========
     current_time = time.time()
     if current_time - last_companion_attack_time >= COMPANION_ATTACK_INTERVAL:
-       if Button_System.panel_manager.player_upgrade_system:
-          for i, comp in enumerate(Button_System.panel_manager.player_upgrade_system.companion_data):
-              if Button_System.panel_manager.player_upgrade_system.companion_levels[i] > 0:
-                dmg = Button_System.panel_manager.player_upgrade_system.get_companion_damage(i)
+       upgrade_system = Button_System.panel_manager.player_upgrade_system
+       if upgrade_system:
+          for i, comp in enumerate(upgrade_system.companion_data):
+              if upgrade_system.companion_levels[i] > 0 and current_monster.hp > 0:
+                dmg = upgrade_system.get_companion_damage(i)
                 current_monster.take_damage(dmg)
 
                 popup_x = current_monster.rect.x + random.randint(20, current_monster.rect.width - 20)
@@ -808,22 +802,13 @@ while IsRunning:
 
     current_monster.draw(window)
 
-    pet_system = Button_System.panel_manager.pet_system
-    if pet_system:
-        equipped_pets = pet_system.get_equipped_pets()
-        pet_size = 60
-        pet_spacing = 10
-        start_x = MIDDLE_CENTER_X - (len(equipped_pets) * pet_size + (len(equipped_pets) - 1) * pet_spacing) // 2
-        pet_y = current_monster.rect.y + current_monster.rect.height + 20
-        font_pet = pg.font.SysFont(None, 14)
-        for idx, pet in enumerate(equipped_pets):
-            pet_x = start_x + idx * (pet_size + pet_spacing)
-            pet_rect = pg.Rect(pet_x, pet_y, pet_size, pet_size)
-            pg.draw.rect(window, pet.color, pet_rect)
-            pg.draw.rect(window, (200, 200, 200), pet_rect, 2)
-            name_text = font_pet.render(pet.name, True, (0, 0, 0))
-            name_rect = name_text.get_rect(center=(pet_rect.centerx, pet_rect.centery))
-            window.blit(name_text, name_rect)
+    if Button_System.panel_manager.player_upgrade_system:
+       for i, comp in enumerate(upgrade_system.companion_data):
+           if upgrade_system.companion_levels[i] > 0:
+             # calculate pos_x, pos_y around monster
+             pg.draw.circle(window, (200,200,50), (pos_x,pos_y), 15)
+             txt = font.render(comp["name"][0], True, (0,0,0))
+             window.blit(txt, txt.get_rect(center=(pos_x,pos_y)))
 
     Currency_System.draw_ui(window)
 
@@ -835,7 +820,6 @@ while IsRunning:
         button.draw(window)
 
     Button_System.panel_manager.draw(window)
-    companion_system.draw(window)
     damage_boost.draw(window)
     crispy_precision.draw(window)
 
