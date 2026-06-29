@@ -130,7 +130,19 @@ class InventorySystem:
 
     def get_filtered_items(self):
         category = self.category_map.get(self.current_category, "weapon")
-        return [(name, cat) for name, cat in self.all_items if cat == category]
+        
+        # --- THE MASTER FIX ---
+        # Ignore the corrupted auto-save list. 
+        # Read directly from the Equipment JSON database every single frame!
+        actual_items = []
+        for item_name, data in Equipment_System.equipment_database.items():
+            # If the database says you own it, force it onto the screen.
+            if item_name != "Player_Data" and data.get("owned", False) == True:
+                cat = self._get_item_category(item_name)
+                if cat == category:
+                    actual_items.append((item_name, cat))
+                    
+        return actual_items
 
     def restore_inventory(self, inventory_items):
         self.all_items = []
@@ -219,6 +231,12 @@ class InventorySystem:
                     break
 
     def draw(self, screen):
+
+        for item_name, item_data in Equipment_System.equipment_database.items():
+            if item_name != "Player_Data" and item_data.get("owned", False):
+                # If we own it, but it's missing from the UI list, add it back!
+                if not any(name == item_name for name, cat in self.all_items):
+                    self.add_item(item_name)
         
         # Panel background
         pg.draw.rect(screen, (45, 45, 55), self.rect)
