@@ -1,4 +1,5 @@
 import pygame as pg
+import os
 from Shop_System import ShopSystem
 from Inventory_System import InventorySystem
 import Currency_System
@@ -6,13 +7,14 @@ from Pet_System import PetSystem
 from Player_Upgrade_System import PlayerUpgradeSystem
 import Equipment_System
 from Crafting_System import CraftingSystem
-from DailyQuest_System import DailyQuestSystem
+from KitchenGuide_System import KitchenGuideSystem
+from CompanionSystem import CompanionSystem
 
 # --- NEW: GLOBAL SOUND SYSTEM (CLS_1) ---
 try:
     # load it ONCE here at the top of the file
     GLOBAL_CLICK = pg.mixer.Sound("Sound_Effects/Click_sfx.wav")
-    GLOBAL_CLICK.set_volume(0.3) # 50% volume
+    GLOBAL_CLICK.set_volume(0.3)
 except Exception as e:
     GLOBAL_CLICK = None
     print(f"Warning: Could not load click sound: {e}")
@@ -21,7 +23,7 @@ pg.init()
 pg.font.init()  
 
 class Main_button:
-    def __init__(self, x, y, width, height, text, color, hover_color, callback=None):
+    def __init__(self, x, y, width, height, text, color, hover_color, callback=None, icon_name=None):
         self.rect = pg.Rect(x, y, width, height)
         self.text = text
         self.color = color
@@ -29,16 +31,67 @@ class Main_button:
         self.callback = callback
         self.font = pg.font.SysFont(None, 16)
         self.is_hovered = False
+        self.icon_name = icon_name
+        self.icon_image = None
+        self.icon_loaded = False
+    
+    def load_icon(self):
+        """Loading icon late a bit"""
+        print(f"[DEBUG] load_icon called for: {self.icon_name}")
+        
+        if self.icon_loaded or not self.icon_name:
+            print(f"[DEBUG] Skipping {self.icon_name}, icon_loaded={self.icon_loaded}")
+            return
+        
+        icon_folder = os.path.join(os.path.dirname(__file__), "Icon")
+        icon_path_png = os.path.join(icon_folder, f"{self.icon_name}.png")
+        
+        print(f"[DEBUG] Looking for: {icon_path_png}")
+        print(f"[DEBUG] File exists: {os.path.exists(icon_path_png)}")
+        
+        try:
+            if os.path.exists(icon_path_png):
+                original = pg.image.load(icon_path_png).convert_alpha()
+                
+                # Remove white color background
+                for x in range(original.get_width()):
+                    for y in range(original.get_height()):
+                        r, g, b, a = original.get_at((x, y))
+                        if r > 240 and g > 240 and b > 240:
+                            original.set_at((x, y), (0, 0, 0, 0))
+                
+                target_w = self.rect.width
+                target_h = self.rect.height
+                original_w = original.get_width()
+                original_h = original.get_height()
+                
+                scale_w = target_w / original_w
+                scale_h = target_h / original_h
+                scale = max(scale_w, scale_h)
+                
+                new_w = int(original_w * scale)
+                new_h = int(original_h * scale)
+                
+                self.icon_image = pg.transform.scale(original, (new_w, new_h))
+                
+                crop_x = (new_w - target_w) // 2
+                crop_y = (new_h - target_h) // 2
+                if crop_x > 0 or crop_y > 0:
+                    self.icon_image = self.icon_image.subsurface((crop_x, crop_y, target_w, target_h))
+                
+                print(f"[BUTTON] Loaded icon: {self.icon_name}.png (scaled to {target_w}x{target_h})")
+            else:
+                print(f"[BUTTON] File not found: {icon_path_png}")
+            self.icon_loaded = True
+        except Exception as e:
+            print(f"[BUTTON] Error loading {self.icon_name} - {e}")
+            self.icon_loaded = True
 
     def handle_event(self, event):
         if event.type == pg.MOUSEBUTTONDOWN and event.button == 1:
             if self.rect.collidepoint(event.pos):
-                
-                # 1. Play the global sound!
                 if GLOBAL_CLICK:
                     GLOBAL_CLICK.play()
-                
-                # 2. Run the button's normal code
                 if self.callback:
                     self.callback()
                 return True
@@ -48,13 +101,28 @@ class Main_button:
         self.is_hovered = self.rect.collidepoint(pg.mouse.get_pos())
 
     def draw(self, screen):
-        color = self.hover_color if self.is_hovered else self.color
-        pg.draw.rect(screen, color, self.rect)
-        pg.draw.rect(screen, (200, 200, 200), self.rect, 1)
+        # Try loading the image
+        if not self.icon_loaded and self.icon_name:
+            self.load_icon()
         
-        text_surf = self.font.render(self.text, True, (255, 255, 255))
-        text_rect = text_surf.get_rect(center=self.rect.center)
-        screen.blit(text_surf, text_rect)
+        if self.icon_image:
+            if self.is_hovered:
+                scale = 1.1
+                new_w = int(self.rect.width * scale)
+                new_h = int(self.rect.height * scale)
+                hover_img = pg.transform.scale(self.icon_image, (new_w, new_h))
+                draw_x = self.rect.centerx - new_w // 2
+                draw_y = self.rect.centery - new_h // 2
+                screen.blit(hover_img, (draw_x, draw_y))
+            else:
+                screen.blit(self.icon_image, self.rect)
+        else:
+            color = self.hover_color if self.is_hovered else self.color
+            pg.draw.rect(screen, color, self.rect)
+            pg.draw.rect(screen, (200, 200, 200), self.rect, 1)
+            text_surf = self.font.render(self.text, True, (255, 255, 255))
+            text_rect = text_surf.get_rect(center=self.rect.center)
+            screen.blit(text_surf, text_rect)
 
 
 class ToolbarButton:
@@ -86,12 +154,64 @@ class ToolbarButton:
 
 
 class VerticalScrollButton:
-    def __init__(self, x, y, width, height, text, callback):
+    def __init__(self, x, y, width, height, text, callback, icon_name=None):
         self.rect = pg.Rect(x, y, width, height)
         self.text = text
         self.callback = callback
         self.font = pg.font.SysFont(None, 14)
         self.is_hovered = False
+        self.icon_name = icon_name
+        self.icon_image = None
+        self.icon_loaded = False
+    
+    def load_icon(self):
+        """Loading icon late a bit"""
+        print(f"[DEBUG] VScroll load_icon: {self.icon_name}")
+        
+        if self.icon_loaded or not self.icon_name:
+            return
+        
+        icon_folder = os.path.join(os.path.dirname(__file__), "Icon")
+        icon_path_png = os.path.join(icon_folder, f"{self.icon_name}.png")
+        
+        print(f"[DEBUG] VScroll looking for: {icon_path_png}")
+        print(f"[DEBUG] VScroll exists: {os.path.exists(icon_path_png)}")
+        
+        try:
+            if os.path.exists(icon_path_png):
+                original = pg.image.load(icon_path_png).convert_alpha()
+                
+                #Remove white color background
+                for x in range(original.get_width()):
+                    for y in range(original.get_height()):
+                        r, g, b, a = original.get_at((x, y))
+                        if r > 240 and g > 240 and b > 240:
+                            original.set_at((x, y), (0, 0, 0, 0))
+                
+                target_w = self.rect.width
+                target_h = self.rect.height
+                original_w = original.get_width()
+                original_h = original.get_height()
+                
+                scale_w = target_w / original_w
+                scale_h = target_h / original_h
+                scale = max(scale_w, scale_h)
+                
+                new_w = int(original_w * scale)
+                new_h = int(original_h * scale)
+                
+                self.icon_image = pg.transform.scale(original, (new_w, new_h))
+                
+                crop_x = (new_w - target_w) // 2
+                crop_y = (new_h - target_h) // 2
+                if crop_x > 0 or crop_y > 0:
+                    self.icon_image = self.icon_image.subsurface((crop_x, crop_y, target_w, target_h))
+                
+                print(f"[BUTTON] Loaded icon: {self.icon_name}.png (scaled to {target_w}x{target_h})")
+            self.icon_loaded = True
+        except Exception as e:
+            print(f"[BUTTON] Warning: Could not load {self.icon_name} - {e}")
+            self.icon_loaded = True
 
     def handle_event(self, event):
         if event.type == pg.MOUSEBUTTONDOWN and event.button == 1:
@@ -105,12 +225,28 @@ class VerticalScrollButton:
         self.is_hovered = self.rect.collidepoint(mouse_pos)
 
     def draw(self, screen):
-        color = (100, 100, 120) if self.is_hovered else (60, 60, 80)
-        pg.draw.rect(screen, color, self.rect)
-        pg.draw.rect(screen, (200, 200, 200), self.rect, 1)
-        text_surf = self.font.render(self.text, True, (255, 255, 255))
-        text_rect = text_surf.get_rect(center=self.rect.center)
-        screen.blit(text_surf, text_rect)
+        #Try loading the image
+        if not self.icon_loaded and self.icon_name:
+            self.load_icon()
+        
+        if self.icon_image:
+            if self.is_hovered:
+                scale = 1.1
+                new_w = int(self.rect.width * scale)
+                new_h = int(self.rect.height * scale)
+                hover_img = pg.transform.scale(self.icon_image, (new_w, new_h))
+                draw_x = self.rect.centerx - new_w // 2
+                draw_y = self.rect.centery - new_h // 2
+                screen.blit(hover_img, (draw_x, draw_y))
+            else:
+                screen.blit(self.icon_image, self.rect)
+        else:
+            color = (100, 100, 120) if self.is_hovered else (60, 60, 80)
+            pg.draw.rect(screen, color, self.rect)
+            pg.draw.rect(screen, (200, 200, 200), self.rect, 1)
+            text_surf = self.font.render(self.text, True, (255, 255, 255))
+            text_rect = text_surf.get_rect(center=self.rect.center)
+            screen.blit(text_surf, text_rect)
 
 
 class GuideSystem:
@@ -147,10 +283,10 @@ class GuideSystem:
             "Click Pet button to manage pets",
             "Equip up to 3 pets",
             "",
-            "[DAILY QUESTS]",
-            "Click D button to open daily quests",
-            "Complete tasks to earn Bottle Caps",
-            "Quests reset every real day",
+            "[KITCHEN GUIDE]",
+            "Click G button to open kitchen guide",
+            "Complete tasks to earn rewards",
+            "Finish all to complete the guide",
             "",
             "[PRESTIGE]",
             "Reach Stage 10 to Prestige",
@@ -238,8 +374,8 @@ class PanelManager:
         self.active_panel = None
         self.left_column_buttons = []
         self.right_column_buttons = []
-        
         self.player_upgrade_system = None
+        self.companion_system = None
 
         try:
             self.prestige_sound = pg.mixer.Sound("Sound_Effects/prestige_sfx2.wav") 
@@ -270,7 +406,7 @@ class PanelManager:
         self.shop_system = None
         self.inventory_system = None
         self.pet_system = None
-        self.daily_system = None
+        self.kitchen_guide_system = None
         self.global_pocket_money = Currency_System.pocket_money
         self.crafting_system = None
         
@@ -280,50 +416,65 @@ class PanelManager:
         self.pending_inventory = []
         self.pending_shop_state = []
         self.pending_pet_data = []
-        self.pending_daily_data = {}
+        self.pending_guide_data = {}
         self.pending_money = None
 
         self.current_stage = 1
         self.wants_to_prestige = False
         
-        # ========== Middle Area Right Side Buttons ==========
+        # ========== Middle Area Right Side Buttons (Single Column) ==========
         MIDDLE_RIGHT_BORDER = 850
-        BUTTON_WIDTH = 30
-        BUTTON_HEIGHT = 30
-        SPACING = 5
+        BUTTON_WIDTH = 40
+        BUTTON_HEIGHT = 40
+        SPACING = 8
         BUTTON_START_Y = 12
-        
-        BUTTON_AREA_X = MIDDLE_RIGHT_BORDER - BUTTON_WIDTH - 5
-        
-        left_column_texts = ["U", "P", "C", "I"]
-        left_column_callbacks = [
-            lambda: self.toggle_panel("Upgrade"),
-            lambda: self.toggle_panel("Pet"),
-            lambda: self.toggle_panel("Crafting"),
-            lambda: self.toggle_panel("Inventory")
+
+        BUTTON_AREA_X = MIDDLE_RIGHT_BORDER - BUTTON_WIDTH - 5  # 805
+
+        # Add buttons in the order they should appear in the left column
+        button_configs = [
+            {"text": "U", "callback": lambda: self.toggle_panel("Upgrade"), "icon": "Upgrade"},
+            {"text": "P", "callback": lambda: self.toggle_panel("Pet"), "icon": "Pet"},
+            {"text": "C", "callback": lambda: self.toggle_panel("Crafting"), "icon": "Crafting"},
+            {"text": "I", "callback": lambda: self.toggle_panel("Inventory"), "icon": "Inventory"},
+            {"text": "S", "callback": lambda: self.toggle_panel("Shop"), "icon": "Shop"},
+            {"text": "Pr", "callback": lambda: self.toggle_panel("Prestige"), "icon": "Prestige_icon"},
+            {"text": "G", "callback": lambda: self.toggle_panel("Guide"), "icon": "KGuide"},
+            {"text": "Co", "callback": lambda: self.toggle_panel("Companion"), "icon": "Companion"}
         ]
-        
-        right_column_texts = ["S", "R", "Pr", "D"]
-        right_column_callbacks = [
-            lambda: self.toggle_panel("Shop"),
-            lambda: self.toggle_panel("Raids"),
-            lambda: self.toggle_panel("Prestige"),
-            lambda: self.toggle_panel("Daily")
-        ]
-        
-        right_col_x = BUTTON_AREA_X - BUTTON_WIDTH - 5
-        
+
         self.left_column_buttons = []
-        for i, (text, callback) in enumerate(zip(left_column_texts, left_column_callbacks)):
+        for i, config in enumerate(button_configs):
             y = BUTTON_START_Y + i * (BUTTON_HEIGHT + SPACING)
-            btn = VerticalScrollButton(BUTTON_AREA_X, y, BUTTON_WIDTH, BUTTON_HEIGHT, text, callback)
+            btn = VerticalScrollButton(
+                BUTTON_AREA_X, y, BUTTON_WIDTH, BUTTON_HEIGHT, 
+                config["text"], config["callback"], 
+                icon_name=config["icon"]
+            )
             self.left_column_buttons.append(btn)
-        
+
+        # ========== Button column background board ==========
+        button_count = len(button_configs)
+        bg_padding = 10
+        bg_width = BUTTON_WIDTH + bg_padding * 2
+        bg_height = button_count * (BUTTON_HEIGHT + SPACING) + bg_padding * 2 - SPACING
+        bg_x = BUTTON_AREA_X - bg_padding
+        bg_y = BUTTON_START_Y - bg_padding
+
+        self.button_bg_rect = pg.Rect(bg_x, bg_y, bg_width, bg_height)
+        self.button_bg_color = (40, 40, 50)
+        self.button_bg_border_color = (80, 80, 100)
+        # ===================================================
+
         self.right_column_buttons = []
-        for i, (text, callback) in enumerate(zip(right_column_texts, right_column_callbacks)):
-            y = BUTTON_START_Y + i * (BUTTON_HEIGHT + SPACING)
-            btn = VerticalScrollButton(right_col_x, y, BUTTON_WIDTH, BUTTON_HEIGHT, text, callback)
-            self.right_column_buttons.append(btn)
+
+    def update_guide_button_visibility(self):
+        """If the player has completed all guide tasks, hide the Guide button."""
+        if self.kitchen_guide_system and self.kitchen_guide_system.guide_manager.check_all_completed():
+            for btn in self.left_column_buttons:
+                if btn.text == "G":
+                    btn.rect.x = -100
+                    break
 
     def handle_button_events(self, event):
         if event.type == pg.MOUSEBUTTONDOWN and event.button == 1:
@@ -338,6 +489,9 @@ class PanelManager:
         return False
 
     def draw_buttons(self, screen):
+        if hasattr(self, 'button_bg_rect'):
+            pg.draw.rect(screen, self.button_bg_color, self.button_bg_rect)
+            pg.draw.rect(screen, self.button_bg_border_color, self.button_bg_rect, 2)
         for btn in self.left_column_buttons:
             btn.update(pg.mouse.get_pos())
             btn.draw(screen)
@@ -354,12 +508,12 @@ class PanelManager:
     def toggle_guide(self):
         self.guide_system.toggle()
 
-    def load_saved_data(self, pocket_money, inventory_items, shop_state, pet_data=None, daily_data=None):
+    def load_saved_data(self, pocket_money, inventory_items, shop_state, pet_data=None, guide_data=None):
         self.global_pocket_money = pocket_money
         self.pending_inventory = inventory_items if inventory_items else []
         self.pending_shop_state = shop_state if shop_state else []
         self.pending_pet_data = pet_data if pet_data else []
-        self.pending_daily_data = daily_data if daily_data else {}
+        self.pending_guide_data = guide_data if guide_data else {}
         self.pending_money = pocket_money
         
         if self.inventory_system and self.pending_inventory:
@@ -368,6 +522,7 @@ class PanelManager:
             self.shop_system.restore_shop_state(self.pending_shop_state)
         if self.pet_system and self.pending_pet_data:
             self.pet_system.restore_save_data(self.pending_pet_data)
+            print(f"[BUTTON] Pet data restored: {len(self.pending_pet_data)} pets")
 
     def get_save_data(self):
         inventory_items = []
@@ -379,10 +534,10 @@ class PanelManager:
         pet_data = []
         if self.pet_system:
             pet_data = self.pet_system.get_save_data()
-        daily_data = {}
-        if self.daily_system:
-            daily_data = self.daily_system.get_save_data()
-        return inventory_items, shop_state, pet_data, daily_data
+        guide_data = {}
+        if self.kitchen_guide_system:
+            guide_data = self.kitchen_guide_system.guide_manager.get_save_data()
+        return inventory_items, shop_state, pet_data, guide_data
 
     def reset_all_on_prestige(self):
         if self.shop_system:
@@ -395,24 +550,19 @@ class PanelManager:
     def handle_event(self, event):
         # If Guide panel is visible
         if self.guide_system.visible:
-            # Let Guide handle its own events (close button, scrolling)
             self.guide_system.handle_event(event)
             
-            # Check if any main button was clicked
             if event.type == pg.MOUSEBUTTONDOWN and event.button == 1:
-                # Check left column buttons
                 for btn in self.left_column_buttons:
                     if btn.rect.collidepoint(event.pos):
                         self.guide_system.visible = False
                         btn.callback()
                         return
-                # Check right column buttons
                 for btn in self.right_column_buttons:
                     if btn.rect.collidepoint(event.pos):
                         self.guide_system.visible = False
                         btn.callback()
                         return
-                # Check Guide button itself
                 if hasattr(self, 'guide_button_rect') and self.guide_button_rect.collidepoint(event.pos):
                     self.guide_system.visible = False
                     return
@@ -433,20 +583,17 @@ class PanelManager:
             self.pet_system.handle_event(event)
         elif self.active_panel == "Upgrade" and self.player_upgrade_system:
             self.player_upgrade_system.handle_event(event)
-        elif self.active_panel == "Daily" and self.daily_system:
-            self.daily_system.handle_event(event)
+        elif self.active_panel == "Companion" and self.companion_system:
+             self.companion_system.handle_event(event)
+        elif self.active_panel == "Guide" and self.kitchen_guide_system:
+            self.kitchen_guide_system.handle_event(event)
         elif self.active_panel == "Prestige":
             stars_to_gain = Currency_System.calculate_prestige_rewards(self.current_stage)
             
             if event.type == pg.MOUSEBUTTONDOWN and event.button == 1:
-                # 1. Did they click the button?
                 if hasattr(self, 'prestige_btn_rect') and self.prestige_btn_rect.collidepoint(event.pos):
-                    
-                    # --- PLAY SOUND ONCE HERE! ---
                     if GLOBAL_CLICK: 
                         GLOBAL_CLICK.play()
-
-                    # --- RUN THE PRESTIGE LOGIC ---
                     if stars_to_gain > 0:
                         if not getattr(self, 'confirm_prestige', False):
                             self.confirm_prestige = True  
@@ -458,10 +605,8 @@ class PanelManager:
                                     self.prestige_sound.play()
                                 self.active_panel = None
                                 self.confirm_prestige = False
-                
-                # 2. Did they click anywhere ELSE on the screen?
                 else:
-                    self.confirm_prestige = False # Only cancel if they clicked away!
+                    self.confirm_prestige = False
             return
         
     def get_active_panel_rect(self):
@@ -511,12 +656,14 @@ class PanelManager:
         return None
     
     def draw(self, screen):
-        # ========== Make sure daily_system exists ==========
-        if self.daily_system is None:
-            self.daily_system = DailyQuestSystem(0, 0, 1, 1)
-            if self.pending_daily_data:
-                self.daily_system.restore_save_data(self.pending_daily_data)
-                Currency_System.set_bottle_caps(self.daily_system.get_bottle_caps())
+        # 更新 Kitchen Guide 按钮可见性
+        self.update_guide_button_visibility()
+        
+        # ========== Make sure kitchen_guide_system exists ==========
+        if self.kitchen_guide_system is None:
+            self.kitchen_guide_system = KitchenGuideSystem(0, 0, 1, 1)
+            if self.pending_guide_data:
+                self.kitchen_guide_system.guide_manager.restore_save_data(self.pending_guide_data)
         # ======================================================================
         
         right_area_rect = pg.Rect(850, 0, 450, 750)
@@ -556,7 +703,7 @@ class PanelManager:
             screen.blit(panel_surface, (self.panel_rect.x, self.panel_rect.y))
             pg.draw.rect(screen, self.border_color, self.panel_rect, 3)
             
-            if self.active_panel != "Prestige":
+            if self.active_panel not in ["Prestige", "Crafting"]:
                 desc_surface = pg.Surface((self.desc_panel_rect.width, self.desc_panel_rect.height))
                 desc_surface.set_alpha(self.panel_color[3])
                 desc_surface.fill(self.panel_color[:3])
@@ -568,8 +715,8 @@ class PanelManager:
                         (self.panel_rect.x + self.panel_rect.width, self.panel_rect.y + self.panel_rect.height), 2)
             
             font = pg.font.SysFont(None, 32)
-            if self.active_panel == "Daily":
-                title_text = font.render("DAILY QUEST", True, (255, 220, 100))
+            if self.active_panel == "Guide":
+                title_text = font.render("KITCHEN GUIDE", True, (255, 220, 100))
             else:
                 title_text = font.render(f"{self.active_panel}", True, (255, 220, 100))
             title_rect = title_text.get_rect(center=(self.panel_rect.centerx, self.panel_rect.y + 22))
@@ -591,7 +738,6 @@ class PanelManager:
 
             elif self.active_panel == "Crafting":
                 if getattr(self, 'crafting_system', None) is None:
-                    # Set the dimensions perfectly inside the panel
                     craft_x = self.panel_rect.x + 10
                     craft_y = self.panel_rect.y + 50
                     craft_width = self.panel_rect.width - 20
@@ -620,26 +766,34 @@ class PanelManager:
                 self.pet_system.update()
                 self.pet_system.draw(screen, self.panel_rect, self.desc_panel_rect)
                 
-            elif self.active_panel == "Daily":
-                # Refresh position only for daily quest
-                if self.daily_system:
-                    self.daily_system.rect = pg.Rect(
+            elif self.active_panel == "Guide":
+                if self.kitchen_guide_system:
+                    self.kitchen_guide_system.rect = pg.Rect(
                         self.panel_rect.x + 10,
                         self.panel_rect.y + 50,
                         self.panel_rect.width - 20,
                         self.panel_rect.height - 80
                     )
+                    self.kitchen_guide_system.set_callbacks({
+                        "add_to_inventory": self.add_to_inventory,
+                        "gain_equipment": Equipment_System.gain_equipment,
+                        "add_pet": lambda name: self.pet_system.add_pet(name) if self.pet_system else None
+                    })
                 else:
-                    daily_x = self.panel_rect.x + 10
-                    daily_y = self.panel_rect.y + 50
-                    daily_width = self.panel_rect.width - 20
-                    daily_height = self.panel_rect.height - 80
-                    self.daily_system = DailyQuestSystem(daily_x, daily_y, daily_width, daily_height)
-                    if self.pending_daily_data:
-                        self.daily_system.restore_save_data(self.pending_daily_data)
-                        Currency_System.set_bottle_caps(self.daily_system.get_bottle_caps())
-                self.daily_system.update()
-                self.daily_system.draw(screen)
+                    guide_x = self.panel_rect.x + 10
+                    guide_y = self.panel_rect.y + 50
+                    guide_width = self.panel_rect.width - 20
+                    guide_height = self.panel_rect.height - 80
+                    self.kitchen_guide_system = KitchenGuideSystem(guide_x, guide_y, guide_width, guide_height)
+                    if self.pending_guide_data:
+                        self.kitchen_guide_system.guide_manager.restore_save_data(self.pending_guide_data)
+                    self.kitchen_guide_system.set_callbacks({
+                        "add_to_inventory": self.add_to_inventory,
+                        "gain_equipment": Equipment_System.gain_equipment,
+                        "add_pet": lambda name: self.pet_system.add_pet(name) if self.pet_system else None
+                    })
+                self.kitchen_guide_system.update()
+                self.kitchen_guide_system.draw(screen)
             elif self.active_panel == "Prestige":
                 self._draw_prestige_panel(screen)
             elif self.active_panel == "Upgrade":
@@ -650,6 +804,16 @@ class PanelManager:
                     upgrade_height = self.panel_rect.height - 80
                     self.player_upgrade_system = PlayerUpgradeSystem(upgrade_x, upgrade_y, upgrade_width, upgrade_height)
                 self.player_upgrade_system.draw(screen)
+            elif self.active_panel == "Companion":
+                if self.companion_system is None:
+                    self.companion_system = CompanionSystem(
+                    self.panel_rect.x + 10,
+                    self.panel_rect.y + 50,
+                    self.panel_rect.width - 20,
+                    self.panel_rect.height - 80,
+                    self.monster_manager.current_monster.rect
+                    )
+                self.companion_system.draw(screen)
 
     def _draw_prestige_panel(self, screen):
         stars_to_gain = Currency_System.calculate_prestige_rewards(self.current_stage)
@@ -664,14 +828,8 @@ class PanelManager:
 
         try:
             badge_img = pg.image.load("Icon/Prestige_icon.png").convert_alpha()
-            
-            # Optional: Scale it if it's too big! Change (150, 150) to whatever fits.
             badge_img = pg.transform.scale(badge_img, (350, 450))
-            
-            # 2. Find the perfect center of your panel
             badge_rect = badge_img.get_rect(center=(self.panel_rect.centerx, self.panel_rect.centery + 30))
-            
-            # 3. Draw it!
             screen.blit(badge_img, badge_rect)
         except Exception as e:
             print(f"Could not load badge: {e}")
@@ -734,9 +892,11 @@ def guide_callback():
 # ========== Button list (only Guide button) ==========
 buttons = []
 
-GUIDE_BUTTON_X = 310
+GUIDE_BUTTON_X = 305
 GUIDE_BUTTON_Y = 12
-guide_button = Main_button(GUIDE_BUTTON_X, GUIDE_BUTTON_Y, 30, 30, "?", (80, 80, 100), (120, 120, 140), guide_callback)
+GUIDE_BUTTON_WIDTH = 40
+GUIDE_BUTTON_HEIGHT = 40
+guide_button = Main_button(GUIDE_BUTTON_X, GUIDE_BUTTON_Y, 30, 30, "?", (80, 80, 100), (120, 120, 140), guide_callback, icon_name="Guide")
 buttons.append(guide_button)
 
 # ========== Assign button list to panel_manager ==========

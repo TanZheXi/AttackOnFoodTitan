@@ -97,13 +97,37 @@ class PlayerUpgradeSystem:
         # Scrolling
         self.scroll_offset = 0
 
-        # Companion (placeholder for future updates)
-        self.companion_level = 0
-        self.companion_cost = 100
+        # Companion 
+        self.companion_data = [
+           {"name": "Metal Spoon", "base_cost": 100, "base_damage": 5},
+           {"name": "Metal Fork", "base_cost": 200, "base_damage": 8},
+           {"name": "Chopstick", "base_cost": 300, "base_damage": 12},
+           {"name": "Spatula", "base_cost": 500, "base_damage": 20},
+           {"name": "Whisk", "base_cost": 800, "base_damage": 30},
+           {"name": "Can Opener", "base_cost": 1200, "base_damage": 45},
+           {"name": "Tongs", "base_cost": 2000, "base_damage": 60},
+           {"name": "Soup Ladle", "base_cost": 3000, "base_damage": 80},
+           {"name": "Fruit Knife", "base_cost": 5000, "base_damage": 100},
+           {"name": "Meat Cleaver", "base_cost": 8000, "base_damage": 150},
+        ]
+        self.companion_levels = [0] * len(self.companion_data)
+        self.companion_costs = [c["base_cost"] for c in self.companion_data]
 
         # init base_damage
         if not hasattr(Equipment_System, "base_damage"):
             Equipment_System.base_damage = 1
+
+    def get_companion_damage(self, index):
+        level = self.companion_levels[index]
+        base = self.companion_data[index]["base_damage"]
+        dmg = base * level
+        dmg *= 2 ** (level // 25)   # ×2 every 25 levels
+        dmg *= 10 ** (level // 100) # ×10 every 100 levels
+        return int(dmg)
+ 
+        # ========== Kitchen Guide callback ==========
+        self.upgrade_callback = None  # 外部设置的回调函数
+        # ===========================================
 
     def _init_category_buttons(self):
         btn_width = 100
@@ -135,7 +159,7 @@ class PlayerUpgradeSystem:
                 # YOUR REAL BUTTON IS HERE:
                 if self.button_rect and self.button_rect.collidepoint(event.pos):
                     
-                    if GLOBAL_CLICK: GLOBAL_CLICK.play
+                    if GLOBAL_CLICK: GLOBAL_CLICK.play()
                     
                     self.purchase_upgrade()
 
@@ -215,12 +239,16 @@ class PlayerUpgradeSystem:
                             print(f"[MANA REGEN] Lv {self.mana_regen_level} → +{self.mana_regen_bonus:.1f}/s Regen, Next Cost: {self.mana_regen_cost}")
   
         elif self.current_category == 1:  # Companion upgrade
-            if event.type == pg.MOUSEBUTTONDOWN and event.button == 1:
-                if self.button_rect and self.button_rect.collidepoint(event.pos):
-                    
-                    if GLOBAL_CLICK: GLOBAL_CLICK.play() 
-                    
-                    print("[COMPANION] Coming soon! Companion upgrade system is under development.")
+             if event.type == pg.MOUSEBUTTONDOWN and event.button == 1:
+                for i, comp in enumerate(self.companion_data):
+                    rect = getattr(self, f"companion_rect_{i}", None)
+                    if rect and rect.collidepoint(event.pos):
+                       cost = self.companion_costs[i]
+                       if Currency_System.pocket_money >= cost:
+                          Currency_System.pocket_money -= cost
+                          self.companion_levels[i] += 1
+                          self.companion_costs[i] = int(comp["base_cost"] * (1.07 ** self.companion_levels[i]))
+                          print(f"[COMPANION] {comp['name']} Lv {self.companion_levels[i]} → DMG {self.get_companion_damage(i)}, Next Cost {self.companion_costs[i]}")
 
     def purchase_upgrade(self):
         cost = self.get_upgrade_cost()
@@ -239,6 +267,11 @@ class PlayerUpgradeSystem:
                 self.current_cost = self.current_cost * self.common_ratio
 
             print(f"[UPGRADE] Base Damage Lv {self.level} → {Equipment_System.base_damage}, Next Cost: {self.get_upgrade_cost()}")
+
+            # ========== 通知 Kitchen Guide 升级完成 ==========
+            if self.upgrade_callback:
+                self.upgrade_callback()
+            # =================================================
 
     def draw(self, screen):
         # Panel background
@@ -379,15 +412,33 @@ class PlayerUpgradeSystem:
         text_rect = text.get_rect(center=self.button_rect.center)
         screen.blit(text, text_rect)
 
-    def _draw_companion_upgrade(self, screen): #For future updates for companion system
+    def _draw_companion_upgrade(self, screen):
         mouse_pos = pg.mouse.get_pos()
+        y_offset = self.rect.y + 100
+        box_height = 40
+        spacing = 8
 
-        # Position the button (same area as player upgrade for consistency)
-        self.button_rect = pg.Rect(self.rect.x + 20, self.rect.y + 100, self.rect.width - 40, 50)
+        for i, comp in enumerate(self.companion_data):
+           rect = pg.Rect(self.rect.x + 20, y_offset, self.rect.width - 40, box_height)
+           setattr(self, f"companion_rect_{i}", rect)
 
-        pg.draw.rect(screen, (200, 200, 200), self.button_rect, 2)
+           cost = self.companion_costs[i]
+           level = self.companion_levels[i]
+           dmg = self.get_companion_damage(i)
 
-        # Button text
-        text = self.font_text.render("Companion Upgrade - Coming Soon!", True, (255, 255, 255))
-        text_rect = text.get_rect(center=self.button_rect.center)
-        screen.blit(text, text_rect)
+        if Currency_System.pocket_money >= cost:
+            color = (0, 180, 180) if rect.collidepoint(mouse_pos) else (0, 128, 128)
+            text_color = (255, 255, 255)
+        else:
+            color = (140, 140, 140) if rect.collidepoint(mouse_pos) else (100, 100, 100)
+            text_color = (180, 180, 180)
+
+        pg.draw.rect(screen, color, rect)
+        pg.draw.rect(screen, (200, 200, 200), rect, 2)
+
+        text = self.font_text.render(
+            f"{comp['name']} Lv {level} → DMG {dmg} | Cost: {cost}", True, text_color
+        )
+        screen.blit(text, text.get_rect(center=rect.center))
+
+        y_offset += box_height + spacing
