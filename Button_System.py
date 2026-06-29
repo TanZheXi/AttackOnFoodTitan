@@ -105,14 +105,19 @@ class Main_button:
             self.load_icon()
         
         if self.icon_image:
+            # --- NEW: NO SCALING IN THE LOOP! ---
             if self.is_hovered:
-                scale = 1.1
-                new_w = int(self.rect.width * scale)
-                new_h = int(self.rect.height * scale)
-                hover_img = pg.transform.scale(self.icon_image, (new_w, new_h))
-                draw_x = self.rect.centerx - new_w // 2
-                draw_y = self.rect.centery - new_h // 2
-                screen.blit(hover_img, (draw_x, draw_y))
+                # We calculate the scaled image dynamically here only ONCE if missing, 
+                # but a better approach is saving it. For quick inline fix without breaking init:
+                if not hasattr(self, 'hover_image'):
+                    scale = 1.1
+                    new_w = int(self.rect.width * scale)
+                    new_h = int(self.rect.height * scale)
+                    self.hover_image = pg.transform.scale(self.icon_image, (new_w, new_h))
+                
+                draw_x = self.rect.centerx - self.hover_image.get_width() // 2
+                draw_y = self.rect.centery - self.hover_image.get_height() // 2
+                screen.blit(self.hover_image, (draw_x, draw_y))
             else:
                 screen.blit(self.icon_image, self.rect)
         else:
@@ -229,14 +234,17 @@ class VerticalScrollButton:
             self.load_icon()
         
         if self.icon_image:
+            # --- NEW: CACHE HOVER EFFECT ---
             if self.is_hovered:
-                scale = 1.1
-                new_w = int(self.rect.width * scale)
-                new_h = int(self.rect.height * scale)
-                hover_img = pg.transform.scale(self.icon_image, (new_w, new_h))
-                draw_x = self.rect.centerx - new_w // 2
-                draw_y = self.rect.centery - new_h // 2
-                screen.blit(hover_img, (draw_x, draw_y))
+                if not hasattr(self, 'hover_image'):
+                    scale = 1.1
+                    new_w = int(self.rect.width * scale)
+                    new_h = int(self.rect.height * scale)
+                    self.hover_image = pg.transform.scale(self.icon_image, (new_w, new_h))
+                
+                draw_x = self.rect.centerx - self.hover_image.get_width() // 2
+                draw_y = self.rect.centery - self.hover_image.get_height() // 2
+                screen.blit(self.hover_image, (draw_x, draw_y))
             else:
                 screen.blit(self.icon_image, self.rect)
         else:

@@ -234,7 +234,6 @@ class AttackAnimation:
     def __init__(self, x, y, frames, scale=0.5, offset_x=0, offset_y=0):
         self.x = x
         self.y = y
-        self.frames = frames
         self.current_frame = 0
         self.animation_speed = 0.08
         self.time_since_last_frame = 0
@@ -243,6 +242,16 @@ class AttackAnimation:
         self.offset_x = offset_x
         self.offset_y = offset_y
         self.alpha = 255
+        
+        # --- NEW: CACHE THE SCALED FRAMES ONCE ---
+        self.frames = []
+        for f in frames:
+            if self.scale != 1.0:
+                new_width = int(f.get_width() * self.scale)
+                new_height = int(f.get_height() * self.scale)
+                self.frames.append(pg.transform.scale(f, (new_width, new_height)))
+            else:
+                self.frames.append(f)
 
     def update(self, dt):
         if not self.is_active:
@@ -264,19 +273,17 @@ class AttackAnimation:
     def draw(self, screen):
         if not self.is_active or self.current_frame >= len(self.frames):
             return
+            
+        # --- NEW: NO MORE SCALING IN THE DRAW LOOP! ---
         frame = self.frames[self.current_frame]
         
-        if self.scale != 1.0:
-            new_width = int(frame.get_width() * self.scale)
-            new_height = int(frame.get_height() * self.scale)
-            frame = pg.transform.scale(frame, (new_width, new_height))
+        # Copy to safely apply transparency
+        temp_frame = frame.copy()
+        temp_frame.set_alpha(self.alpha)
         
-        frame.set_alpha(self.alpha)
-        
-        # Calculate draw position with offset
-        draw_x = self.x - frame.get_width() // 2 + self.offset_x
-        draw_y = self.y - frame.get_height() // 2 + self.offset_y
-        screen.blit(frame, (draw_x, draw_y))
+        draw_x = self.x - temp_frame.get_width() // 2 + self.offset_x
+        draw_y = self.y - temp_frame.get_height() // 2 + self.offset_y
+        screen.blit(temp_frame, (draw_x, draw_y))
 
     def is_finished(self):
         return not self.is_active
