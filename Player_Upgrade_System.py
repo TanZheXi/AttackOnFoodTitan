@@ -57,7 +57,7 @@ class PlayerUpgradeSystem:
             Equipment_System.base_damage = 1
 
         # ========== Kitchen Guide callback ==========
-        self.upgrade_callback = None  # 外部设置的回调函数
+        self.upgrade_callback = None  # Set external callback function
         # ===========================================
 
     def _init_category_buttons(self):
