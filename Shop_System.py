@@ -34,14 +34,21 @@ class CategoryButton:
         self.category_id = category_id
         self.is_selected = False
         self.font = pg.font.SysFont(None, 14)
+        self.icon_image = None
 
     def draw(self, screen):
         color = (100, 100, 150) if self.is_selected else (60, 60, 80)
         pg.draw.rect(screen, color, self.rect)
         pg.draw.rect(screen, (200, 200, 200), self.rect, 1)
-        text_surf = self.font.render(self.text, True, (255, 255, 255))
-        text_rect = text_surf.get_rect(center=self.rect.center)
-        screen.blit(text_surf, text_rect)
+        
+        if hasattr(self, 'icon_image') and self.icon_image:
+            # Draw centered icon
+            icon_rect = self.icon_image.get_rect(center=self.rect.center)
+            screen.blit(self.icon_image, icon_rect)
+        else:
+            text_surf = self.font.render(self.text, True, (255, 255, 255))
+            text_rect = text_surf.get_rect(center=self.rect.center)
+            screen.blit(text_surf, text_rect)
 
 
 class ShopSystem:
@@ -95,7 +102,6 @@ class ShopSystem:
         self.buy_messages = []
         self.message_timer = 0
 
-        # Catogory buttons
         self.category_buttons = []
         self._init_category_buttons()
 
@@ -133,9 +139,31 @@ class ShopSystem:
             icon_path = os.path.join(icon_folder, f"{icon_name}.png")
             try:
                 if os.path.exists(icon_path):
-                    icon_img = pg.image.load(icon_path).convert_alpha()
-                    icon_img = pg.transform.scale(icon_img, (btn_width - 10, btn_height - 6))
-                    btn.icon_image = icon_img
+                    original = pg.image.load(icon_path).convert_alpha()
+                    
+                    # Remove white background
+                    for _x in range(original.get_width()):
+                        for _y in range(original.get_height()):
+                            r, g, b, a = original.get_at((_x, _y))
+                            if r > 240 and g > 240 and b > 240:
+                                original.set_at((_x, _y), (0, 0, 0, 0))
+                    
+                    # --- MAGIC CROP: Snips away the empty transparent space! ---
+                    bounding_rect = original.get_bounding_rect()
+                    if bounding_rect.width > 0 and bounding_rect.height > 0:
+                        original = original.subsurface(bounding_rect)
+                    
+                    target_w = btn_width - 10
+                    target_h = btn_height - 6
+                    original_w = original.get_width()
+                    original_h = original.get_height()
+                    
+                    # Scale properly so it fits without getting squashed
+                    scale = min(target_w / original_w, target_h / original_h)
+                    new_w = int(original_w * scale)
+                    new_h = int(original_h * scale)
+                    
+                    btn.icon_image = pg.transform.scale(original, (new_w, new_h))
             except Exception as e:
                 pass
             
@@ -265,13 +293,11 @@ class ShopSystem:
                     text_rect = text.get_rect(center=cell_rect.center)
                     screen.blit(text, text_rect)
                 else:
-                    # Show item name (Only show first 8 chars if too long)
                     name_display = item.name[:8] + ".." if len(item.name) > 9 else item.name
                     text = self.font_small.render(name_display, True, (255, 255, 255))
                     text_rect = text.get_rect(center=(cell_rect.centerx, cell_rect.centery - 10))
                     screen.blit(text, text_rect)
 
-                    # Show price
                     if item.price >= 10000:
                         price_display = f"{item.price//1000}k"
                     else:
@@ -280,14 +306,12 @@ class ShopSystem:
                     price_rect = price_text.get_rect(center=(cell_rect.centerx, cell_rect.centery + 12))
                     screen.blit(price_text, price_rect)
 
-        # Print buy messages
         if self.buy_messages and self.message_timer > 0:
             msg = self.buy_messages[-1]
             msg_surface = self.font_medium.render(msg, True, (255, 255, 150))
             msg_rect = msg_surface.get_rect(center=(self.rect.centerx, self.rect.y + self.rect.height - 15))
             screen.blit(msg_surface, msg_rect)
         
-        # ========== Description box ==========
         if self.desc_panel_rect:
             desc_x = self.desc_panel_rect.x
             desc_y = self.desc_panel_rect.y
