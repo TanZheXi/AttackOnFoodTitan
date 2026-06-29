@@ -13,7 +13,14 @@ from Abilities import SpicySurge, CrispyPrecision
 
 # ========== Show Loading Screen ==========
 def show_loading_screen(screen, message, progress=0):
-    """Shows a loading screen with a message and progress bar."""
+    """
+    Shows a loading screen with a message and progress bar.
+     The graphics are drawn and refreshed to the screen before loading,
+     and then resources are loaded slowly. This way, no matter how long 
+     the loading takes, the screen will always show a loading screen 
+     instead of a black screen. The progress bar is just a visual
+     comfort and does not reflect the actual loading progress.
+    """
     screen.fill((30, 30, 40))
     font = pg.font.SysFont(None, 48)
     font_small = pg.font.SysFont(None, 24)
