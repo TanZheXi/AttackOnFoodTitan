@@ -88,9 +88,9 @@
         "level": 3
     },
     "Player_Data": {
-        "scraps": 50000,
+        "scraps": 50020,
         "equipped": {
-            "weapon": "OP WEAPON",
+            "weapon": "Rusty Spatula",
             "hat": null,
             "armor": null,
             "aroma": null

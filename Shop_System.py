@@ -1,6 +1,7 @@
 import pygame as pg
 import Currency_System
 import os
+from Audio_System import GLOBAL_CLICK
 
 pg.init()
 pg.font.init()
@@ -215,6 +216,7 @@ class ShopSystem:
         if event.type == pg.MOUSEBUTTONDOWN and event.button == 1:
             for btn in self.category_buttons:
                 if btn.rect.collidepoint(event.pos):
+                    if GLOBAL_CLICK: GLOBAL_CLICK.play()
                     self.set_category(btn.category_id)
                     return
 
@@ -247,6 +249,8 @@ class ShopSystem:
                     cell_y = self.grid_start_y + i * (self.cell_size + self.cell_spacing)
                     cell_rect = pg.Rect(cell_x, cell_y, self.cell_size, self.cell_size)
                     if cell_rect.collidepoint(event.pos):
+                        if GLOBAL_CLICK:
+                            GLOBAL_CLICK.play()
                         item = self.items[idx]
                         if not item.sold_out:
                             if Currency_System.pocket_money >= item.price:

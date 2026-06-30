@@ -1,6 +1,7 @@
 import pygame as pg
 import Equipment_System
 import Currency_System
+from Audio_System import GLOBAL_CLICK
 
 class CraftingSystem:
     def __init__(self, x, y, width, height):
@@ -184,11 +185,6 @@ class CraftingSystem:
 
     def handle_event(self, event):
         if event.type == pg.MOUSEBUTTONDOWN and event.button == 1:
-            try:
-                from Button_System import GLOBAL_CLICK
-            except ImportError:
-                GLOBAL_CLICK = None
-
             # 1. Did they click a weapon in the backpack grid?
             for weapon_name, rect in self.grid_buttons.items():
                 if rect.collidepoint(event.pos):

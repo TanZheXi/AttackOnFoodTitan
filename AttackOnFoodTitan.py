@@ -212,7 +212,7 @@ def start_background_music():
         return True
         
     except Exception as e:
-        print(f"[BGM] Failed to start: {e}")
+        print(f"[BGM] Failed to start: {e}")        
         return False
 
 # Load BGM

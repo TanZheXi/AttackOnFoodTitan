@@ -1,5 +1,6 @@
 import pygame as pg
 import os
+from Audio_System import GLOBAL_CLICK
 from Shop_System import ShopSystem
 from Inventory_System import InventorySystem
 import Currency_System
@@ -8,15 +9,6 @@ from Player_Upgrade_System import PlayerUpgradeSystem
 import Equipment_System
 from Crafting_System import CraftingSystem
 from KitchenGuide_System import KitchenGuideSystem
-
-# --- NEW: GLOBAL SOUND SYSTEM (CLS_1) ---
-try:
-    # load it ONCE here at the top of the file
-    GLOBAL_CLICK = pg.mixer.Sound("Sound_Effects/Click_sfx.wav")
-    GLOBAL_CLICK.set_volume(0.3)
-except Exception as e:
-    GLOBAL_CLICK = None
-    print(f"Warning: Could not load click sound: {e}")
 
 pg.init()
 pg.font.init()  
@@ -140,6 +132,8 @@ class ToolbarButton:
     def handle_event(self, event):
         if event.type == pg.MOUSEBUTTONDOWN and event.button == 1:
             if self.rect.collidepoint(event.pos):
+                if GLOBAL_CLICK:
+                    GLOBAL_CLICK.play()
                 if self.callback:
                     self.callback()
                 return True
@@ -220,6 +214,8 @@ class VerticalScrollButton:
     def handle_event(self, event):
         if event.type == pg.MOUSEBUTTONDOWN and event.button == 1:
             if self.rect.collidepoint(event.pos):
+                if GLOBAL_CLICK:
+                    GLOBAL_CLICK.play()
                 if self.callback:
                     self.callback()
                 return True
@@ -364,6 +360,8 @@ class GuideSystem:
         if event.type == pg.MOUSEBUTTONDOWN and event.button == 1:
             close_rect = pg.Rect(self.rect.x + self.rect.width - 30, self.rect.y + 5, 25, 25)
             if close_rect.collidepoint(event.pos):
+                if GLOBAL_CLICK:
+                    GLOBAL_CLICK.play()
                 self.visible = False
                 return True
         
@@ -486,10 +484,14 @@ class PanelManager:
         if event.type == pg.MOUSEBUTTONDOWN and event.button == 1:
             for btn in self.left_column_buttons:
                 if btn.rect.collidepoint(event.pos):
+                    if GLOBAL_CLICK:
+                        GLOBAL_CLICK.play()
                     btn.callback()
                     return True
             for btn in self.right_column_buttons:
                 if btn.rect.collidepoint(event.pos):
+                    if GLOBAL_CLICK:
+                        GLOBAL_CLICK.play()
                     btn.callback()
                     return True
         return False
@@ -561,15 +563,21 @@ class PanelManager:
             if event.type == pg.MOUSEBUTTONDOWN and event.button == 1:
                 for btn in self.left_column_buttons:
                     if btn.rect.collidepoint(event.pos):
+                        if GLOBAL_CLICK:
+                            GLOBAL_CLICK.play()
                         self.guide_system.visible = False
                         btn.callback()
                         return
                 for btn in self.right_column_buttons:
                     if btn.rect.collidepoint(event.pos):
+                        if GLOBAL_CLICK:
+                            GLOBAL_CLICK.play()
                         self.guide_system.visible = False
                         btn.callback()
                         return
                 if hasattr(self, 'guide_button_rect') and self.guide_button_rect.collidepoint(event.pos):
+                    if GLOBAL_CLICK:
+                        GLOBAL_CLICK.play()
                     self.guide_system.visible = False
                     return
             return
