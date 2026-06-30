@@ -58,6 +58,8 @@ class ShopSystem:
         self.font_medium = pg.font.SysFont(None, 20)
         self.font_large = pg.font.SysFont(None, 24)
 
+        self.icon_cache = {}
+        
         # All goods
         self.all_items = [
             # Weapon Shop (0)
@@ -257,6 +259,40 @@ class ShopSystem:
                                 self.buy_messages.append(f"Need ${item.price}!")
                                 self.message_timer = 120
                         break
+            
+    def _get_item_icon(self, item_name, target_size):
+        """Loads, cleans, and scales the item icon, then caches it."""
+        if item_name in self.icon_cache:
+            return self.icon_cache[item_name]
+            
+        icon_path = os.path.join(os.path.dirname(__file__), "Icon", f"{item_name}.png")
+        if os.path.exists(icon_path):
+            try:
+                img = pg.image.load(icon_path).convert_alpha()
+                
+                # Remove white background
+                for _x in range(img.get_width()):
+                    for _y in range(img.get_height()):
+                        r, g, b, a = img.get_at((_x, _y))
+                        if r > 240 and g > 240 and b > 240:
+                            img.set_at((_x, _y), (0, 0, 0, 0))
+                
+                bounding_rect = img.get_bounding_rect()
+                if bounding_rect.width > 0 and bounding_rect.height > 0:
+                    img = img.subsurface(bounding_rect)
+                    
+                # Scale properly so it fits without getting squashed
+                scale = min(target_size / img.get_width(), target_size / img.get_height())
+                new_w, new_h = int(img.get_width() * scale), int(img.get_height() * scale)
+                img = pg.transform.scale(img, (new_w, new_h))
+                
+                self.icon_cache[item_name] = img
+                return img
+            except Exception as e:
+                pass
+                
+        self.icon_cache[item_name] = None
+        return None
 
     def draw(self, screen):
         pg.draw.rect(screen, (45, 45, 55), self.rect)
@@ -293,18 +329,31 @@ class ShopSystem:
                     text_rect = text.get_rect(center=cell_rect.center)
                     screen.blit(text, text_rect)
                 else:
-                    name_display = item.name[:8] + ".." if len(item.name) > 9 else item.name
-                    text = self.font_small.render(name_display, True, (255, 255, 255))
-                    text_rect = text.get_rect(center=(cell_rect.centerx, cell_rect.centery - 10))
-                    screen.blit(text, text_rect)
+                    # --- NEW DRAW LOGIC STARTS HERE ---
+                    target_icon_size = self.cell_size - 24 # Leaves room for price text
+                    icon = self._get_item_icon(item.name, target_icon_size)
+                    
+                    if icon:
+                        # Draw Image
+                        icon_rect = icon.get_rect(center=(cell_rect.centerx, cell_rect.centery - 8))
+                        screen.blit(icon, icon_rect)
+                    else:
+                        # Fallback text if the PNG is missing
+                        name_display = item.name[:8] + ".." if len(item.name) > 9 else item.name
+                        text = self.font_small.render(name_display, True, (255, 255, 255))
+                        text_rect = text.get_rect(center=(cell_rect.centerx, cell_rect.centery - 10))
+                        screen.blit(text, text_rect)
 
                     if item.price >= 10000:
                         price_display = f"{item.price//1000}k"
                     else:
                         price_display = str(item.price)
+                        
                     price_text = self.font_small.render(f"${price_display}", True, (255, 220, 100))
-                    price_rect = price_text.get_rect(center=(cell_rect.centerx, cell_rect.centery + 12))
+                    # Lowered from +12 to +20 to prevent overlap with the image
+                    price_rect = price_text.get_rect(center=(cell_rect.centerx, cell_rect.centery + 20)) 
                     screen.blit(price_text, price_rect)
+                    # --- NEW DRAW LOGIC ENDS HERE ---
 
         if self.buy_messages and self.message_timer > 0:
             msg = self.buy_messages[-1]
