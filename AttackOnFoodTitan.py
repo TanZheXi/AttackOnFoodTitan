@@ -525,7 +525,22 @@ if Button_System.panel_manager.kitchen_guide_system:
             boost_indicator.activate(Button_System.panel_manager.kitchen_guide_system.guide_manager.boost_end_time)
     Button_System.panel_manager.kitchen_guide_system.guide_manager.grant_reward = enhanced_grant_reward
 
+def sync_sfx_volumes(new_volume):
+    if attack_titan_sound: 
+        attack_titan_sound.set_volume(new_volume)
+    if titan_defeated_sound: 
+        titan_defeated_sound.set_volume(new_volume)
+    if pet_attack_sound: 
+        pet_attack_sound.set_volume(new_volume)
+    if Button_System.panel_manager.prestige_sound: 
+        Button_System.panel_manager.prestige_sound.set_volume(new_volume)
+
+# Pass this function into the PanelManager so the Settings panel can trigger it
+Button_System.panel_manager.sync_sfx_callback = sync_sfx_volumes
+
 show_loading_screen(window, "Starting game...", 1.0)
+
+
 
 # ========== Main Loop ==========
 while IsRunning:

@@ -9,6 +9,7 @@ from Player_Upgrade_System import PlayerUpgradeSystem
 import Equipment_System
 from Crafting_System import CraftingSystem
 from KitchenGuide_System import KitchenGuideSystem
+from Settings_System import SettingsSystem
 
 pg.init()
 pg.font.init()  
@@ -379,7 +380,7 @@ class PanelManager:
         self.active_panel = None
         self.left_column_buttons = []
         self.right_column_buttons = []
-        
+        self.settings_system = None
         self.player_upgrade_system = None
 
         try:
@@ -444,7 +445,8 @@ class PanelManager:
             {"text": "I", "callback": lambda: self.toggle_panel("Inventory"), "icon": "Inventory"},
             {"text": "S", "callback": lambda: self.toggle_panel("Shop"), "icon": "Shop"},
             {"text": "Pr", "callback": lambda: self.toggle_panel("Prestige"), "icon": "Prestige_icon"},
-            {"text": "G", "callback": lambda: self.toggle_panel("Guide"), "icon": "KGuide"}
+            {"text": "G", "callback": lambda: self.toggle_panel("Guide"), "icon": "KGuide"},
+            {"text": "Set", "callback": lambda: self.toggle_panel("Settings"), "icon": "Settings"}
         ]
 
         self.left_column_buttons = []
@@ -620,6 +622,9 @@ class PanelManager:
                 else:
                     self.confirm_prestige = False
             return
+        elif self.active_panel == "Settings" and self.settings_system:
+            self.settings_system.handle_event(event, GLOBAL_CLICK)
+        
 
     def add_to_inventory(self, item_name):
         if self.pet_system is None:
@@ -791,8 +796,10 @@ class PanelManager:
                     })
                 self.kitchen_guide_system.update()
                 self.kitchen_guide_system.draw(screen)
+
             elif self.active_panel == "Prestige":
                 self._draw_prestige_panel(screen)
+
             elif self.active_panel == "Upgrade":
                 if self.player_upgrade_system is None:
                     upgrade_x = self.panel_rect.x + 10
@@ -801,6 +808,22 @@ class PanelManager:
                     upgrade_height = self.panel_rect.height - 80
                     self.player_upgrade_system = PlayerUpgradeSystem(upgrade_x, upgrade_y, upgrade_width, upgrade_height)
                 self.player_upgrade_system.draw(screen)
+
+            elif self.active_panel == "Settings":
+               if self.settings_system is None:
+                set_x = self.panel_rect.x + 10
+                set_y = self.panel_rect.y + 50
+                set_width = self.panel_rect.width - 20
+                set_height = self.panel_rect.height - 80
+                self.settings_system = SettingsSystem(set_x, set_y, set_width, set_height)
+                if hasattr(self, 'sync_sfx_callback'):
+                    self.settings_system.update_external_sfx = self.sync_sfx_callback
+                    # Connect the callback we passed from AttackOnFoodTitan.py
+                self.settings_system.apply_volumes()
+                
+            
+            self.settings_system.draw(screen)
+                
 
     def _draw_prestige_panel(self, screen):
         stars_to_gain = Currency_System.calculate_prestige_rewards(self.current_stage)
