@@ -645,7 +645,7 @@ class PanelManager:
         return None
     
     def draw(self, screen):
-        # 更新 Kitchen Guide 按钮可见性
+        # Update Kitchen Guide visibility of button
         self.update_guide_button_visibility()
         
         # ========== Make sure kitchen_guide_system exists ==========
