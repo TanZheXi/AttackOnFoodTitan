@@ -8,7 +8,7 @@ from Player_Upgrade_System import PlayerUpgradeSystem
 import Equipment_System
 from Crafting_System import CraftingSystem
 from KitchenGuide_System import KitchenGuideSystem
-from CompanionSystem import CompanionSystem
+
 
 # --- NEW: GLOBAL SOUND SYSTEM (CLS_1) ---
 try:
@@ -375,7 +375,7 @@ class PanelManager:
         self.left_column_buttons = []
         self.right_column_buttons = []
         self.player_upgrade_system = None
-        self.companion_system = None
+        
 
         try:
             self.prestige_sound = pg.mixer.Sound("Sound_Effects/prestige_sfx2.wav") 
@@ -440,7 +440,6 @@ class PanelManager:
             {"text": "S", "callback": lambda: self.toggle_panel("Shop"), "icon": "Shop"},
             {"text": "Pr", "callback": lambda: self.toggle_panel("Prestige"), "icon": "Prestige_icon"},
             {"text": "G", "callback": lambda: self.toggle_panel("Guide"), "icon": "KGuide"},
-            {"text": "Co", "callback": lambda: self.toggle_panel("Companion"), "icon": "Companion"}
         ]
 
         self.left_column_buttons = []
@@ -583,8 +582,8 @@ class PanelManager:
             self.pet_system.handle_event(event)
         elif self.active_panel == "Upgrade" and self.player_upgrade_system:
             self.player_upgrade_system.handle_event(event)
-        elif self.active_panel == "Companion" and self.companion_system:
-             self.companion_system.handle_event(event)
+        elif self.active_panel == "Upgrade" and self.player_upgrade_system:
+            self.player_upgrade_system.handle_event(event)
         elif self.active_panel == "Guide" and self.kitchen_guide_system:
             self.kitchen_guide_system.handle_event(event)
         elif self.active_panel == "Prestige":
@@ -696,6 +695,9 @@ class PanelManager:
             screen.blit(hint_text2, hint_rect2)
             return
         
+        if self.active_panel == "Upgrade" and self.player_upgrade_system:
+           self.player_upgrade_system.draw(screen)
+
         if self.active_panel:
             panel_surface = pg.Surface((self.panel_rect.width, self.panel_rect.height))
             panel_surface.set_alpha(self.panel_color[3])

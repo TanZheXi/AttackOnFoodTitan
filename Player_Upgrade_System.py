@@ -1,6 +1,7 @@
 import pygame as pg
 import Currency_System
 import Equipment_System
+import math
 
 try:
     GLOBAL_CLICK = pg.mixer.Sound("Sfx/click.wav")
@@ -27,7 +28,47 @@ class CategoryButton:
         text_rect = text_surf.get_rect(center=self.rect.center)
         screen.blit(text_surf, text_rect)
 
+# =========================
+# Companion Class
+# =========================
+class Companion:
+    def __init__(self, name, base_cost, base_damage, circle_pos):
+        self.name = name
+        self.level = 0
+        self.base_cost = base_cost
+        self.base_damage = base_damage
+        self.cost_growth = 1.07
+        self.current_cost = base_cost
+        self.circle_pos = circle_pos
+        self.radius = 15
 
+    def get_upgrade_cost(self):
+        return int(self.current_cost)
+
+    def get_damage(self):
+        dmg = self.base_damage * self.level
+        dmg *= 2 ** (self.level // 25)   # ×2 every 25 levels
+        dmg *= 10 ** (self.level // 100) # ×10 every 100 levels
+        return int(dmg)
+
+    def purchase_upgrade(self):
+        cost = self.get_upgrade_cost()
+        if Currency_System.pocket_money >= cost:
+            Currency_System.pocket_money -= cost
+            self.level += 1
+            self.current_cost = self.base_cost * (self.cost_growth ** self.level)
+            print(f"[COMPANION] {self.name} Lv {self.level} → DMG {self.get_damage()}, Next Cost {self.get_upgrade_cost()}")
+
+    def draw_circle(self, screen):
+        if self.level > 0:
+            pg.draw.circle(screen, (200, 200, 50), self.circle_pos, self.radius)
+            font = pg.font.SysFont(None, 16)
+            txt = font.render(self.name[0], True, (0, 0, 0))
+            screen.blit(txt, txt.get_rect(center=self.circle_pos))
+
+# =========================
+# Player Upgrade System
+# =========================            
 class PlayerUpgradeSystem:
     def __init__(self, x, y, width, height):
         self.rect = pg.Rect(x, y, width, height)
@@ -98,32 +139,32 @@ class PlayerUpgradeSystem:
         self.scroll_offset = 0
 
         # Companion 
-        self.companion_data = [
-           {"name": "Metal Spoon", "base_cost": 100, "base_damage": 5},
-           {"name": "Metal Fork", "base_cost": 200, "base_damage": 8},
-           {"name": "Chopstick", "base_cost": 300, "base_damage": 12},
-           {"name": "Spatula", "base_cost": 500, "base_damage": 20},
-           {"name": "Whisk", "base_cost": 800, "base_damage": 30},
-           {"name": "Can Opener", "base_cost": 1200, "base_damage": 45},
-           {"name": "Tongs", "base_cost": 2000, "base_damage": 60},
-           {"name": "Soup Ladle", "base_cost": 3000, "base_damage": 80},
-           {"name": "Fruit Knife", "base_cost": 5000, "base_damage": 100},
-           {"name": "Meat Cleaver", "base_cost": 8000, "base_damage": 150},
+        monster_rect = pg.Rect(600, 250, 200, 200)  # placeholder, pass actual monster rect
+        names = ["Metal Spoon","Metal Fork","Chopstick","Spatula","Whisk",
+         "Can Opener","Tongs","Soup Ladle","Fruit Knife","Meat Cleaver"]
+        base_costs = [100, 200, 300, 500, 800, 1200, 2000, 3000, 5000, 8000]
+        base_damages = [5, 8, 12, 20, 30, 45, 60, 80, 100, 150]
+
+        circle_positions = []
+        cx, cy = monster_rect.center
+        offset = 60
+        for i in range(len(names)):
+            angle = (2 * math.pi / len(names)) * i
+            circle_positions.append((cx + int(offset * math.cos(angle)),
+                             cy + int(offset * math.sin(angle))))
+
+        self.companions = [
+            Companion(names[i], base_costs[i], base_damages[i], circle_positions[i])
+            for i in range(len(names))
         ]
-        self.companion_levels = [0] * len(self.companion_data)
-        self.companion_costs = [c["base_cost"] for c in self.companion_data]
 
         # init base_damage
         if not hasattr(Equipment_System, "base_damage"):
             Equipment_System.base_damage = 1
-
+    
+    # Get Companion Damage
     def get_companion_damage(self, index):
-        level = self.companion_levels[index]
-        base = self.companion_data[index]["base_damage"]
-        dmg = base * level
-        dmg *= 2 ** (level // 25)   # ×2 every 25 levels
-        dmg *= 10 ** (level // 100) # ×10 every 100 levels
-        return int(dmg)
+        return self.companions[index].get_damage()
  
         # ========== Kitchen Guide callback ==========
         self.upgrade_callback = None  # 外部设置的回调函数
@@ -154,6 +195,13 @@ class PlayerUpgradeSystem:
         return int(self.current_cost)
 
     def handle_event(self, event):
+        # Handle category switching
+        if event.type == pg.MOUSEBUTTONDOWN and event.button == 1:
+           for btn in self.category_buttons:
+               if btn.rect.collidepoint(event.pos):
+                  self.set_category(btn.category_id)
+                  return  # stop further handling so category switches immediately
+               
         if self.current_category == 0:  # Player upgrade
             if event.type == pg.MOUSEBUTTONDOWN and event.button == 1:
                 # YOUR REAL BUTTON IS HERE:
@@ -240,16 +288,12 @@ class PlayerUpgradeSystem:
   
         elif self.current_category == 1:  # Companion upgrade
              if event.type == pg.MOUSEBUTTONDOWN and event.button == 1:
-                for i, comp in enumerate(self.companion_data):
+                for i, comp in enumerate(self.companions):
                     rect = getattr(self, f"companion_rect_{i}", None)
                     if rect and rect.collidepoint(event.pos):
-                       cost = self.companion_costs[i]
-                       if Currency_System.pocket_money >= cost:
-                          Currency_System.pocket_money -= cost
-                          self.companion_levels[i] += 1
-                          self.companion_costs[i] = int(comp["base_cost"] * (1.07 ** self.companion_levels[i]))
-                          print(f"[COMPANION] {comp['name']} Lv {self.companion_levels[i]} → DMG {self.get_companion_damage(i)}, Next Cost {self.companion_costs[i]}")
-
+                       comp.purchase_upgrade()
+                       
+    # Purchase Upgrade Function                  
     def purchase_upgrade(self):
         cost = self.get_upgrade_cost()
         if Currency_System.pocket_money >= cost:
@@ -268,7 +312,7 @@ class PlayerUpgradeSystem:
 
             print(f"[UPGRADE] Base Damage Lv {self.level} → {Equipment_System.base_damage}, Next Cost: {self.get_upgrade_cost()}")
 
-            # ========== 通知 Kitchen Guide 升级完成 ==========
+            # ==========  Kitchen Guide  ==========
             if self.upgrade_callback:
                 self.upgrade_callback()
             # =================================================
@@ -412,33 +456,40 @@ class PlayerUpgradeSystem:
         text_rect = text.get_rect(center=self.button_rect.center)
         screen.blit(text, text_rect)
 
+    # Companion Upgrade Box
     def _draw_companion_upgrade(self, screen):
         mouse_pos = pg.mouse.get_pos()
         y_offset = self.rect.y + 100
         box_height = 40
         spacing = 8
 
-        for i, comp in enumerate(self.companion_data):
-           rect = pg.Rect(self.rect.x + 20, y_offset, self.rect.width - 40, box_height)
-           setattr(self, f"companion_rect_{i}", rect)
+        self.button_rects = []
+        for i, comp in enumerate(self.companions):
+            rect = pg.Rect(self.rect.x + 20, y_offset, self.rect.width - 40, box_height)
+            setattr(self, f"companion_rect_{i}", rect)
+            self.button_rects.append(rect)
 
-           cost = self.companion_costs[i]
-           level = self.companion_levels[i]
-           dmg = self.get_companion_damage(i)
+            cost = comp.get_upgrade_cost()
+            level = comp.level
+            dmg = comp.get_damage()
 
-        if Currency_System.pocket_money >= cost:
-            color = (0, 180, 180) if rect.collidepoint(mouse_pos) else (0, 128, 128)
-            text_color = (255, 255, 255)
-        else:
-            color = (140, 140, 140) if rect.collidepoint(mouse_pos) else (100, 100, 100)
-            text_color = (180, 180, 180)
+            if Currency_System.pocket_money >= cost:
+                color = (0, 180, 180) if rect.collidepoint(mouse_pos) else (0, 128, 128)
+                text_color = (255, 255, 255)
+            else:
+                color = (140, 140, 140) if rect.collidepoint(mouse_pos) else (100, 100, 100)
+                text_color = (180, 180, 180)
 
-        pg.draw.rect(screen, color, rect)
-        pg.draw.rect(screen, (200, 200, 200), rect, 2)
+            pg.draw.rect(screen, color, rect)
+            pg.draw.rect(screen, (200, 200, 200), rect, 2)
 
-        text = self.font_text.render(
-            f"{comp['name']} Lv {level} → DMG {dmg} | Cost: {cost}", True, text_color
-        )
-        screen.blit(text, text.get_rect(center=rect.center))
+            text = self.font_text.render(
+                f"{comp.name} Lv {level} → DMG {dmg} | Cost: {cost}", True, text_color
+            )
+            screen.blit(text, text.get_rect(center=rect.center))
+  
+            y_offset += box_height + spacing
 
-        y_offset += box_height + spacing
+        # Draw companion circles beside monster
+        for c in self.companions:
+            c.draw_circle(screen)

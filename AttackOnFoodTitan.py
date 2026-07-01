@@ -500,6 +500,9 @@ player_upgrade_system = PlayerUpgradeSystem(
     height=400
 )
 
+# ✅ Link into PanelManager so auto‑attack and events can use it
+Button_System.panel_manager.player_upgrade_system = player_upgrade_system
+
 # ✅ Link abilities before events fire
 player_upgrade_system.spicy_ability = damage_boost
 player_upgrade_system.crispy_ability = crispy_precision
@@ -659,21 +662,20 @@ while IsRunning:
     # ========== Companion auto attack ==========
     current_time = time.time()
     if current_time - last_companion_attack_time >= COMPANION_ATTACK_INTERVAL:
-       upgrade_system = Button_System.panel_manager.player_upgrade_system
-       if upgrade_system:
-          for i, comp in enumerate(upgrade_system.companion_data):
-              if upgrade_system.companion_levels[i] > 0 and current_monster.hp > 0:
-                dmg = upgrade_system.get_companion_damage(i)
-                current_monster.take_damage(dmg)
+        if Button_System.panel_manager.player_upgrade_system:
+            for comp in Button_System.panel_manager.player_upgrade_system.companions:
+                if comp.level > 0 and current_monster.hp > 0:
+                   dmg = comp.get_damage()
+                   current_monster.take_damage(dmg)
 
-                popup_x = current_monster.rect.x + random.randint(20, current_monster.rect.width - 20)
-                popup_y = current_monster.rect.y + random.randint(20, current_monster.rect.height - 20)
-                damage_texts.append(DamageText(str(dmg), (popup_x, popup_y), False))
+                   popup_x = current_monster.rect.x + random.randint(20, current_monster.rect.width - 20)
+                   popup_y = current_monster.rect.y + random.randint(20, current_monster.rect.height - 20)
+                   damage_texts.append(DamageText(str(dmg), (popup_x, popup_y), False))
 
-                if current_monster.is_defeated() and not hasattr(current_monster, "last_hit_by"):
-                    current_monster.last_hit_by = comp["name"]
+                   if current_monster.is_defeated() and not hasattr(current_monster, "last_hit_by"):
+                      current_monster.last_hit_by = comp.name
 
-    last_companion_attack_time = current_time
+        last_companion_attack_time = current_time
 
         # ========== Monster Death & Respawn Logic ==========
     if current_monster.state == "dead":
@@ -801,14 +803,6 @@ while IsRunning:
     window.blit(stage_surface, stage_rect)
 
     current_monster.draw(window)
-
-    if Button_System.panel_manager.player_upgrade_system:
-       for i, comp in enumerate(upgrade_system.companion_data):
-           if upgrade_system.companion_levels[i] > 0:
-             # calculate pos_x, pos_y around monster
-             pg.draw.circle(window, (200,200,50), (pos_x,pos_y), 15)
-             txt = font.render(comp["name"][0], True, (0,0,0))
-             window.blit(txt, txt.get_rect(center=(pos_x,pos_y)))
 
     Currency_System.draw_ui(window)
 
