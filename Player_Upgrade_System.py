@@ -148,10 +148,18 @@ class PlayerUpgradeSystem:
         circle_positions = []
         cx, cy = monster_rect.center
         offset = 60
-        for i in range(len(names)):
-            angle = (2 * math.pi / len(names)) * i
-            circle_positions.append((cx + int(offset * math.cos(angle)),
-                             cy + int(offset * math.sin(angle))))
+        circle_positions = [
+             (434, 516),  # 1 → Metal Spoon
+             (375, 466),  # 2 → Metal Fork
+             (337, 409),  # 3 → Chopstick
+             (350, 342),  # 4 → Spatula
+             (401, 291),  # 5 → Whisk
+             (705, 512),  # 6 → Can Opener
+             (743, 461),  # 7 → Tongs
+             (769, 413),  # 8 → Soup Ladle
+             (755, 343),  # 9 → Fruit Knife
+             (718, 290) # 10 → Meat Cleaver
+            ] 
 
         self.companions = [
             Companion(names[i], base_costs[i], base_damages[i], circle_positions[i])

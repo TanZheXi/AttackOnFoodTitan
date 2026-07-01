@@ -539,10 +539,17 @@ if Button_System.panel_manager.kitchen_guide_system:
 
 show_loading_screen(window, "Starting game...", 1.0)
 
+# Finding exact position by clicking anywhere you want
+#def debug_get_mouse_pos():
+    #if pg.mouse.get_pressed()[0]:  # left click
+        #print("Mouse clicked at:", pg.mouse.get_pos())
+
 # ========== Main Loop ==========
 while IsRunning:
     dt_ms = clock.tick(60)
     dt_sec = dt_ms / 1000.0
+    
+    #debug_get_mouse_pos() 
     
     boost_indicator.update()
     damage_boost.update()
