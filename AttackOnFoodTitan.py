@@ -439,8 +439,9 @@ def get_current_background(stage):
 show_loading_screen(window, "Loading save data...", 0.7)
 
 clock = pg.time.Clock()
-afk_earnings, saved_monster_data, saved_money, saved_progression_index, saved_stage, saved_inventory, saved_shop_state, saved_pet_data, saved_upgrade_level, saved_guide_data, saved_boost_data = AFK_System.afk_system.load_and_calculate_afk_rewards()
+afk_earnings, saved_monster_data, saved_money, saved_progression_index, saved_stage, saved_inventory, saved_shop_state, saved_pet_data, saved_upgrade_level, saved_guide_data, saved_boost_data, saved_michelin_stars = AFK_System.afk_system.load_and_calculate_afk_rewards()
 
+Currency_System.michelin_stars = saved_michelin_stars
 Equipment_System.load_equipment()
 
 if saved_money > 0:
@@ -575,7 +576,8 @@ while IsRunning:
                 pet_data=pet_data,
                 upgrade_level=upgrade_level,
                 guide_data=guide_data,
-                boost_data=boost_data
+                boost_data=boost_data,
+                michelin_stars=Currency_System.michelin_stars
             )
             IsRunning = False
             break
@@ -760,7 +762,8 @@ while IsRunning:
             pet_data=pet_data,
             upgrade_level=upgrade_level,
             guide_data=guide_data,
-            boost_data=boost_data
+            boost_data=boost_data,
+            michelin_stars=Currency_System.michelin_stars
         )
         AFK_System.afk_system.update_save_time()
         Equipment_System.save_equipment()

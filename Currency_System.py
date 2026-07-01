@@ -121,12 +121,6 @@ def draw_ui(window):
         money_rect = money_text.get_rect(center=(MIDDLE_CENTER_X, 160))
         window.blit(money_text, money_rect)
 
-    if michelin_stars > 0:
-        multiplier_display = get_prestige_multiplier()
-        stars_text = scrap_font.render(f"Michelin Stars: {michelin_stars} (x{multiplier_display:.1f} DMG)", True, (255, 215, 0))
-        stars_rect = stars_text.get_rect(center=(MIDDLE_CENTER_X, 200))
-        window.blit(stars_text, stars_rect)
-
 michelin_stars = 0 
 prestige_count = 0
 

@@ -716,13 +716,21 @@ class PanelManager:
                         (self.panel_rect.x, self.panel_rect.y + self.panel_rect.height),
                         (self.panel_rect.x + self.panel_rect.width, self.panel_rect.y + self.panel_rect.height), 2)
             
-            font = pg.font.SysFont(None, 32)
+            # --- NEW UNIFIED HEADER STYLE ---
+            font_title = pg.font.SysFont("courier", 36, bold=True)
+            
             if self.active_panel == "Guide":
-                title_text = font.render("KITCHEN GUIDE", True, (255, 220, 100))
-            else:
-                title_text = font.render(f"{self.active_panel}", True, (255, 220, 100))
-            title_rect = title_text.get_rect(center=(self.panel_rect.centerx, self.panel_rect.y + 22))
-            screen.blit(title_text, title_rect)
+                title_str = "- KITCHEN GUIDE -"
+            elif self.active_panel != "Prestige":
+                # Automatically uppercase the panel name and add hyphens
+                title_str = f"- {self.active_panel.upper()} -"
+            
+            # Only draw here if it's not Prestige (Prestige handles its own drawing)
+            if self.active_panel != "Prestige":
+                # Using the exact same yellow color (255, 255, 0) and Y-offset (+30) as the Prestige panel
+                title_text = font_title.render(title_str, True, (255, 255, 0))
+                title_rect = title_text.get_rect(center=(self.panel_rect.centerx, self.panel_rect.y + 30))
+                screen.blit(title_text, title_rect)
             
             if self.active_panel == "Shop":
                 if self.shop_system is None:
@@ -811,18 +819,17 @@ class PanelManager:
 
             elif self.active_panel == "Settings":
                if self.settings_system is None:
-                set_x = self.panel_rect.x + 10
-                set_y = self.panel_rect.y + 50
-                set_width = self.panel_rect.width - 20
-                set_height = self.panel_rect.height - 80
-                self.settings_system = SettingsSystem(set_x, set_y, set_width, set_height)
-                if hasattr(self, 'sync_sfx_callback'):
-                    self.settings_system.update_external_sfx = self.sync_sfx_callback
-                    # Connect the callback we passed from AttackOnFoodTitan.py
-                self.settings_system.apply_volumes()
+                   set_x = self.panel_rect.x + 10
+                   set_y = self.panel_rect.y + 50
+                   set_width = self.panel_rect.width - 20
+                   set_height = self.panel_rect.height - 80
+                   self.settings_system = SettingsSystem(set_x, set_y, set_width, set_height)
+                   if hasattr(self, 'sync_sfx_callback'):
+                        self.settings_system.update_external_sfx = self.sync_sfx_callback
+                   self.settings_system.apply_volumes()
                 
             
-            self.settings_system.draw(screen)
+               self.settings_system.draw(screen)
                 
 
     def _draw_prestige_panel(self, screen):
@@ -831,11 +838,7 @@ class PanelManager:
         
         current_stars = Currency_System.michelin_stars
         current_mult = Currency_System.get_prestige_multiplier()
-        
-        pg.draw.rect(screen, (20, 20, 40), self.panel_rect)
-        pg.draw.rect(screen, (0, 0, 0), self.panel_rect, 6) 
-        pg.draw.rect(screen, (200, 200, 200), self.panel_rect.inflate(-12, -12), 4)
-
+    
         try:
             badge_img = pg.image.load("Icon/Prestige_icon.png").convert_alpha()
             badge_img = pg.transform.scale(badge_img, (350, 450))
