@@ -49,7 +49,9 @@ class SettingsSystem:
         # Apply to Global Click
         import Audio_System
         if Audio_System.GLOBAL_CLICK:
-            Audio_System.GLOBAL_CLICK.set_volume(final_sfx)
+            # Multiply by a small decimal to permanently lower the "Max" volume
+            # If it's still too loud, change 0.3 to 0.15 or 0.1
+            Audio_System.GLOBAL_CLICK.set_volume(final_sfx * 0.3)
             
         # Apply to external sounds (like Attack, Titan Defeat, Pet)
         if self.update_external_sfx:
