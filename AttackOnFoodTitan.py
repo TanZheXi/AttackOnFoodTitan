@@ -810,12 +810,28 @@ while IsRunning:
 
     font_counter = pg.font.SysFont(None, 36)
     counter_value = (monster_manager.progression_index % 10) + 1
-    counter_surface = font_counter.render(f"Monster {counter_value}/10", True, (0, 0, 0))
+    counter_str = f"Monster {counter_value}/10"
+    
+    # 1. Draw Counter Shadow (Black, offset by +2 pixels)
+    counter_shadow = font_counter.render(counter_str, True, (0, 0, 0))
+    shadow_rect = counter_shadow.get_rect(center=(MIDDLE_CENTER_X + 2, 120 + 2))
+    window.blit(counter_shadow, shadow_rect)
+    
+    # 2. Draw Main Counter Text (White)
+    counter_surface = font_counter.render(counter_str, True, (255, 255, 255))
     counter_rect = counter_surface.get_rect(center=(MIDDLE_CENTER_X, 120))
     window.blit(counter_surface, counter_rect)
 
     font_stage = pg.font.SysFont(None, 48, bold=True)
-    stage_surface = font_stage.render(f"Stage {monster_manager.stage}", True, (0, 0, 0))
+    stage_str = f"Stage {monster_manager.stage}"
+    
+    # 3. Draw Stage Shadow (Black, offset by +2 pixels)
+    stage_shadow = font_stage.render(stage_str, True, (0, 0, 0))
+    stage_shadow_rect = stage_shadow.get_rect(center=(MIDDLE_CENTER_X + 2, 70 + 2))
+    window.blit(stage_shadow, stage_shadow_rect)
+    
+    # 4. Draw Main Stage Text (White)
+    stage_surface = font_stage.render(stage_str, True, (255, 255, 255))
     stage_rect = stage_surface.get_rect(center=(MIDDLE_CENTER_X, 70))
     window.blit(stage_surface, stage_rect)
 

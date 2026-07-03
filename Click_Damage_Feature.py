@@ -6,6 +6,22 @@ import math
 import os
 import Player_Upgrade_System
 
+def format_number(amount):
+    """Formats large numbers with K, M, B, etc. suffixes."""
+    if amount < 1000:
+        return f"{int(amount)}"
+
+    suffixes = ["", "K", "M", "B", "T", "Qa", "Qi"]
+    
+    magnitude = 0
+    temp_amount = float(amount)
+    while temp_amount >= 1000 and magnitude < len(suffixes) - 1:
+        magnitude += 1
+        temp_amount /= 1000.0
+    if temp_amount >= 1000 and magnitude == len(suffixes) - 1:
+        return f"{float(amount):.2e}"
+    return f"{temp_amount:.2f}{suffixes[magnitude]}"
+
 class Monster:
     def __init__(self, name, max_hp, color):
         self.name = name
@@ -87,7 +103,6 @@ class Monster:
                             frames.append(pg.transform.scale(frame, (200, 200)))
                             
         except Exception as e:
-            # Silently pass if the file doesn't exist (like Hurt2/Hurt3)
             pass 
             
         return frames
@@ -99,7 +114,6 @@ class Monster:
         self.hp = max(self.hp - float(dmg), 0.0)
         self.hurt_time = time.time()
         
-        # Pick a random hurt animation on click
         if self.hurt_variations:
             self.current_hurt_frames = random.choice(self.hurt_variations)
         
@@ -122,7 +136,6 @@ class Monster:
         if self.state == "hurt" and not is_hurt_flash:
             self.state = "idle"
             
-        # --- CHOOSE ACTIVE ANIMATION LIST ---
         active_frames = self.idle_frames
         if self.state == "dead":
             if self.dead_frames:
@@ -132,15 +145,13 @@ class Monster:
         elif self.state == "hurt" and self.current_hurt_frames:
             active_frames = self.current_hurt_frames
             
-        # --- ANIMATION FRAME LOGIC ---
         if self.state == "dead":
-            self.current_frame = 0 # Freeze completely on frame 0, no extra animations
+            self.current_frame = 0 
         elif self.state == "hurt" and self.current_hurt_frames:
             time_since_hit = now - self.hurt_time
             self.current_frame = int(time_since_hit / hurt_anim_speed)
             self.current_frame = min(self.current_frame, len(active_frames) - 1)
         else:
-            # RESTORED IDLE ANIMATION
             if active_frames:
                 if now - self.anim_timer > self.anim_speed:
                     self.current_frame = (self.current_frame + 1) % len(active_frames)
@@ -148,11 +159,9 @@ class Monster:
             else:
                 self.current_frame = 0
 
-        # --- POSITION TRANSFORMATIONS ---
         float_offset = math.sin((now - self.creation_time) * self.hover_speed) * self.hover_height
         draw_y = self.rect.y + float_offset
         
-        # --- ALPHA VANISH TRANSPARENCY ---
         if active_frames:
             safe_frame = min(self.current_frame, len(active_frames) - 1)
             
@@ -166,7 +175,6 @@ class Monster:
         else:
             current_img = None
 
-        # --- DRAW MONSTER ---
         if current_img:
             img_rect = current_img.get_rect(center=(self.rect.centerx, draw_y + 100))
             surface.blit(current_img, img_rect.topleft)
@@ -177,14 +185,28 @@ class Monster:
 
         # --- DRAW HEALTH BARS ---
         if self.state != "dead":
-            bar_y = self.rect.y - 25
-            pg.draw.rect(surface, (100, 100, 100), (self.rect.x, bar_y, self.rect.width, 10))
-            hp_bar_width = int((self.hp / self.max_hp) * self.rect.width)
-            pg.draw.rect(surface, (255, 0, 0), (self.rect.x, bar_y, hp_bar_width, 10))
+            bar_y = self.rect.y - 35
+            bar_height = 24  
             
-            font = pg.font.SysFont(None, 30)
-            text = font.render(f"{self.name} HP: {self.hp:.1f}/{self.max_hp:.1f}", True, (0, 0, 0))
-            text_rect = text.get_rect(center=(self.rect.centerx, bar_y - 15))
+            pg.draw.rect(surface, (60, 60, 60), (self.rect.x, bar_y, self.rect.width, bar_height))
+            
+            hp_bar_width = int((self.hp / self.max_hp) * self.rect.width)
+            pg.draw.rect(surface, (200, 30, 30), (self.rect.x, bar_y, hp_bar_width, bar_height))
+            
+            pg.draw.rect(surface, (0, 0, 0), (self.rect.x, bar_y, self.rect.width, bar_height), 2)
+            
+            font = pg.font.SysFont(None, 24)
+            # UPDATED: Just showing current HP
+            hp_str = f"{self.name} HP: {format_number(self.hp)}"
+            
+            text_center_y = bar_y + (bar_height // 2)
+            
+            shadow_text = font.render(hp_str, True, (0, 0, 0))
+            shadow_rect = shadow_text.get_rect(center=(self.rect.centerx + 1, text_center_y + 1))
+            surface.blit(shadow_text, shadow_rect)
+            
+            text = font.render(hp_str, True, (255, 255, 255))
+            text_rect = text.get_rect(center=(self.rect.centerx, text_center_y))
             surface.blit(text, text_rect)
 
 
@@ -232,7 +254,7 @@ class MonsterManager:
 class DamageText:
     def __init__(self, damage, pos, is_critical=False, suffix=""):
         self.damage = float(damage)   
-        self.display_text = f"+${self.damage}{suffix}" 
+        self.display_text = f"+${format_number(self.damage)}{suffix}" 
         self.x, self.y = float(pos[0]), float(pos[1])
         self.vy = -60.0
         self.alpha = 255
@@ -261,9 +283,9 @@ class DamageText:
 
     def draw(self, surface):
         if self.is_critical:
-            text_str = f"{self.damage:.2f}!"
+            text_str = f"{format_number(self.damage)}!"
         else:
-            text_str = f"{self.damage:.1f}"
+            text_str = f"{format_number(self.damage)}"
 
         txt_surf = self.font.render(text_str, True, self.color)
         txt_surf.set_alpha(self.alpha)
