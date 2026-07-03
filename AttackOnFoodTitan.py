@@ -11,42 +11,42 @@ import Equipment_System
 from KitchenGuide_System import KitchenGuideSystem
 from Abilities import SpicySurge, CrispyPrecision
 
-# ========== Show Loading Screen ==========
+# ========== Spinner Animation ==========
 def show_loading_screen(screen, message, progress=0):
-    """
-    Shows a loading screen with a message and progress bar.
-     The graphics are drawn and refreshed to the screen before loading,
-     and then resources are loaded slowly. This way, no matter how long 
-     the loading takes, the screen will always show a loading screen 
-     instead of a black screen. The progress bar is just a visual
-     comfort and does not reflect the actual loading progress.
-    """
+    """Shows a loading screen with a spinning circle animation."""
     screen.fill((30, 30, 40))
     font = pg.font.SysFont(None, 48)
     font_small = pg.font.SysFont(None, 24)
     
-    # Loading text
+    # "Loading..." text
     text = font.render("Loading...", True, (255, 255, 255))
     text_rect = text.get_rect(center=(WINDOW_WIDTH//2, WINDOW_HEIGHT//2 - 50))
     screen.blit(text, text_rect)
     
-    # Message text
+    # message text
     msg_text = font_small.render(message, True, (200, 200, 200))
     msg_rect = msg_text.get_rect(center=(WINDOW_WIDTH//2, WINDOW_HEIGHT//2 + 20))
     screen.blit(msg_text, msg_rect)
-    
-    # Progress bar
-    bar_width = 400
-    bar_height = 20
-    bar_x = (WINDOW_WIDTH - bar_width) // 2
-    bar_y = WINDOW_HEIGHT // 2 + 60
-    
-    pg.draw.rect(screen, (60, 60, 80), (bar_x, bar_y, bar_width, bar_height))
-    pg.draw.rect(screen, (100, 200, 100), (bar_x, bar_y, int(bar_width * progress), bar_height))
-    pg.draw.rect(screen, (200, 200, 200), (bar_x, bar_y, bar_width, bar_height), 2)
+
+    # ===== Spinner（Spirit image） =====
+    if spinner_frames:
+        # Calculate which frame to display based on time (the frame changes each time this function is called)
+        frame_index = int((pg.time.get_ticks() / 80) % len(spinner_frames))
+        frame = spinner_frames[frame_index]
+        
+        # Print it at middle
+        draw_x = WINDOW_WIDTH//2 - frame.get_width()//2
+        draw_y = WINDOW_HEIGHT//2 + 80 - frame.get_height()//2
+        screen.blit(frame, (draw_x, draw_y))
+    else:
+        # Show fallback text if spinner frames are not loaded
+        fallback_text = font_small.render("Loading...", True, (200, 200, 200))
+        fallback_rect = fallback_text.get_rect(center=(WINDOW_WIDTH//2, WINDOW_HEIGHT//2 + 70))
+        screen.blit(fallback_text, fallback_rect)
+    # =================================
     
     pg.display.flip()
-
+    
 class BoostIndicator:
     def __init__(self, x, y, width, height):
         self.rect = pg.Rect(x, y, width, height)
@@ -149,6 +149,35 @@ pg.init()
 pg.mixer.init()
 window = pg.display.set_mode((WINDOW_WIDTH, WINDOW_HEIGHT))
 pg.display.set_caption("Attack On Food Titan")
+
+#Load spinner spirit image
+spinner_frames = []
+spinner_frame_count = 18
+
+try:
+    spinner_path = os.path.join(os.path.dirname(__file__), "Background", "Image", "Spinner.png")
+    if os.path.exists(spinner_path):
+        spinner_sheet = pg.image.load(spinner_path).convert_alpha()
+
+        # Remove near-white background from the spinner sheet
+        for x in range(spinner_sheet.get_width()):
+            for y in range(spinner_sheet.get_height()):
+                r, g, b, a = spinner_sheet.get_at((x, y))
+                # If RGB > 240, set to transparent
+                if r > 240 and g > 240 and b > 240:
+                    spinner_sheet.set_at((x, y), (0, 0, 0, 0))
+
+        # Automatically calculate frame width based on the number of frames
+        frame_width = spinner_sheet.get_width() // spinner_frame_count
+        frame_height = spinner_sheet.get_height()
+        for i in range(spinner_frame_count):
+            frame = spinner_sheet.subsurface((i * frame_width, 0, frame_width, frame_height))
+            spinner_frames.append(frame)
+        print(f"[SPINNER] Loaded {len(spinner_frames)} frames from Spinner.png")
+    else:
+        print(f"[SPINNER] Warning: Spinner.png not found at {spinner_path}")
+except Exception as e:
+    print(f"[SPINNER] Error loading spinner: {e}")
 
 # Show initial loading screen
 show_loading_screen(window, "Initializing...", 0.05)
