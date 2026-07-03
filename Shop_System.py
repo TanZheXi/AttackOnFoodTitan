@@ -108,15 +108,11 @@ class ShopSystem:
         self.category_buttons = []
         self._init_category_buttons()
 
-        # ========== Grid Settings ==========
-        self.grid_cols = 5
-        self.cell_spacing = 6
-        available_width = self.rect.width - 20
-        total_spacing = self.cell_spacing * (self.grid_cols - 1)
-        self.cell_size = (available_width - total_spacing) // self.grid_cols
-        
-        self.grid_start_x = self.rect.x + 10
-        self.grid_start_y = self.rect.y + 48
+        # ========== List View Settings ==========
+        self.scroll_offset = 0
+        self.item_width = 390
+        self.item_height = 55
+        self.buy_buttons = {}
         # ===================================
 
         self.desc_panel_rect = None
@@ -143,13 +139,6 @@ class ShopSystem:
             try:
                 if os.path.exists(icon_path):
                     original = pg.image.load(icon_path).convert_alpha()
-                    
-                    # Remove white background
-                    for _x in range(original.get_width()):
-                        for _y in range(original.get_height()):
-                            r, g, b, a = original.get_at((_x, _y))
-                            if r > 240 and g > 240 and b > 240:
-                                original.set_at((_x, _y), (0, 0, 0, 0))
                     
                     # --- MAGIC CROP: Snips away the empty transparent space! ---
                     bounding_rect = original.get_bounding_rect()
@@ -213,46 +202,20 @@ class ShopSystem:
             self.buy_messages = []
 
     def handle_event(self, event, add_to_inventory_callback):
+        # 1. Handle category tabs
         if event.type == pg.MOUSEBUTTONDOWN and event.button == 1:
             for btn in self.category_buttons:
                 if btn.rect.collidepoint(event.pos):
                     if GLOBAL_CLICK: GLOBAL_CLICK.play()
                     self.set_category(btn.category_id)
                     return
-
-        if event.type == pg.MOUSEMOTION:
-            self.hovered_index = -1
-            mouse_pos = event.pos
-            rows = (len(self.items) + self.grid_cols - 1) // self.grid_cols
-            for i in range(rows):
-                for j in range(self.grid_cols):
-                    idx = i * self.grid_cols + j
-                    if idx >= len(self.items):
-                        continue
-                    cell_x = self.grid_start_x + j * (self.cell_size + self.cell_spacing)
-                    cell_y = self.grid_start_y + i * (self.cell_size + self.cell_spacing)
-                    cell_rect = pg.Rect(cell_x, cell_y, self.cell_size, self.cell_size)
-                    if cell_rect.collidepoint(mouse_pos):
-                        self.hovered_index = idx
-                        self.selected_item = self.items[idx]
-                        break
-
-        # Logics for buying items
-        if event.type == pg.MOUSEBUTTONDOWN and event.button == 1:
-            rows = (len(self.items) + self.grid_cols - 1) // self.grid_cols
-            for i in range(rows):
-                for j in range(self.grid_cols):
-                    idx = i * self.grid_cols + j
-                    if idx >= len(self.items):
-                        continue
-                    cell_x = self.grid_start_x + j * (self.cell_size + self.cell_spacing)
-                    cell_y = self.grid_start_y + i * (self.cell_size + self.cell_spacing)
-                    cell_rect = pg.Rect(cell_x, cell_y, self.cell_size, self.cell_size)
-                    if cell_rect.collidepoint(event.pos):
-                        if GLOBAL_CLICK:
-                            GLOBAL_CLICK.play()
-                        item = self.items[idx]
-                        if not item.sold_out:
+                    
+            # Handle Buy Buttons
+            for key, rect in self.buy_buttons.items():
+                if rect.collidepoint(event.pos):
+                    if GLOBAL_CLICK: GLOBAL_CLICK.play()
+                    for item in self.items:
+                        if item.name == key and not item.sold_out:
                             if Currency_System.pocket_money >= item.price:
                                 add_to_inventory_callback(item.name)
                                 Currency_System.pocket_money -= item.price
@@ -262,7 +225,39 @@ class ShopSystem:
                             else:
                                 self.buy_messages.append(f"Need ${item.price}!")
                                 self.message_timer = 120
-                        break
+                            break
+                    return
+
+        # 2. Handle Scrolling (Mouse Wheel)
+        if event.type == pg.MOUSEBUTTONDOWN:
+            if event.button == 4:
+                self.scroll_offset = max(0, self.scroll_offset - 1)
+            elif event.button == 5:
+                max_scroll = max(0, len(self.items) - 8)
+                self.scroll_offset = min(max_scroll, self.scroll_offset + 1)
+
+        # 3. Handle Hover Selection
+        if event.type == pg.MOUSEMOTION:
+            self.hovered_index = -1
+            self.selected_item = None
+            mouse_pos = event.pos
+            
+            card_width = self.item_width
+            card_height = self.item_height
+            card_spacing_y = 6 
+            start_x = self.rect.x + 8 
+            start_y = self.rect.y + 65
+            
+            visible_items = self.items[self.scroll_offset:self.scroll_offset + 8]
+            
+            for idx, item in enumerate(visible_items):
+                y = start_y + idx * (card_height + card_spacing_y)
+                item_rect = pg.Rect(start_x, y, card_width, card_height)
+                
+                if item_rect.collidepoint(mouse_pos):
+                    self.hovered_index = self.scroll_offset + idx
+                    self.selected_item = item
+                    break
             
     def _get_item_icon(self, item_name, target_size):
         """Loads, cleans, and scales the item icon, then caches it."""
@@ -273,13 +268,6 @@ class ShopSystem:
         if os.path.exists(icon_path):
             try:
                 img = pg.image.load(icon_path).convert_alpha()
-                
-                # Remove white background
-                for _x in range(img.get_width()):
-                    for _y in range(img.get_height()):
-                        r, g, b, a = img.get_at((_x, _y))
-                        if r > 240 and g > 240 and b > 240:
-                            img.set_at((_x, _y), (0, 0, 0, 0))
                 
                 bounding_rect = img.get_bounding_rect()
                 if bounding_rect.width > 0 and bounding_rect.height > 0:
@@ -306,57 +294,91 @@ class ShopSystem:
         for btn in self.category_buttons:
             btn.draw(screen)
 
-        # Draw items in grid
-        rows = (len(self.items) + self.grid_cols - 1) // self.grid_cols
-        for i in range(rows):
-            for j in range(self.grid_cols):
-                idx = i * self.grid_cols + j
-                if idx >= len(self.items):
-                    continue
-                item = self.items[idx]
-                cell_x = self.grid_start_x + j * (self.cell_size + self.cell_spacing)
-                cell_y = self.grid_start_y + i * (self.cell_size + self.cell_spacing)
-                cell_rect = pg.Rect(cell_x, cell_y, self.cell_size, self.cell_size)
+        # Draw items in List View
+        self.buy_buttons.clear()
+        card_width = self.item_width
+        card_height = self.item_height
+        card_spacing_y = 6
+        start_x = self.rect.x + 8 
+        start_y = self.rect.y + 65
 
+        if not self.items:
+            empty_text = self.font_medium.render("Empty", True, (120, 120, 140))
+            screen.blit(empty_text, empty_text.get_rect(center=(self.rect.x + self.rect.width // 2, self.rect.y + self.rect.height // 2)))
+        else:
+            visible_items = self.items[self.scroll_offset:self.scroll_offset + 8]
+
+            for idx, item in enumerate(visible_items):
+                actual_index = self.scroll_offset + idx
+                y = start_y + idx * (card_height + card_spacing_y)
+                item_rect = pg.Rect(start_x, y, card_width, card_height)
+                
+                # Background color
                 if item.sold_out:
-                    color = (60, 60, 70)
-                elif self.hovered_index == idx:
-                    color = (80, 80, 100)
+                    color = (50, 50, 50)
                 else:
-                    color = item.icon_color
-
-                pg.draw.rect(screen, color, cell_rect)
-                pg.draw.rect(screen, (200, 200, 220), cell_rect, 2)
-
+                    color = (55, 55, 70) if idx % 2 == 0 else (60, 60, 80)
+                
+                pg.draw.rect(screen, color, item_rect)
+                
+                # Highlight border
+                if self.hovered_index == actual_index:
+                    pg.draw.rect(screen, (255, 220, 100), item_rect, 2)
+                else:
+                    pg.draw.rect(screen, (90, 90, 110), item_rect, 1)
+                
+                # --- 1. ICON (Far Left) ---
+                icon = self._get_item_icon(item.name, 40) 
+                if icon:
+                    icon_rect = icon.get_rect(center=(item_rect.x + 30, item_rect.centery))
+                    screen.blit(icon, icon_rect)
+                
+                # --- 2. ITEM NAME (Middle Left, Upper) ---
+                name_display = item.name[:20] + ".." if len(item.name) > 20 else item.name
+                name_color = (150, 150, 150) if item.sold_out else (255, 255, 200)
+                name_text = self.font_medium.render(name_display, True, name_color)
+                screen.blit(name_text, (item_rect.x + 65, item_rect.centery - 14))
+                
+                # --- 3. PRICE (Middle Left, Lower) ---
                 if item.sold_out:
-                    text = self.font_small.render("SOLD OUT", True, (150, 150, 150))
-                    text_rect = text.get_rect(center=cell_rect.center)
-                    screen.blit(text, text_rect)
+                    status_text = self.font_small.render("SOLD OUT", True, (255, 100, 100))
                 else:
-                    # --- NEW DRAW LOGIC STARTS HERE ---
-                    target_icon_size = self.cell_size - 24 # Leaves room for price text
-                    icon = self._get_item_icon(item.name, target_icon_size)
-                    
-                    if icon:
-                        # Draw Image
-                        icon_rect = icon.get_rect(center=(cell_rect.centerx, cell_rect.centery - 8))
-                        screen.blit(icon, icon_rect)
-                    else:
-                        # Fallback text if the PNG is missing
-                        name_display = item.name[:8] + ".." if len(item.name) > 9 else item.name
-                        text = self.font_small.render(name_display, True, (255, 255, 255))
-                        text_rect = text.get_rect(center=(cell_rect.centerx, cell_rect.centery - 10))
-                        screen.blit(text, text_rect)
+                    price_display = f"{item.price//1000}k" if item.price >= 10000 else str(item.price)
+                    status_text = self.font_small.render(f"Cost: ${price_display}", True, (100, 255, 100))
+                screen.blit(status_text, (item_rect.x + 65, item_rect.centery + 4))
+                
+                # --- 4. BUY BUTTON (Far Right) ---
+                btn_width = 70
+                btn_height = 26
+                btn_rect = pg.Rect(item_rect.right - btn_width - 15, item_rect.centery - btn_height // 2, btn_width, btn_height)
+                mouse_pos = pg.mouse.get_pos()
+                
+                if item.sold_out:
+                    btn_color = (80, 80, 80)
+                    btn_text = "SOLD"
+                else:
+                    btn_color = (70, 130, 70) if btn_rect.collidepoint(mouse_pos) else (50, 100, 50) 
+                    btn_text = "BUY"
+                    self.buy_buttons[item.name] = btn_rect 
+                
+                pg.draw.rect(screen, btn_color, btn_rect)
+                pg.draw.rect(screen, (200, 200, 200), btn_rect, 1)
+                btn_render = self.font_small.render(btn_text, True, (255, 255, 255))
+                btn_render_rect = btn_render.get_rect(center=btn_rect.center)
+                screen.blit(btn_render, btn_render_rect)
 
-                    if item.price >= 10000:
-                        price_display = f"{item.price//1000}k"
-                    else:
-                        price_display = str(item.price)
-                        
-                    price_text = self.font_small.render(f"${price_display}", True, (255, 220, 100))
-                    # Lowered from +12 to +20 to prevent overlap with the image
-                    price_rect = price_text.get_rect(center=(cell_rect.centerx, cell_rect.centery + 20)) 
-                    screen.blit(price_text, price_rect)
+            # Scrollbar
+            if len(self.items) > 8: 
+                scroll_bg = pg.Rect(self.rect.x + self.rect.width - 20, self.rect.y + 45, 10, 100)
+                pg.draw.rect(screen, (40, 40, 50), scroll_bg)
+                pg.draw.rect(screen, (100, 100, 120), scroll_bg, 1)
+                
+                scroll_ratio = self.scroll_offset / (len(self.items) - 8) if len(self.items) > 8 else 0
+                scroll_bar_height = max(20, scroll_bg.height * 0.3)
+                scroll_bar_y = scroll_bg.y + int(scroll_ratio * (scroll_bg.height - scroll_bar_height))
+                scroll_bar = pg.Rect(scroll_bg.x, scroll_bar_y, scroll_bg.width, scroll_bar_height)
+                pg.draw.rect(screen, (180, 180, 200), scroll_bar)
+                pg.draw.rect(screen, (220, 220, 240), scroll_bar, 1)
                     # --- NEW DRAW LOGIC ENDS HERE ---
 
         if self.buy_messages and self.message_timer > 0:

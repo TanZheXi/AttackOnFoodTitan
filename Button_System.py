@@ -45,13 +45,6 @@ class Main_button:
             if os.path.exists(icon_path_png):
                 original = pg.image.load(icon_path_png).convert_alpha()
                 
-                # Remove white color background
-                for x in range(original.get_width()):
-                    for y in range(original.get_height()):
-                        r, g, b, a = original.get_at((x, y))
-                        if r > 240 and g > 240 and b > 240:
-                            original.set_at((x, y), (0, 0, 0, 0))
-                
                 target_w = self.rect.width
                 target_h = self.rect.height
                 original_w = original.get_width()
@@ -179,13 +172,6 @@ class VerticalScrollButton:
         try:
             if os.path.exists(icon_path_png):
                 original = pg.image.load(icon_path_png).convert_alpha()
-                
-                #Remove white color background
-                for x in range(original.get_width()):
-                    for y in range(original.get_height()):
-                        r, g, b, a = original.get_at((x, y))
-                        if r > 240 and g > 240 and b > 240:
-                            original.set_at((x, y), (0, 0, 0, 0))
                 
                 target_w = self.rect.width
                 target_h = self.rect.height
