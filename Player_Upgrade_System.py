@@ -75,7 +75,10 @@ class PlayerUpgradeSystem:
         self.font_title = pg.font.SysFont(None, 32, bold=True)
         self.font_text = pg.font.SysFont(None, 20)
         self.font_small = pg.font.SysFont(None, 16)
-
+        
+        # Scrolling feature
+        self.scroll_offset = 0
+        
         # Category management
         self.current_category = 0  # 0: Player, 1: Companion
         self.category_buttons = []
@@ -135,9 +138,6 @@ class PlayerUpgradeSystem:
         self.mana_regen_max = 100
         self.mana_regen_bonus = 0.0
 
-        # Scrolling
-        self.scroll_offset = 0
-
         # Companion 
         monster_rect = pg.Rect(600, 250, 200, 200)  # placeholder, pass actual monster rect
         names = ["Metal Spoon","Metal Fork","Chopstick","Spatula","Whisk",
@@ -170,6 +170,40 @@ class PlayerUpgradeSystem:
         if not hasattr(Equipment_System, "base_damage"):
             Equipment_System.base_damage = 1
     
+    # Helper to clamp scroll (Limit the scroll length)
+    def _clamp_scroll(self, total_height):
+        # Ensure scroll_offset stays within valid bounds.
+        visible_height = self.rect.height - 100  # leave space for title/buttons
+        max_scroll = max(0, total_height - visible_height)
+        self.scroll_offset = max(0, min(self.scroll_offset, max_scroll))
+
+    # Add scrollbar in Player Upgrade Panel for easier navigation purposes
+    def _draw_scrollbar(self, screen, total_height):
+        # Draw a scrollbar on the right side of the panel.
+        bar_area_height = self.rect.height - 20  # leave some padding
+        bar_x = self.rect.right - 12             # scrollbar width = 8px + padding
+        bar_y = self.rect.y + 10
+        bar_width = 8
+
+        # Background track
+        pg.draw.rect(screen, (80, 80, 100), (bar_x, bar_y, bar_width, bar_area_height))
+        pg.draw.rect(screen, (200, 200, 200), (bar_x, bar_y, bar_width, bar_area_height), 1)
+
+        # Scroll thumb size (proportional to visible/total)
+        visible_height = self.rect.height - 100
+        if total_height <= visible_height:
+            thumb_height = bar_area_height
+        else:
+            thumb_height = max(30, int(bar_area_height * (visible_height / total_height)))
+
+        # Scroll thumb position (proportional to offset)
+        max_scroll = max(1, total_height - visible_height)
+        scroll_ratio = self.scroll_offset / max_scroll
+        thumb_y = bar_y + int((bar_area_height - thumb_height) * scroll_ratio)
+
+        # Thumb rectangle
+        pg.draw.rect(screen, (180, 180, 220), (bar_x, thumb_y, bar_width, thumb_height))
+
     # Get Companion Damage
     def get_companion_damage(self, index):
         return self.companions[index].get_damage()
@@ -209,7 +243,14 @@ class PlayerUpgradeSystem:
                if btn.rect.collidepoint(event.pos):
                   self.set_category(btn.category_id)
                   return  # stop further handling so category switches immediately
-               
+        
+        # Update scroll_offset when scrolling
+        elif event.type == pg.MOUSEBUTTONDOWN:
+             if event.button == 4:   # scroll up
+                self.scroll_offset -= 20
+             elif event.button == 5: # scroll down
+                self.scroll_offset += 20
+
         if self.current_category == 0:  # Player upgrade
             if event.type == pg.MOUSEBUTTONDOWN and event.button == 1:
                 # YOUR REAL BUTTON IS HERE:
@@ -326,6 +367,9 @@ class PlayerUpgradeSystem:
             # =================================================
 
     def draw(self, screen):
+        clip_rect = self.rect
+        screen.set_clip(clip_rect)
+
         # Panel background
         pg.draw.rect(screen, (40, 40, 60), self.rect)
         pg.draw.rect(screen, (200, 200, 200), self.rect, 2)
@@ -339,6 +383,8 @@ class PlayerUpgradeSystem:
             self._draw_player_upgrade(screen)
         else:
             self._draw_companion_upgrade(screen)
+
+        screen.set_clip(None)
 
     def _draw_upgrade_box(self, screen, rect, mouse_pos,
                           unlock_level, current_level, max_level, cost, label):
@@ -364,9 +410,13 @@ class PlayerUpgradeSystem:
         mouse_pos = pg.mouse.get_pos()
 
         # --- Start vertical offset for upgrades ---
-        y_offset = self.rect.y + 170
+        y_offset = self.rect.y + 100 - self.scroll_offset
         box_height = 50
         spacing = 10
+
+        # Calculate total height of all upgrade boxes
+        total_height = (7 * box_height) + (7 * spacing) + 40  # +40 for the title line
+        self._clamp_scroll(total_height)
 
         # Button position
         self.button_rect = pg.Rect(self.rect.x + 20, self.rect.y + 100, self.rect.width - 40, 50)
@@ -390,8 +440,10 @@ class PlayerUpgradeSystem:
         surface.blit(category_text, category_text.get_rect(center=(self.rect.width // 2, y_offset)))
         y_offset += 40
 
-        # Base Damage Upgrade box
-        self.button_rect = pg.Rect(self.rect.x + 20, self.rect.y + 100, self.rect.width - 40, 50)
+        # Base Damage Upgrade box (scrollable)
+        self.button_rect = pg.Rect(self.rect.x + 20, y_offset, self.rect.width - 40, box_height)
+        y_offset += box_height + spacing
+
         if Currency_System.pocket_money >= cost:
             btn_color = (0, 180, 180) if self.button_rect.collidepoint(mouse_pos) else (0, 128, 128)
             text_color = (255, 255, 255)
@@ -453,23 +505,19 @@ class PlayerUpgradeSystem:
                                max_level=self.crispy_max_level, cost=self.crispy_cost,
                                label="Crispy Precision")
 
-        # Draw button
-        pg.draw.rect(screen, btn_color, self.button_rect)
-        pg.draw.rect(screen, (200, 200, 200), self.button_rect, 2)
-
-        # Text on button
-        text = self.font_text.render(
-            f"Upgrade Base Damage (Lv {self.level}) - Cost: {cost}", True, text_color
-        )
-        text_rect = text.get_rect(center=self.button_rect.center)
-        screen.blit(text, text_rect)
+        # Draw scrollbar
+        self._draw_scrollbar(screen, total_height)
 
     # Companion Upgrade Box
     def _draw_companion_upgrade(self, screen):
         mouse_pos = pg.mouse.get_pos()
-        y_offset = self.rect.y + 100
+        y_offset = self.rect.y + 100 - self.scroll_offset
         box_height = 40
         spacing = 8
+
+        # Calculate total height of all companion boxes
+        total_height = len(self.companions) * (box_height + spacing)
+        self._clamp_scroll(total_height)
 
         self.button_rects = []
         for i, comp in enumerate(self.companions):
@@ -497,6 +545,9 @@ class PlayerUpgradeSystem:
             screen.blit(text, text.get_rect(center=rect.center))
   
             y_offset += box_height + spacing
+
+        # Draw scrollbar
+        self._draw_scrollbar(screen, total_height)
 
     # Always draw companions around the monster
     def draw_companions(self, screen):
