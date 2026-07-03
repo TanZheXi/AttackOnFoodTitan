@@ -501,6 +501,15 @@ else:
 
 show_loading_screen(window, "Initializing systems...", 0.9)
 
+try:
+    icon_path = os.path.join(os.path.dirname(__file__), "Icon", "Monster.png")
+    raw_monster_icon = pg.image.load(icon_path).convert_alpha()
+    # Scale it down to 35x35 so it fits perfectly next to the text
+    hud_monster_icon = pg.transform.scale(raw_monster_icon, (35, 35))
+except Exception as e:
+    print(f"Could not load monster icon: {e}")
+    hud_monster_icon = None
+
 IsRunning = True
 last_auto_save = time.time()
 auto_save_interval = 5
@@ -810,17 +819,34 @@ while IsRunning:
 
     font_counter = pg.font.SysFont(None, 36)
     counter_value = (monster_manager.progression_index % 10) + 1
-    counter_str = f"Monster {counter_value}/10"
     
-    # 1. Draw Counter Shadow (Black, offset by +2 pixels)
+    # Notice we removed the word "Monster" here!
+    counter_str = f" {counter_value}/10"
+    
     counter_shadow = font_counter.render(counter_str, True, (0, 0, 0))
-    shadow_rect = counter_shadow.get_rect(center=(MIDDLE_CENTER_X + 2, 120 + 2))
+    counter_surface = font_counter.render(counter_str, True, (255, 255, 255))
+    
+    # Calculate width to keep the icon and text perfectly centered as a group
+    text_width = counter_surface.get_width()
+    icon_width = hud_monster_icon.get_width() if hud_monster_icon else 0
+    total_width = icon_width + text_width
+    
+    start_x = MIDDLE_CENTER_X - (total_width // 2)
+    
+    # 1. Draw the Alien Icon
+    if hud_monster_icon:
+        icon_rect = hud_monster_icon.get_rect(midleft=(start_x, 120))
+        window.blit(hud_monster_icon, icon_rect)
+        text_start_x = icon_rect.right
+    else:
+        text_start_x = start_x
+        
+    # 2. Draw the Text (Shadow + Main)
+    shadow_rect = counter_shadow.get_rect(midleft=(text_start_x + 2, 120 + 2))
     window.blit(counter_shadow, shadow_rect)
     
-    # 2. Draw Main Counter Text (White)
-    counter_surface = font_counter.render(counter_str, True, (255, 255, 255))
-    counter_rect = counter_surface.get_rect(center=(MIDDLE_CENTER_X, 120))
-    window.blit(counter_surface, counter_rect)
+    text_rect = counter_surface.get_rect(midleft=(text_start_x, 120))
+    window.blit(counter_surface, text_rect)
 
     font_stage = pg.font.SysFont(None, 48, bold=True)
     stage_str = f"Stage {monster_manager.stage}"

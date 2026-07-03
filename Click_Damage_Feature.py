@@ -185,29 +185,46 @@ class Monster:
 
         # --- DRAW HEALTH BARS ---
         if self.state != "dead":
+            # 1. DEFINE YOUR LONGER WIDTH HERE
+            bar_width = 300  
+            bar_x = self.rect.centerx - (bar_width // 2) 
             bar_y = self.rect.y - 35
-            bar_height = 24  
+            bar_height = 28
             
-            pg.draw.rect(surface, (60, 60, 60), (self.rect.x, bar_y, self.rect.width, bar_height))
+            # Draw the gray background bar
+            pg.draw.rect(surface, (60, 60, 60), (bar_x, bar_y, bar_width, bar_height))
             
-            hp_bar_width = int((self.hp / self.max_hp) * self.rect.width)
-            pg.draw.rect(surface, (200, 30, 30), (self.rect.x, bar_y, hp_bar_width, bar_height))
+            # Draw the red health fill
+            hp_bar_width = int((self.hp / self.max_hp) * bar_width)
+            pg.draw.rect(surface, (200, 30, 30), (bar_x, bar_y, hp_bar_width, bar_height))
             
-            pg.draw.rect(surface, (0, 0, 0), (self.rect.x, bar_y, self.rect.width, bar_height), 2)
+            # Draw a crisp black border around the whole bar
+            pg.draw.rect(surface, (0, 0, 0), (bar_x, bar_y, bar_width, bar_height), 2)
             
             font = pg.font.SysFont(None, 24)
-            # UPDATED: Just showing current HP
-            hp_str = f"{self.name} HP: {format_number(self.hp)}"
-            
             text_center_y = bar_y + (bar_height // 2)
             
-            shadow_text = font.render(hp_str, True, (0, 0, 0))
-            shadow_rect = shadow_text.get_rect(center=(self.rect.centerx + 1, text_center_y + 1))
-            surface.blit(shadow_text, shadow_rect)
+            # --- LEFT SIDE: MONSTER NAME ---
+            name_str = self.name
+            name_shadow = font.render(name_str, True, (0, 0, 0))
+            # midleft anchors the text to the left side with a 10px padding
+            name_shadow_rect = name_shadow.get_rect(midleft=(bar_x + 10 + 1, text_center_y + 1))
+            surface.blit(name_shadow, name_shadow_rect)
             
-            text = font.render(hp_str, True, (255, 255, 255))
-            text_rect = text.get_rect(center=(self.rect.centerx, text_center_y))
-            surface.blit(text, text_rect)
+            name_text = font.render(name_str, True, (255, 255, 255))
+            name_rect = name_text.get_rect(midleft=(bar_x + 10, text_center_y))
+            surface.blit(name_text, name_rect)
+            
+            # --- RIGHT SIDE: HP AMOUNT ---
+            hp_str = f"{format_number(self.hp)} HP"
+            hp_shadow = font.render(hp_str, True, (0, 0, 0))
+            # midright anchors the text to the right side with a 10px padding
+            hp_shadow_rect = hp_shadow.get_rect(midright=(bar_x + bar_width - 10 + 1, text_center_y + 1))
+            surface.blit(hp_shadow, hp_shadow_rect)
+            
+            hp_text = font.render(hp_str, True, (255, 255, 255))
+            hp_rect = hp_text.get_rect(midright=(bar_x + bar_width - 10, text_center_y))
+            surface.blit(hp_text, hp_rect)
 
 
 class MonsterManager:
