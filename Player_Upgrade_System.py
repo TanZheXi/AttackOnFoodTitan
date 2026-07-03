@@ -218,8 +218,13 @@ class PlayerUpgradeSystem:
         spacing = 15
         total_width = btn_width * 2 + spacing
         start_x = self.rect.centerx - total_width // 2
-        y = self.rect.y + 45
+
+        # Place buttons directly below the "Upgrade" title
+        title_height = 40   # height of the title text
+        gap = 10            # spacing between title and buttons
+        y = self.rect.y + title_height + gap
         
+        self.category_buttons = []
         categories = ["Player", "Companion"] # Can add future categories like "Weapon", "Armor" etc.
         for i, cat in enumerate(categories):
             btn_rect = pg.Rect(start_x + i * (btn_width + spacing), y, btn_width, btn_height)
@@ -374,10 +379,6 @@ class PlayerUpgradeSystem:
         pg.draw.rect(screen, (40, 40, 60), self.rect)
         pg.draw.rect(screen, (200, 200, 200), self.rect, 2)
 
-        # Draw category buttons
-        for btn in self.category_buttons:
-            btn.draw(screen)
-
         # Show diffent content based on category
         if self.current_category == 0:
             self._draw_player_upgrade(screen)
@@ -385,6 +386,25 @@ class PlayerUpgradeSystem:
             self._draw_companion_upgrade(screen)
 
         screen.set_clip(None)
+
+        # --- Start vertical offset for scrollable content ---
+        y_offset = self.rect.y + 100 - self.scroll_offset
+        box_height = 50
+        spacing = 10
+
+        # === Category buttons (scrollable) ===
+        btn_width = 100
+        btn_height = 30
+        spacing_btn = 15
+        total_width = btn_width * 2 + spacing_btn
+        start_x = self.rect.centerx - total_width // 2
+
+        for i, btn in enumerate(self.category_buttons):
+           btn.rect = pg.Rect(start_x + i * (btn_width + spacing_btn), y_offset, btn_width, btn_height)
+           btn.draw(screen)
+
+        # Move offset down after buttons
+        y_offset += btn_height + 20
 
     def _draw_upgrade_box(self, screen, rect, mouse_pos,
                           unlock_level, current_level, max_level, cost, label):
@@ -408,14 +428,38 @@ class PlayerUpgradeSystem:
         surface.fill((40, 40, 60))
         cost = self.get_upgrade_cost()
         mouse_pos = pg.mouse.get_pos()
+        btn_width = 100
+        btn_height = 30
+        spacing_btn = 15
+        total_width = btn_width * 2 + spacing_btn
+        start_x = self.rect.centerx - total_width // 2
 
-        # --- Start vertical offset for upgrades ---
+        # --- Start vertical offset for scrollable content ---
         y_offset = self.rect.y + 100 - self.scroll_offset
         box_height = 50
         spacing = 10
 
+        # Clamp y_offset so buttons stay inside panel
+        min_y = self.rect.y + 60   # just below title
+        max_y = self.rect.bottom - 50  # keep inside panel
+        y_offset = max(min_y, min(y_offset, max_y))
+
+        # === Category buttons (scrollable) ===
+        btn_width = 100
+        btn_height = 30
+        spacing_btn = 15
+        total_width = btn_width * 2 + spacing_btn
+        start_x = self.rect.centerx - total_width // 2
+
+        for i, btn in enumerate(self.category_buttons):
+           btn.rect = pg.Rect(start_x + i * (btn_width + spacing_btn), y_offset, btn_width, btn_height)
+           btn.draw(screen)
+
+        # Push content down so upgrades don’t overlap
+        y_offset += btn_height + 30   # add extra spacing
+
         # Calculate total height of all upgrade boxes
-        total_height = (7 * box_height) + (7 * spacing) + 40  # +40 for the title line
+        total_height = (len(self.companions) * (box_height + spacing)) + (btn_height + 30)
         self._clamp_scroll(total_height)
 
         # Button position
@@ -511,7 +555,10 @@ class PlayerUpgradeSystem:
     # Companion Upgrade Box
     def _draw_companion_upgrade(self, screen):
         mouse_pos = pg.mouse.get_pos()
-        y_offset = self.rect.y + 100 - self.scroll_offset
+
+        # --- Start vertical offset for upgrades ---
+        header_reserved = 100  # space for title + buttons
+        y_offset = self.rect.y + header_reserved - self.scroll_offset
         box_height = 40
         spacing = 8
 
