@@ -53,6 +53,9 @@ class InventorySystem:
             2: "scraps"
         }
         
+        # Add a cache so icons only load once!
+        self.icon_cache = {}
+        
         self.scroll_offset = 0
         self.item_width = 190
         self.item_height = 80
@@ -87,10 +90,31 @@ class InventorySystem:
             icon_path = os.path.join(icon_folder, f"{icon_name}.png")
             try:
                 if os.path.exists(icon_path):
-                    icon_img = pg.image.load(icon_path).convert_alpha()
-                    # Scale as button size
-                    icon_img = pg.transform.scale(icon_img, (btn_width - 10, btn_height - 6))
-                    btn.icon_image = icon_img
+                    original = pg.image.load(icon_path).convert_alpha()
+                    
+                    # Remove white background
+                    for _x in range(original.get_width()):
+                        for _y in range(original.get_height()):
+                            r, g, b, a = original.get_at((_x, _y))
+                            if r > 240 and g > 240 and b > 240:
+                                original.set_at((_x, _y), (0, 0, 0, 0))
+                    
+                    # --- MAGIC CROP: Snips away the empty transparent space! ---
+                    bounding_rect = original.get_bounding_rect()
+                    if bounding_rect.width > 0 and bounding_rect.height > 0:
+                        original = original.subsurface(bounding_rect)
+                    
+                    target_w = btn_width - 10
+                    target_h = btn_height - 6
+                    original_w = original.get_width()
+                    original_h = original.get_height()
+                    
+                    # Scale properly so it fits without getting squashed
+                    scale = min(target_w / original_w, target_h / original_h)
+                    new_w = int(original_w * scale)
+                    new_h = int(original_h * scale)
+                    
+                    btn.icon_image = pg.transform.scale(original, (new_w, new_h))
             except Exception as e:
                 pass
             
@@ -127,6 +151,39 @@ class InventorySystem:
             return "pet"
         else:
             return "equipment"
+        
+    def _get_item_icon(self, item_name):
+        if item_name in self.icon_cache:
+            return self.icon_cache[item_name]
+            
+        icon_path = os.path.join(os.path.dirname(__file__), "Icon", f"{item_name}.png")
+        if os.path.exists(icon_path):
+            try:
+                img = pg.image.load(icon_path).convert_alpha()
+                
+                # Remove white background
+                for _x in range(img.get_width()):
+                    for _y in range(img.get_height()):
+                        r, g, b, a = img.get_at((_x, _y))
+                        if r > 240 and g > 240 and b > 240:
+                            img.set_at((_x, _y), (0, 0, 0, 0))
+                
+                bounding_rect = img.get_bounding_rect()
+                if bounding_rect.width > 0 and bounding_rect.height > 0:
+                    img = img.subsurface(bounding_rect)
+                    
+                target_size = 50 # Size of the icon on the card
+                scale = min(target_size / img.get_width(), target_size / img.get_height())
+                new_w, new_h = int(img.get_width() * scale), int(img.get_height() * scale)
+                img = pg.transform.scale(img, (new_w, new_h))
+                
+                self.icon_cache[item_name] = img
+                return img
+            except Exception as e:
+                pass
+                
+        self.icon_cache[item_name] = None
+        return None
 
     def get_filtered_items(self):
         category = self.category_map.get(self.current_category, "weapon")
@@ -213,7 +270,9 @@ class InventorySystem:
             card_height = self.item_height
             card_spacing_x = 12
             card_spacing_y = 10
-            start_x = self.rect.x + 18
+            
+            # SHIFTED LEFT: Changed from 18 to 8
+            start_x = self.rect.x + 8 
             start_y = self.rect.y + 65
             
             items = self.get_filtered_items()
@@ -255,7 +314,9 @@ class InventorySystem:
         cards_per_row = 2
         card_spacing_x = 12
         card_spacing_y = 10
-        start_x = self.rect.x + 18
+        
+        # SHIFTED LEFT: Changed from 18 to 8
+        start_x = self.rect.x + 8 
         start_y = self.rect.y + 65
 
         if not items:
@@ -300,8 +361,22 @@ class InventorySystem:
                     pg.draw.rect(screen, (90, 90, 110), item_rect, 1)
                 
                 # Item name (top-left)
-                name_text = self.font_medium.render(item_name, True, (255, 255, 200))
-                screen.blit(name_text, (item_rect.x + 8, item_rect.y + 8))
+                if self.hovered_index == actual_index:
+                    pg.draw.rect(screen, (255, 220, 100), item_rect, 2)
+                else:
+                    pg.draw.rect(screen, (90, 90, 110), item_rect, 1)
+                
+                # --- DRAW ICON INSTEAD OF TEXT ---
+                icon = self._get_item_icon(item_name)
+                if icon:
+                    # Place the icon perfectly centered in the left area of the card
+                    icon_rect = icon.get_rect(center=(item_rect.x + 40, item_rect.centery - 5))
+                    screen.blit(icon, icon_rect)
+                else:
+                    # Fallback just in case the PNG is missing
+                    name_display = item_name[:10] + ".." if len(item_name) > 10 else item_name
+                    name_text = self.font_medium.render(name_display, True, (255, 255, 200))
+                    screen.blit(name_text, (item_rect.x + 8, item_rect.y + 8))
                 
                 # Status text (bottom-left)
                 if is_equippable:
@@ -367,24 +442,34 @@ class InventorySystem:
             y += 30
             
             if self.selected_item and self.hovered_index != -1:
-                name_text = self.font_medium.render(self.selected_item, True, (255, 255, 200))
+                # 1. Item Name
+                name_text = self.font_large.render(self.selected_item, True, (255, 255, 200))
                 screen.blit(name_text, (desc_x + 12, y))
-                y += 25
+                y += 28
                 
+                # 2. Get Live Stats from Equipment Database
+                item_data = Equipment_System.equipment_database.get(self.selected_item, {})
+                level = item_data.get("level", 1)
+                multiplier = item_data.get("multiplier", 1.0)
+                rarity = item_data.get("rarity", "Common")
+                
+                # Render Stats Line
+                stats_str = f"Level: {level}  |  Rarity: {rarity}  |  Damage Multiplier: x{multiplier:.2f}"
+                stats_text = self.font_small.render(stats_str, True, (100, 255, 100))
+                screen.blit(stats_text, (desc_x + 12, y))
+                y += 22
+                
+                # Draw a clean divider line
+                pg.draw.line(screen, (100, 100, 120), (desc_x + 12, y), (desc_x + desc_w - 12, y), 1)
+                y += 10
+                
+                # 3. Description
                 description = self._get_item_description(self.selected_item)
                 desc_lines = self._wrap_text(description, self.font_small, desc_w - 24)
                 for line in desc_lines:
                     desc_text = self.font_small.render(line, True, (180, 180, 200))
                     screen.blit(desc_text, (desc_x + 12, y))
                     y += 18
-            else:
-                hint_text1 = self.font_small.render("Hover over an item", True, (150, 150, 170))
-                hint_rect1 = hint_text1.get_rect(center=(desc_x + desc_w // 2, y + 15))
-                screen.blit(hint_text1, hint_rect1)
-                
-                hint_text2 = self.font_small.render("to see details", True, (150, 150, 170))
-                hint_rect2 = hint_text2.get_rect(center=(desc_x + desc_w // 2, y + 35))
-                screen.blit(hint_text2, hint_rect2)
 
     def _get_item_description(self, item_name):
         descriptions = {
