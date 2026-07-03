@@ -684,7 +684,7 @@ while IsRunning:
 
         last_companion_attack_time = current_time
 
-        # ========== Monster Death & Respawn Logic ==========
+    # ========== Monster Death & Respawn Logic ==========
     if current_monster.state == "dead":
         # 1. Give rewards ONLY ONCE
         if not hasattr(current_monster, "rewards_given"):
@@ -810,6 +810,10 @@ while IsRunning:
     window.blit(stage_surface, stage_rect)
 
     current_monster.draw(window)
+
+    # Always draw companions around the monster
+    if Button_System.panel_manager.player_upgrade_system:
+       Button_System.panel_manager.player_upgrade_system.draw_companions(window)
 
     Currency_System.draw_ui(window)
 

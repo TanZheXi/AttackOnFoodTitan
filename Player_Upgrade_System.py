@@ -498,6 +498,7 @@ class PlayerUpgradeSystem:
   
             y_offset += box_height + spacing
 
-        # Draw companion circles beside monster
-        for c in self.companions:
-            c.draw_circle(screen)
+    # Always draw companions around the monster
+    def draw_companions(self, screen):
+        for comp in self.companions:
+            comp.draw_circle(screen)
