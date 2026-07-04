@@ -197,8 +197,8 @@ class Monster:
             pg.draw.rect(surface, display_color, draw_rect, border_radius=15)
 
         # --- DRAW HEALTH BARS ---
+        bar_y = self.rect.y - 25
         if self.state != "dead":
-            bar_y = self.rect.y - 25
             pg.draw.rect(surface, (100, 100, 100), (self.rect.x, bar_y, self.rect.width, 10))
             hp_bar_width = int((self.hp / self.max_hp) * self.rect.width)
             pg.draw.rect(surface, (255, 0, 0), (self.rect.x, bar_y, hp_bar_width, 10))

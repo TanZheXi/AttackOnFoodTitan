@@ -485,8 +485,18 @@ boost_indicator = BoostIndicator(x=LEFT_AREA_X + 10, y=WINDOW_HEIGHT - 100, widt
 if saved_boost_data:
     boost_indicator.restore_save_data(saved_boost_data)
 
-damage_boost = SpicySurge(x=LEFT_WIDTH + 5 + 35, y=current_monster.rect.y + current_monster.rect.height + 90, radius=35)
-crispy_precision = CrispyPrecision(x=damage_boost.x + 100, y=damage_boost.y, radius=35)
+# ✅ Place abilities near the left panel, bottom aligned
+damage_boost = SpicySurge(
+    x=LEFT_WIDTH + 60,        # safely inside middle area, not touching left panel
+    y=WINDOW_HEIGHT - 120,    # keep same vertical position
+    radius=35
+)
+
+crispy_precision = CrispyPrecision(
+    x=damage_boost.x + 100,   # offset to the right of Spicy Surge
+    y=damage_boost.y,
+    radius=35
+)
 
 mana_system = ManaSystem()
 
