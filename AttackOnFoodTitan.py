@@ -625,7 +625,7 @@ while IsRunning:
                     attack_titan_sound.play()
 
                 extra_chance, extra_multi = crispy_precision.get_crit_bonus()
-                base_damage = getattr(Equipment_System, "base_damage", Click_Damage_Feature.damage_per_click)
+                base_damage = Equipment_System.base_damage if hasattr(Equipment_System, "base_damage") else 1
                 final_damage, is_critical = calculate_damage(base_damage, extra_chance, extra_multi)
                 final_damage = int(final_damage * damage_boost.get_multiplier() * Currency_System.get_prestige_multiplier())
                 current_monster.take_damage(final_damage)

@@ -342,19 +342,18 @@ class DamageText:
         elapsed = pg.time.get_ticks() - self.start_ms
         return elapsed < self.lifetime_ms
 
-
-damage_per_click = getattr(Equipment_System, "base_damage", 1)
-
 crit_chance = 0.05        
 crit_multiplier = 2.0     
 
 def calculate_damage(base_damage=None, extra_chance=0.0, extra_multi=1.0):
     if base_damage is None:
-        damage = float(Equipment_System.base_damage)
+        # Always get the current base damage from Equipment_System
+        damage = float(getattr(Equipment_System, "base_damage", 1))
     else:
         damage = float(base_damage)
     
-    damage *= float(Equipment_System.total_damage_multiplier)
+    # Apply equipment multiplier
+    damage *= float(getattr(Equipment_System, "total_damage_multiplier", 1.0))
     
     upgrade_level = getattr(Player_Upgrade_System, "level", 0)
     damage += upgrade_level
