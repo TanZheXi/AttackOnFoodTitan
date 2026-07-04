@@ -822,7 +822,7 @@ while IsRunning:
     window.blit(stats_panel_bg, (LEFT_AREA_X, 0))
     
     # --- DRAW LIVE STATS PANEL (LEFT AREA) ---
-    overlay_y = 130
+    overlay_y = 100
     overlay_height = WINDOW_HEIGHT - overlay_y - 20
     
     # 1. Softer Overlay with Rounded Corners
@@ -840,7 +840,7 @@ while IsRunning:
     font_main_stat = pg.font.SysFont("courier", 22, bold=True) # Bigger for total output
     font_sub_stat = pg.font.SysFont("courier", 15, bold=True)  # Smaller for breakdown
     
-    stats_y = 150
+    stats_y = 120
     
     # Calculate Live Stats
     raw_base = getattr(Equipment_System, "base_damage", Click_Damage_Feature.damage_per_click)
@@ -985,18 +985,30 @@ while IsRunning:
     if pet_system:
         equipped_pets = pet_system.get_equipped_pets()
         pet_size = 60
-        pet_spacing = 10
+        pet_spacing = 15
         start_x = MIDDLE_CENTER_X - (len(equipped_pets) * pet_size + (len(equipped_pets) - 1) * pet_spacing) // 2
         pet_y = current_monster.rect.y + current_monster.rect.height + 20
         font_pet = pg.font.SysFont(None, 14)
+        
         for idx, pet in enumerate(equipped_pets):
             pet_x = start_x + idx * (pet_size + pet_spacing)
             pet_rect = pg.Rect(pet_x, pet_y, pet_size, pet_size)
-            pg.draw.rect(window, pet.color, pet_rect)
-            pg.draw.rect(window, (200, 200, 200), pet_rect, 2)
-            name_text = font_pet.render(pet.name, True, (0, 0, 0))
-            name_rect = name_text.get_rect(center=(pet_rect.centerx, pet_rect.centery))
-            window.blit(name_text, name_rect)
+            
+            # Try to get the cached icon from Pet_System
+            pet_icon = pet_system._get_item_icon(pet.name)
+            
+            if pet_icon:
+                # Scale up to 60x60 so the sprite pops without the background box
+                display_icon = pg.transform.scale(pet_icon, (60, 60))
+                icon_rect = display_icon.get_rect(center=pet_rect.center)
+                
+                # Blit just the image directly to the window (no background!)
+                window.blit(display_icon, icon_rect)
+            else:
+                # Fallback just in case an image is missing
+                name_text = font_pet.render(pet.name[:6]+"..", True, (0, 0, 0))
+                name_rect = name_text.get_rect(center=pet_rect.center)
+                window.blit(name_text, name_rect)
 
     Currency_System.draw_ui(window)
 
