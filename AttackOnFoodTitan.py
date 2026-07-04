@@ -490,7 +490,14 @@ if saved_monster_data:
         saved_monster_data["max_hp"],
         tuple(saved_monster_data["color"])
     )
-    current_monster.hp = saved_monster_data["hp"]
+    
+    # --- NEW: Restart the fight if they quit during death animation ---
+    if saved_monster_data["hp"] <= 0:
+        current_monster.hp = saved_monster_data["max_hp"]
+    else:
+        current_monster.hp = saved_monster_data["hp"]
+    # ------------------------------------------------------------------
+        
     current_monster.rect.x = MIDDLE_CENTER_X - MONSTER_SIZE // 2
     current_monster.rect.y = 275
     monster_manager.current_monster = current_monster
@@ -531,8 +538,9 @@ boost_indicator = BoostIndicator(x=LEFT_AREA_X + 10, y=WINDOW_HEIGHT - 100, widt
 if saved_boost_data:
     boost_indicator.restore_save_data(saved_boost_data)
 
-damage_boost = SpicySurge(x=LEFT_WIDTH + 5 + 35, y=current_monster.rect.y + current_monster.rect.height + 90, radius=35)
-crispy_precision = CrispyPrecision(x=damage_boost.x + 100, y=damage_boost.y, radius=35)
+# Moves them to the bottom-left corner of the middle area
+damage_boost = SpicySurge(x=LEFT_WIDTH + 45, y=WINDOW_HEIGHT - 60, radius=35)
+crispy_precision = CrispyPrecision(x=damage_boost.x + 90, y=damage_boost.y, radius=35)
 
 def on_prestige_reset():
     # Only reset the shop so players can re-buy things if needed
@@ -740,7 +748,7 @@ while IsRunning:
     attack_animations = new_animations
 
     # ========== Load Saved Data ==========
-    if not data_restored and Button_System.panel_manager.active_panel in ["Shop", "Inventory", "Pet"]:
+    if not data_restored:
         Button_System.panel_manager.load_saved_data(
             Currency_System.pocket_money,
             saved_inventory,
@@ -810,6 +818,96 @@ while IsRunning:
     # ========== Draw ==========
     window.fill((227, 227, 227))
     window.blit(stats_panel_bg, (LEFT_AREA_X, 0))
+    
+    # --- DRAW LIVE STATS PANEL (LEFT AREA) ---
+    # 1. Draw a dark semi-transparent overlay so text pops against the detailed background
+    # Shifted down to y=75 to avoid covering the built-in "STATS" title on the background!
+    overlay_y = 75
+    overlay_height = WINDOW_HEIGHT - overlay_y - 20
+    overlay = pg.Surface((LEFT_WIDTH - 20, overlay_height), pg.SRCALPHA)
+    overlay.fill((25, 25, 35, 215)) # Dark gray with 215 (out of 255) opacity
+    window.blit(overlay, (LEFT_AREA_X + 10, overlay_y))
+    
+    # 2. Add an inner border to the overlay for a clean framed look
+    pg.draw.rect(window, (150, 150, 170), (LEFT_AREA_X + 10, overlay_y, LEFT_WIDTH - 20, overlay_height), 2)
+    
+    font_section = pg.font.SysFont("courier", 18, bold=True)
+    font_stats = pg.font.SysFont("courier", 16, bold=True)
+    
+    # Start drawing the stats just below the built-in background title
+    stats_y = 90
+    
+    # Calculate Live Stats
+    raw_base = getattr(Equipment_System, "base_damage", Click_Damage_Feature.damage_per_click)
+    eq_multi = float(Equipment_System.total_damage_multiplier)
+    
+    upgrade_lvl = 0
+    if Button_System.panel_manager.player_upgrade_system:
+        upgrade_lvl = Button_System.panel_manager.player_upgrade_system.level
+        
+    base_calc = (raw_base * eq_multi) + upgrade_lvl
+    if upgrade_lvl > 0 and upgrade_lvl % 50 == 0:
+        base_calc *= 1.2
+        
+    ability_multi = damage_boost.get_multiplier()
+    prestige_multi = Currency_System.get_prestige_multiplier()
+    
+    final_click_dmg = int(base_calc * ability_multi * prestige_multi)
+    
+    pet_base = 0
+    pet_sys = Button_System.panel_manager.pet_system
+    if pet_sys:
+        pet_base = pet_sys.get_total_damage()
+        
+    final_pet_dmg = int(pet_base * ability_multi * prestige_multi)
+    
+    base_crit_c = Click_Damage_Feature.crit_chance
+    base_crit_m = Click_Damage_Feature.crit_multiplier
+    extra_crit_c, extra_crit_m = crispy_precision.get_crit_bonus()
+    
+    total_crit_c = base_crit_c + extra_crit_c
+    total_crit_m = base_crit_m * extra_crit_m
+
+    # Helper function for Headers
+    def draw_section_header(title, y):
+        pg.draw.rect(window, (60, 60, 80), (LEFT_AREA_X + 20, y, LEFT_WIDTH - 40, 25))
+        pg.draw.rect(window, (120, 120, 150), (LEFT_AREA_X + 20, y, LEFT_WIDTH - 40, 25), 1)
+        sec_surf = font_section.render(title, True, (255, 255, 255))
+        window.blit(sec_surf, (LEFT_AREA_X + (LEFT_WIDTH - sec_surf.get_width()) // 2, y + 4))
+        return y + 35
+
+    # Helper function for Stats
+    def draw_stat(label, value, color=(255,255,255), y_offset=0):
+        lbl = font_stats.render(label, True, (180, 180, 190))
+        val = font_stats.render(str(value), True, color)
+        # Widened the gap by pushing text closer to the edges to prevent overlap
+        window.blit(lbl, (LEFT_AREA_X + 20, y_offset))
+        window.blit(val, (LEFT_AREA_X + LEFT_WIDTH - val.get_width() - 20, y_offset))
+        return y_offset + 25
+
+    # --- SECTION 1: DAMAGE OUTPUT ---
+    stats_y = draw_section_header("1. TOTAL OUTPUT", stats_y)
+    stats_y = draw_stat("Final Click DMG", Currency_System.format_money(final_click_dmg), (255, 120, 120), stats_y)
+    stats_y = draw_stat("Final Pet DMG", Currency_System.format_money(final_pet_dmg), (120, 255, 120), stats_y)
+    stats_y += 15
+    
+    # --- SECTION 2: BASE BREAKDOWN ---
+    stats_y = draw_section_header("2. CLICK BREAKDOWN", stats_y)
+    stats_y = draw_stat("Weapon Base", Currency_System.format_money(raw_base), (220, 220, 220), stats_y)
+    # Shortened from "Weapon Multiplier" to avoid text overlapping the numbers
+    stats_y = draw_stat("Weapon Multi", f"x{eq_multi:.2f}", (220, 220, 220), stats_y)
+    stats_y = draw_stat("Upgrade Added", f"+{upgrade_lvl}", (220, 220, 220), stats_y)
+    stats_y = draw_stat("Pet Base", Currency_System.format_money(pet_base), (220, 220, 220), stats_y)
+    stats_y += 15
+    
+    # --- SECTION 3: MULTIPLIERS & CRITS ---
+    stats_y = draw_section_header("3. BUFFS & MULTIPLIERS", stats_y)
+    stats_y = draw_stat("Prestige Multi", f"x{prestige_multi:.2f}", (255, 215, 0), stats_y)
+    stats_y = draw_stat("Ability Multi", f"x{ability_multi:.2f}", (255, 150, 50), stats_y)
+    stats_y = draw_stat("Crit Chance", f"{int(total_crit_c * 100)}%", (150, 200, 255), stats_y)
+    stats_y = draw_stat("Crit Damage", f"x{total_crit_m:.2f}", (150, 200, 255), stats_y)
+    # -----------------------------------------
+    
     window.blit(get_current_background(monster_manager.stage), (MIDDLE_AREA_X, 0))
     
     boost_indicator.draw(window)

@@ -512,6 +512,20 @@ class PanelManager:
         self.pending_guide_data = guide_data if guide_data else {}
         self.pending_money = pocket_money
         
+        # --- FORCE INITIALIZE CRITICAL SYSTEMS ---
+        # Ensure Pet system is initialized immediately so pets spawn without opening the panel
+        if self.pet_system is None:
+            self.pet_system = PetSystem()
+            
+        # Ensure PlayerUpgrade system is initialized immediately so base damage applies
+        if self.player_upgrade_system is None:
+            upgrade_x = self.panel_rect.x + 10
+            upgrade_y = self.panel_rect.y + 50
+            upgrade_width = self.panel_rect.width - 20
+            upgrade_height = self.panel_rect.height - 80
+            self.player_upgrade_system = PlayerUpgradeSystem(upgrade_x, upgrade_y, upgrade_width, upgrade_height)
+            
+        # --- RESTORE SAVE DATA ---
         if self.inventory_system and self.pending_inventory:
             self.inventory_system.restore_inventory(self.pending_inventory)
         if self.shop_system and self.pending_shop_state:
@@ -521,20 +535,19 @@ class PanelManager:
             print(f"[BUTTON] Pet data restored: {len(self.pending_pet_data)} pets")
 
     def get_save_data(self):
-        inventory_items = []
-        if self.inventory_system:
-            inventory_items = self.inventory_system.get_inventory_state()
-        shop_state = []
-        if self.shop_system:
-            shop_state = self.shop_system.get_shop_state()
-        pet_data = []
-        if self.pet_system:
-            pet_data = self.pet_system.get_save_data()
-        guide_data = {}
-        if self.kitchen_guide_system:
-            guide_data = self.kitchen_guide_system.guide_manager.get_save_data()
+        # If a panel hasn't been opened yet, we MUST return its pending (loaded) data
+        # Otherwise, the auto-save will accidentally overwrite the save file with empty lists!
+        
+        inventory_items = self.inventory_system.get_inventory_state() if self.inventory_system else self.pending_inventory
+        
+        shop_state = self.shop_system.get_shop_state() if self.shop_system else self.pending_shop_state
+        
+        pet_data = self.pet_system.get_save_data() if self.pet_system else self.pending_pet_data
+        
+        guide_data = self.kitchen_guide_system.guide_manager.get_save_data() if self.kitchen_guide_system else self.pending_guide_data
+        
         return inventory_items, shop_state, pet_data, guide_data
-
+    
     def reset_all_on_prestige(self):
         if self.shop_system:
             self.shop_system.reset_shop()
