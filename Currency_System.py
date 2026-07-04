@@ -29,7 +29,7 @@ def set_boost_active(active):
 def is_boost_active():
     """Check if boost is active"""
     return _boost_active
-# ============================================================
+# ============================================
 
 # Load coin icon
 try:
