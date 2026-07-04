@@ -36,24 +36,14 @@ class PetSystem:
         self.all_pets = [
             # Common (Pet Shop)
             Pet("Baby Slime", "common", 1, (100, 200, 100), price=100),
-            Pet("Bat", "common", 1, (100, 100, 150), price=100),
             Pet("Beginner Assistant Fairy", "common", 2, (200, 200, 255), price=0),
-            # Uncommon
-            Pet("Wolf", "uncommon", 2, (150, 150, 200), price=300),
-            Pet("Hawk", "uncommon", 2, (200, 180, 100), price=300),
-            # Rare
-            Pet("Tiger", "rare", 3, (200, 150, 50), price=800),
-            Pet("Dragon", "rare", 3, (200, 100, 50), price=800),
             # Epic
-            Pet("Fire Spirit", "epic", 4, (255, 100, 50), price=2000),
-            Pet("Fairy", "epic", 4, (200, 150, 255), price=2000),
+            Pet("Fairy", "epic", 4, (200, 150, 255), price=5000),
+            Pet("Fire Spirit", "epic", 4, (200, 150, 255), price=2000),
             # Legendary
-            Pet("Dragon Whelp", "legendary", 5, (100, 200, 255), price=5000),
-            Pet("Hydra", "legendary", 5, (100, 200, 255), price=5000),
-            Pet("Cerberus", "legendary", 5, (255, 100, 100), price=5000),
+            Pet("Dragon Whelp", "legendary", 5, (100, 200, 255), price=15000),
             # Mythic
             Pet("Phoenix", "mythic", 10, (255, 100, 50), price=30000),
-            Pet("Bahamut", "mythic", 10, (255, 215, 0), price=15000),
         ]
         
         self.max_equip = 3
@@ -271,19 +261,11 @@ class PetSystem:
     def _get_pet_description(self, pet_name):
         descriptions = {
             "Baby Slime": "A jiggly baby slime that loves to bounce.",
-            "Bat": "A swift bat that strikes from above.",
             "Beginner Assistant Fairy": "A helpful fairy that boosts your cooking skills.",
-            "Wolf": "A loyal wolf that fights alongside you.",
-            "Hawk": "A keen-eyed hawk that never misses.",
-            "Tiger": "A fierce tiger with powerful claws.",
-            "Dragon": "A small dragon that breathes fire.",
             "Fire Spirit": "A blazing spirit that burns enemies.",
             "Fairy": "A magical fairy that heals wounds.",
             "Dragon Whelp": "A baby dragon learning to fly.",
-            "Hydra": "A multi-headed beast of legend.",
-            "Cerberus": "A three-headed guardian of the underworld.",
             "Phoenix": "A majestic bird that rises from ashes.",
-            "Bahamut": "The king of dragons, immensely powerful."
         }
         return descriptions.get(pet_name, "A mysterious pet with great potential.")
 
