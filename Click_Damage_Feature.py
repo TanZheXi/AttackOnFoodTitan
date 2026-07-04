@@ -236,7 +236,7 @@ class Monster:
             surface.blit(name_text, name_rect)
             
             # --- RIGHT SIDE: HP AMOUNT ---
-            hp_str = f"{format_number(self.hp)} HP"
+            hp_str = f"{format_number_short(self.hp)} HP"
             hp_shadow = font.render(hp_str, True, (0, 0, 0))
             # midright anchors the text to the right side with a 10px padding
             hp_shadow_rect = hp_shadow.get_rect(midright=(bar_x + bar_width - 10 + 1, text_center_y + 1))
@@ -331,7 +331,7 @@ class MonsterManager:
 class DamageText:
     def __init__(self, damage, pos, is_critical=False, suffix=""):
         self.damage = float(damage)   
-        self.display_text = f"+${format_number(self.damage)}{suffix}" 
+        self.display_text = f"+${format_number_short(self.damage)}{suffix}" 
         self.x, self.y = float(pos[0]), float(pos[1])
         self.vy = -60.0
         self.alpha = 255

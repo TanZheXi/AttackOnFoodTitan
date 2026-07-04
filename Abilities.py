@@ -139,39 +139,6 @@ class AbilityBase:
 # =========================
 class SpicySurge(AbilityBase):
     def __init__(self, x, y, radius):
-<<<<<<< HEAD
-        super().__init__(x, y, radius)
-        self.base_multiplier = 1.5
-        self.upgrade_bonus = 0.0
-        self.mana_cost = 20
-
-    def set_upgrade_bonus(self, bonus, new_mana_cost=None):
-        self.upgrade_bonus = bonus
-        if new_mana_cost is not None:
-            self.mana_cost = new_mana_cost
-
-    def activate(self, mana_system=None):
-        if mana_system and not mana_system.spend(self.mana_cost):
-            print("[ABILITY] Not enough mana for Spicy Surge!")
-            return
-        super().activate()
-
-    def get_multiplier(self):
-        if self.active:
-            return self.base_multiplier + self.upgrade_bonus
-        return 1.0
-
-    def draw(self, surface, mana_system=None):
-        self.rect = pg.Rect(self.x - self.radius, self.y - self.radius, self.radius * 2, self.radius * 2)
-
-         # Grey if not enough mana
-        if mana_system and mana_system.current_mana < self.mana_cost:
-            color = (80, 80, 80)
-        elif self.active:
-            color = (255, 0, 0)
-        elif self.cooldown:
-            color = (100, 100, 100)
-=======
         # We tell the base class exactly which image to load
         super().__init__(x, y, radius, icon_name="SpicySurge")
         self.damage_multiplier = 1.5
@@ -198,7 +165,6 @@ class SpicySurge(AbilityBase):
             # White highlight ring on hover
             if self.is_hovered() and not self.cooldown and not self.active:
                 pygame.gfxdraw.aacircle(surface, self.x, self.y, self.radius, (255, 255, 255))
->>>>>>> main
         else:
             # Fallback to standard colored circle if image is missing
             if self.active:
@@ -235,7 +201,6 @@ class SpicySurge(AbilityBase):
 # =========================
 class CrispyPrecision(AbilityBase):
     def __init__(self, x, y, radius):
-<<<<<<< HEAD
         super().__init__(x, y, radius)
         self.base_crit_chance = 0.15
         self.base_crit_damage = 1.5
@@ -254,12 +219,10 @@ class CrispyPrecision(AbilityBase):
             print("[ABILITY] Not enough mana for Crispy Precision!")
             return
         super().activate()
-=======
         # We tell the base class exactly which image to load
         super().__init__(x, y, radius, icon_name="CrispyPrecision")
         self.extra_crit_chance = 0.15
         self.extra_crit_damage = 1.5
->>>>>>> main
 
     def get_crit_bonus(self):
         if self.active:
@@ -267,18 +230,6 @@ class CrispyPrecision(AbilityBase):
                     self.base_crit_damage + self.upgrade_bonus_damage)
         return (0.0, 1.0)
 
-<<<<<<< HEAD
-    def draw(self, surface, mana_system=None):
-        self.rect = pg.Rect(self.x - self.radius, self.y - self.radius, self.radius * 2, self.radius * 2)
-
-        # Grey if not enough mana
-        if mana_system and mana_system.current_mana < self.mana_cost:
-            color = (80, 80, 80)
-        elif self.active:
-            color = (0, 255, 0)
-        elif self.cooldown:
-            color = (100, 100, 100)
-=======
     def draw(self, surface):
         # --- 1. DRAW BACKGROUND / ICON ---
         if self.icon_image:
@@ -298,7 +249,6 @@ class CrispyPrecision(AbilityBase):
             # White highlight ring on hover
             if self.is_hovered() and not self.cooldown and not self.active:
                 pygame.gfxdraw.aacircle(surface, self.x, self.y, self.radius, (255, 255, 255))
->>>>>>> main
         else:
             # Fallback to standard colored circle if image is missing
             if self.active:

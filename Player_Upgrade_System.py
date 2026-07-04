@@ -8,7 +8,6 @@ try:
     GLOBAL_CLICK.set_volume(0.5)
 except Exception as e:
     GLOBAL_CLICK = None
-from Audio_System import GLOBAL_CLICK
 
 pg.init()
 pg.font.init()

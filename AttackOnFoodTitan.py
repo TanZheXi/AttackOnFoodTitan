@@ -922,7 +922,7 @@ while IsRunning:
     stats_y = 120
     
     # Calculate Live Stats
-    raw_base = getattr(Equipment_System, "base_damage", Click_Damage_Feature.damage_per_click)
+    raw_base = getattr(Equipment_System, "base_damage", 1)
     eq_multi = float(Equipment_System.total_damage_multiplier)
     
     upgrade_lvl = 0
