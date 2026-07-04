@@ -6,6 +6,22 @@ import math
 import os
 import Player_Upgrade_System
 
+# Scientific Notation
+def format_number_short(value):
+    # Convert large numbers into short format (K, M, B, T, etc.).
+    abs_val = abs(value)
+    if abs_val < 1000:
+        return str(int(value))
+    elif abs_val < 1_000_000:
+        return f"{value/1_000:.2f}K"
+    elif abs_val < 1_000_000_000:
+        return f"{value/1_000_000:.2f}M"
+    elif abs_val < 1_000_000_000_000:
+        return f"{value/1_000_000_000:.2f}B"
+    elif abs_val < 1_000_000_000_000_000:
+        return f"{value/1_000_000_000_000:.2f}T"
+    else:
+        return f"{value:.2e}"  # fallback for astronomically large
 class Monster:
     def __init__(self, name, max_hp, color):
         self.name = name
@@ -183,7 +199,13 @@ class Monster:
             pg.draw.rect(surface, (255, 0, 0), (self.rect.x, bar_y, hp_bar_width, 10))
             
             font = pg.font.SysFont(None, 30)
-            text = font.render(f"{self.name} HP: {self.hp:.1f}/{self.max_hp:.1f}", True, (0, 0, 0))
+
+            # Scientific Notation
+            text = font.render(
+                f"{self.name} HP: {format_number_short(self.hp)}/{format_number_short(self.max_hp)}",
+                True, (0, 0, 0)
+                )
+
             text_rect = text.get_rect(center=(self.rect.centerx, bar_y - 15))
             surface.blit(text, text_rect)
 
@@ -270,15 +292,16 @@ class DamageText:
         return False
 
     def draw(self, surface):
+        # Scientific Notation
         if self.is_critical:
-            text_str = f"{self.damage:.2f}!"
+           text_str = f"{format_number_short(self.damage)}!" # Critical Hit
         else:
-            text_str = f"{self.damage:.1f}"
+           text_str = format_number_short(self.damage)       # Normal Hit
 
-        txt_surf = self.font.render(text_str, True, self.color)
-        txt_surf.set_alpha(self.alpha)
-        rect = txt_surf.get_rect(center=(int(self.x), int(self.y)))
-        surface.blit(txt_surf, rect)
+           txt_surf = self.font.render(text_str, True, self.color)
+           txt_surf.set_alpha(self.alpha)
+           rect = txt_surf.get_rect(center=(int(self.x), int(self.y)))
+           surface.blit(txt_surf, rect)
 
     def is_alive(self):
         elapsed = pg.time.get_ticks() - self.start_ms

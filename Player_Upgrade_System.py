@@ -12,6 +12,22 @@ except Exception as e:
 pg.init()
 pg.font.init()
 
+# Scientific Notation
+def format_number_short(value):
+    # Convert large numbers into short format (K, M, B, T, etc.).
+    abs_val = abs(value)
+    if abs_val < 1000:
+        return str(int(value))
+    elif abs_val < 1_000_000:
+        return f"{value/1_000:.2f}K"
+    elif abs_val < 1_000_000_000:
+        return f"{value/1_000_000:.2f}M"
+    elif abs_val < 1_000_000_000_000:
+        return f"{value/1_000_000_000:.2f}B"
+    elif abs_val < 1_000_000_000_000_000:
+        return f"{value/1_000_000_000_000:.2f}T"
+    else:
+        return f"{value:.2e}"  # fallback for astronomically large
 class CategoryButton:
     def __init__(self, rect, text, category_id):
         self.rect = rect
@@ -415,7 +431,11 @@ class PlayerUpgradeSystem:
             color = (100, 100, 200) if not rect.collidepoint(mouse_pos) else (140, 140, 240)
             pg.draw.rect(screen, color, rect)
             pg.draw.rect(screen, (200, 200, 200), rect, 2)
-            txt = self.font_text.render(f"{label} Lv {current_level} - Cost: {cost}", True, (255, 255, 255))
+            # Scientific Notation
+            txt = self.font_text.render(
+                f"{label} Lv {current_level} - Cost: {format_number_short(cost)}",
+                True, (255, 255, 255)
+                )
             screen.blit(txt, txt.get_rect(center=rect.center))
 
     def _draw_player_upgrade(self, screen):
@@ -570,9 +590,11 @@ class PlayerUpgradeSystem:
             pg.draw.rect(screen, color, rect)
             pg.draw.rect(screen, (200, 200, 200), rect, 2)
 
+            # Scientific Notation
             text = self.font_text.render(
-                f"{comp.name} Lv {level} → DMG {dmg} | Cost: {cost}", True, text_color
-            )
+                 f"{comp.name} Lv {level} → DMG {format_number_short(dmg)} | Cost: {format_number_short(cost)}",
+                 True, text_color
+                 )
             screen.blit(text, text.get_rect(center=rect.center))
 
             y_offset += box_height + spacing
