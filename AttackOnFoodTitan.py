@@ -573,14 +573,16 @@ if Button_System.panel_manager.kitchen_guide_system:
     Button_System.panel_manager.kitchen_guide_system.guide_manager.grant_reward = enhanced_grant_reward
 
 def sync_sfx_volumes(new_volume):
+    # Multiply the incoming new_volume by the original base dampeners
     if attack_titan_sound: 
-        attack_titan_sound.set_volume(new_volume)
+        attack_titan_sound.set_volume(new_volume * 1) 
     if titan_defeated_sound: 
-        titan_defeated_sound.set_volume(new_volume)
+        titan_defeated_sound.set_volume(new_volume * 0.6) 
     if pet_attack_sound: 
-        pet_attack_sound.set_volume(new_volume)
+        pet_attack_sound.set_volume(new_volume * 0.5) 
     if Button_System.panel_manager.prestige_sound: 
-        Button_System.panel_manager.prestige_sound.set_volume(new_volume)
+        # Defaulting to 0.8, but you can adjust this multiplier if prestige is too loud
+        Button_System.panel_manager.prestige_sound.set_volume(new_volume * 0.8)
 
 # Pass this function into the PanelManager so the Settings panel can trigger it
 Button_System.panel_manager.sync_sfx_callback = sync_sfx_volumes
@@ -820,22 +822,25 @@ while IsRunning:
     window.blit(stats_panel_bg, (LEFT_AREA_X, 0))
     
     # --- DRAW LIVE STATS PANEL (LEFT AREA) ---
-    # 1. Draw a dark semi-transparent overlay so text pops against the detailed background
-    # Shifted down to y=75 to avoid covering the built-in "STATS" title on the background!
-    overlay_y = 75
+    overlay_y = 130
     overlay_height = WINDOW_HEIGHT - overlay_y - 20
+    
+    # 1. Softer Overlay with Rounded Corners
+    # Create a surface for the dark overlay that supports alpha
     overlay = pg.Surface((LEFT_WIDTH - 20, overlay_height), pg.SRCALPHA)
-    overlay.fill((25, 25, 35, 215)) # Dark gray with 215 (out of 255) opacity
+    # Use Pygame's built-in drawing on the transparent surface to get rounded corners
+    pg.draw.rect(overlay, (25, 25, 35, 220), (0, 0, LEFT_WIDTH - 20, overlay_height), border_radius=12)
     window.blit(overlay, (LEFT_AREA_X + 10, overlay_y))
     
-    # 2. Add an inner border to the overlay for a clean framed look
-    pg.draw.rect(window, (150, 150, 170), (LEFT_AREA_X + 10, overlay_y, LEFT_WIDTH - 20, overlay_height), 2)
+    # 2. Sleek Inner Border
+    pg.draw.rect(window, (100, 100, 120), (LEFT_AREA_X + 10, overlay_y, LEFT_WIDTH - 20, overlay_height), 2, border_radius=12)
     
-    font_section = pg.font.SysFont("courier", 18, bold=True)
-    font_stats = pg.font.SysFont("courier", 16, bold=True)
+    # IDEALLY: Replace "courier" with a custom font file: pg.font.Font("Fonts/MyGameFont.ttf", size)
+    font_section = pg.font.SysFont("courier", 20, bold=True)
+    font_main_stat = pg.font.SysFont("courier", 22, bold=True) # Bigger for total output
+    font_sub_stat = pg.font.SysFont("courier", 15, bold=True)  # Smaller for breakdown
     
-    # Start drawing the stats just below the built-in background title
-    stats_y = 90
+    stats_y = 150
     
     # Calculate Live Stats
     raw_base = getattr(Equipment_System, "base_damage", Click_Damage_Feature.damage_per_click)
@@ -868,44 +873,59 @@ while IsRunning:
     total_crit_c = base_crit_c + extra_crit_c
     total_crit_m = base_crit_m * extra_crit_m
 
-    # Helper function for Headers
-    def draw_section_header(title, y):
-        pg.draw.rect(window, (60, 60, 80), (LEFT_AREA_X + 20, y, LEFT_WIDTH - 40, 25))
-        pg.draw.rect(window, (120, 120, 150), (LEFT_AREA_X + 20, y, LEFT_WIDTH - 40, 25), 1)
-        sec_surf = font_section.render(title, True, (255, 255, 255))
-        window.blit(sec_surf, (LEFT_AREA_X + (LEFT_WIDTH - sec_surf.get_width()) // 2, y + 4))
+    # Helper function: Draw text with a subtle drop shadow
+    def draw_text_with_shadow(text, font, color, x, y):
+        shadow = font.render(text, True, (15, 15, 20)) # Dark shadow
+        main_text = font.render(text, True, color)
+        window.blit(shadow, (x + 2, y + 2)) # Offset shadow by 2 pixels
+        window.blit(main_text, (x, y))
+        return main_text.get_width()
+
+    # Helper function: Clean Underline Headers instead of bulky boxes
+    def draw_sleek_header(title, y):
+        draw_text_with_shadow(title, font_section, (255, 220, 100), LEFT_AREA_X + 25, y)
+        # Draw a sleek fade-out line under the text
+        pg.draw.line(window, (100, 100, 120), (LEFT_AREA_X + 25, y + 25), (LEFT_AREA_X + LEFT_WIDTH - 25, y + 25), 2)
         return y + 35
 
-    # Helper function for Stats
-    def draw_stat(label, value, color=(255,255,255), y_offset=0):
-        lbl = font_stats.render(label, True, (180, 180, 190))
-        val = font_stats.render(str(value), True, color)
-        # Widened the gap by pushing text closer to the edges to prevent overlap
-        window.blit(lbl, (LEFT_AREA_X + 20, y_offset))
-        window.blit(val, (LEFT_AREA_X + LEFT_WIDTH - val.get_width() - 20, y_offset))
-        return y_offset + 25
+    # Helper function for Main Stats (Bigger, punchier)
+    def draw_main_stat(label, value, color, y_offset):
+        draw_text_with_shadow(label, font_sub_stat, (200, 200, 210), LEFT_AREA_X + 25, y_offset + 4)
+        
+        val_surf = font_main_stat.render(str(value), True, color)
+        val_x = LEFT_AREA_X + LEFT_WIDTH - val_surf.get_width() - 25
+        draw_text_with_shadow(str(value), font_main_stat, color, val_x, y_offset)
+        return y_offset + 30
+
+    # Helper function for Sub Stats (Smaller, subdued)
+    def draw_sub_stat(label, value, color, y_offset):
+        draw_text_with_shadow(label, font_sub_stat, (160, 160, 170), LEFT_AREA_X + 25, y_offset)
+        
+        val_surf = font_sub_stat.render(str(value), True, color)
+        val_x = LEFT_AREA_X + LEFT_WIDTH - val_surf.get_width() - 25
+        draw_text_with_shadow(str(value), font_sub_stat, color, val_x, y_offset)
+        return y_offset + 22
 
     # --- SECTION 1: DAMAGE OUTPUT ---
-    stats_y = draw_section_header("1. TOTAL OUTPUT", stats_y)
-    stats_y = draw_stat("Final Click DMG", Currency_System.format_money(final_click_dmg), (255, 120, 120), stats_y)
-    stats_y = draw_stat("Final Pet DMG", Currency_System.format_money(final_pet_dmg), (120, 255, 120), stats_y)
+    stats_y = draw_sleek_header("COMBAT POWER", stats_y)
+    stats_y = draw_main_stat("Click DMG", Currency_System.format_money(final_click_dmg), (255, 100, 100), stats_y)
+    stats_y = draw_main_stat("Pet DMG", Currency_System.format_money(final_pet_dmg), (100, 255, 100), stats_y)
     stats_y += 15
     
     # --- SECTION 2: BASE BREAKDOWN ---
-    stats_y = draw_section_header("2. CLICK BREAKDOWN", stats_y)
-    stats_y = draw_stat("Weapon Base", Currency_System.format_money(raw_base), (220, 220, 220), stats_y)
-    # Shortened from "Weapon Multiplier" to avoid text overlapping the numbers
-    stats_y = draw_stat("Weapon Multi", f"x{eq_multi:.2f}", (220, 220, 220), stats_y)
-    stats_y = draw_stat("Upgrade Added", f"+{upgrade_lvl}", (220, 220, 220), stats_y)
-    stats_y = draw_stat("Pet Base", Currency_System.format_money(pet_base), (220, 220, 220), stats_y)
+    stats_y = draw_sleek_header("BASE STATS", stats_y)
+    stats_y = draw_sub_stat("Weapon Base", Currency_System.format_money(raw_base), (200, 200, 200), stats_y)
+    stats_y = draw_sub_stat("Weapon Multi", f"x{Currency_System.format_money(eq_multi)}", (200, 200, 200), stats_y)
+    stats_y = draw_sub_stat("Upgrade Added", f"+{upgrade_lvl}", (200, 200, 200), stats_y)
+    stats_y = draw_sub_stat("Pet Base", Currency_System.format_money(pet_base), (200, 200, 200), stats_y)
     stats_y += 15
     
     # --- SECTION 3: MULTIPLIERS & CRITS ---
-    stats_y = draw_section_header("3. BUFFS & MULTIPLIERS", stats_y)
-    stats_y = draw_stat("Prestige Multi", f"x{prestige_multi:.2f}", (255, 215, 0), stats_y)
-    stats_y = draw_stat("Ability Multi", f"x{ability_multi:.2f}", (255, 150, 50), stats_y)
-    stats_y = draw_stat("Crit Chance", f"{int(total_crit_c * 100)}%", (150, 200, 255), stats_y)
-    stats_y = draw_stat("Crit Damage", f"x{total_crit_m:.2f}", (150, 200, 255), stats_y)
+    stats_y = draw_sleek_header("MULTIPLIERS", stats_y)
+    stats_y = draw_sub_stat("Prestige Multi", f"x{Currency_System.format_money(prestige_multi)}", (255, 215, 0), stats_y)
+    stats_y = draw_sub_stat("Ability Multi", f"x{Currency_System.format_money(ability_multi)}", (255, 150, 50), stats_y)
+    stats_y = draw_sub_stat("Crit Chance", f"{int(total_crit_c * 100)}%", (150, 200, 255), stats_y)
+    stats_y = draw_sub_stat("Crit Damage", f"x{Currency_System.format_money(total_crit_m)}", (150, 200, 255), stats_y)
     # -----------------------------------------
     
     window.blit(get_current_background(monster_manager.stage), (MIDDLE_AREA_X, 0))

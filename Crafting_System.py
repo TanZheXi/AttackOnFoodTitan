@@ -41,6 +41,22 @@ class CraftingSystem:
         except Exception as e:
             self.craft_sound = None
             print(f"[WARN] Crafting sound not found: {e}")
+
+        # --- LOAD SCRAPS ICON ---
+        try:
+            icon_path = os.path.join(os.path.dirname(__file__), "Icon", "Scraps.png")
+            if os.path.exists(icon_path):
+                raw_icon = pg.image.load(icon_path).convert_alpha()
+                # Crop the transparent space around the icon so it scales perfectly
+                bounding_rect = raw_icon.get_bounding_rect()
+                if bounding_rect.width > 0 and bounding_rect.height > 0:
+                    raw_icon = raw_icon.subsurface(bounding_rect)
+                self.scrap_icon = pg.transform.scale(raw_icon, (35, 35))
+            else:
+                self.scrap_icon = None
+        except Exception as e:
+            self.scrap_icon = None
+            print(f"[WARN] Scraps icon not found: {e}")
         
         # --- LAYOUT SECTIONS ---
         self.forge_area = pg.Rect(self.rect.x + 10, self.rect.y + 50, self.rect.width - 20, 240)
@@ -207,9 +223,16 @@ class CraftingSystem:
                 screen.blit(fallback_txt, fallback_txt.get_rect(center=self.weapon_box.center))
 
             cost_txt1 = self.font_med.render(f"{Currency_System.format_money(cost)}", True, (255, 215, 0))
-            cost_txt2 = self.font_small.render("Scraps", True, (200, 200, 200))
-            screen.blit(cost_txt1, cost_txt1.get_rect(center=(self.material_box.centerx, self.material_box.centery - 10)))
-            screen.blit(cost_txt2, cost_txt2.get_rect(center=(self.material_box.centerx, self.material_box.centery + 15)))
+            screen.blit(cost_txt1, cost_txt1.get_rect(center=(self.material_box.centerx, self.material_box.centery - 15)))
+            
+            # --- RENDER SCRAPS ICON INSTEAD OF TEXT ---
+            if hasattr(self, 'scrap_icon') and self.scrap_icon:
+                icon_rect = self.scrap_icon.get_rect(center=(self.material_box.centerx, self.material_box.centery + 15))
+                screen.blit(self.scrap_icon, icon_rect)
+            else:
+                cost_txt2 = self.font_small.render("Scraps", True, (200, 200, 200))
+                screen.blit(cost_txt2, cost_txt2.get_rect(center=(self.material_box.centerx, self.material_box.centery + 15)))
+            # ------------------------------------------
 
             stat_y = self.weapon_box.bottom + 15
             name_text = self.font_med.render(f"{self.selected_weapon} (Lv.{lvl})", True, (255, 255, 255))
