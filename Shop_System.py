@@ -113,7 +113,7 @@ class ShopSystem:
         self.item_width = 390
         self.item_height = 55
         self.buy_buttons = {}
-        # ===================================
+        # ========================================
 
         self.desc_panel_rect = None
 
