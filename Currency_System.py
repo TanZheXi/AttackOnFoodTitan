@@ -29,7 +29,7 @@ def set_boost_active(active):
 def is_boost_active():
     """Check if boost is active"""
     return _boost_active
-# ============================================================
+# ============================================
 
 # Load coin icon
 try:
@@ -108,24 +108,27 @@ def draw_ui(window):
 
     money_color = (34, 139, 34)
     
-    money_text = ui_font.render(f"{format_money(pocket_money)}", True, money_color)
+    money_str = f"{format_money(pocket_money)}"
+    money_text_shadow = ui_font.render(money_str, True, (0, 0, 0))
+    money_text = ui_font.render(money_str, True, money_color)
     
     if coin_icon:
         total_width = coin_icon.get_width() + 10 + money_text.get_width()
         start_x = MIDDLE_CENTER_X - (total_width // 2)
         coin_rect = coin_icon.get_rect(midleft=(start_x, 160))
         window.blit(coin_icon, coin_rect)
+        
+        shadow_rect = money_text_shadow.get_rect(midleft=(coin_rect.right + 10 + 2, 160 + 2))
+        window.blit(money_text_shadow, shadow_rect)
+        
         money_rect = money_text.get_rect(midleft=(coin_rect.right + 10, 160))
         window.blit(money_text, money_rect)
     else:
+        shadow_rect = money_text_shadow.get_rect(center=(MIDDLE_CENTER_X + 2, 160 + 2))
+        window.blit(money_text_shadow, shadow_rect)
+        
         money_rect = money_text.get_rect(center=(MIDDLE_CENTER_X, 160))
         window.blit(money_text, money_rect)
-
-    if michelin_stars > 0:
-        multiplier_display = get_prestige_multiplier()
-        stars_text = scrap_font.render(f"Michelin Stars: {michelin_stars} (x{multiplier_display:.1f} DMG)", True, (255, 215, 0))
-        stars_rect = stars_text.get_rect(center=(MIDDLE_CENTER_X, 200))
-        window.blit(stars_text, stars_rect)
 
 michelin_stars = 0 
 prestige_count = 0

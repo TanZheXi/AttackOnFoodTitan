@@ -1,5 +1,6 @@
 import pygame as pg
 import os
+from Audio_System import GLOBAL_CLICK
 from Shop_System import ShopSystem
 from Inventory_System import InventorySystem
 import Currency_System
@@ -18,6 +19,7 @@ try:
 except Exception as e:
     GLOBAL_CLICK = None
     print(f"Warning: Could not load click sound: {e}")
+from Settings_System import SettingsSystem
 
 pg.init()
 pg.font.init()  
@@ -52,13 +54,6 @@ class Main_button:
         try:
             if os.path.exists(icon_path_png):
                 original = pg.image.load(icon_path_png).convert_alpha()
-                
-                # Remove white color background
-                for x in range(original.get_width()):
-                    for y in range(original.get_height()):
-                        r, g, b, a = original.get_at((x, y))
-                        if r > 240 and g > 240 and b > 240:
-                            original.set_at((x, y), (0, 0, 0, 0))
                 
                 target_w = self.rect.width
                 target_h = self.rect.height
@@ -106,7 +101,7 @@ class Main_button:
             self.load_icon()
         
         if self.icon_image:
-            # --- NEW: NO SCALING IN THE LOOP! ---
+            #NO SCALING IN THE LOOP
             if self.is_hovered:
                 # We calculate the scaled image dynamically here only ONCE if missing, 
                 # but a better approach is saving it. For quick inline fix without breaking init:
@@ -141,6 +136,8 @@ class ToolbarButton:
     def handle_event(self, event):
         if event.type == pg.MOUSEBUTTONDOWN and event.button == 1:
             if self.rect.collidepoint(event.pos):
+                if GLOBAL_CLICK:
+                    GLOBAL_CLICK.play()
                 if self.callback:
                     self.callback()
                 return True
@@ -186,13 +183,6 @@ class VerticalScrollButton:
             if os.path.exists(icon_path_png):
                 original = pg.image.load(icon_path_png).convert_alpha()
                 
-                #Remove white color background
-                for x in range(original.get_width()):
-                    for y in range(original.get_height()):
-                        r, g, b, a = original.get_at((x, y))
-                        if r > 240 and g > 240 and b > 240:
-                            original.set_at((x, y), (0, 0, 0, 0))
-                
                 target_w = self.rect.width
                 target_h = self.rect.height
                 original_w = original.get_width()
@@ -221,6 +211,8 @@ class VerticalScrollButton:
     def handle_event(self, event):
         if event.type == pg.MOUSEBUTTONDOWN and event.button == 1:
             if self.rect.collidepoint(event.pos):
+                if GLOBAL_CLICK:
+                    GLOBAL_CLICK.play()
                 if self.callback:
                     self.callback()
                 return True
@@ -235,7 +227,7 @@ class VerticalScrollButton:
             self.load_icon()
         
         if self.icon_image:
-            # --- NEW: CACHE HOVER EFFECT ---
+            #CACHE HOVER EFFECT
             if self.is_hovered:
                 if not hasattr(self, 'hover_image'):
                     scale = 1.1
@@ -270,16 +262,21 @@ class GuideSystem:
             "",
             "[CONTROLS]",
             "Click on Monster - Deal damage",
-            "G Key - Gain OP WEAPON (Test)",
-            "E Key - Equip weapon (Legacy)",
-            "U Key - Unequip weapon",
-            "C Key - Craft Golden Spatula",
-            "N Key - Next Stage (Dev)",
-            "P Key - Prestige (Dev)",
             "",
-            "[SHOP]",
-            "Click Shop button to open shop",
-            "Use category tabs to filter items",
+            "[UPGRADE SYSTEM]",
+            "Click Upgrade button to open upgrade",
+            "Upgrade player to increase base damage",
+            "Upgrade cost increases with each upgrade",
+            "Upgrade companion pets to increase their damage",
+            "",
+            "[PET SYSTEM]",
+            "Click Pet button to manage pets",
+            "Equip up to 3 pets",
+            "",
+            "[CRAFTING SYSTEM]",
+            "Click Crafting button to open crafting panel",
+            "Scraps can be used to upgrade equipment",
+            "Each upgrade increases equipment's damage multiplier",
             "",
             "[INVENTORY]",
             "Click Inv button to open inventory",
@@ -287,22 +284,26 @@ class GuideSystem:
             "Click EQUIP button on item card to equip",
             "Click UNEQUIP button to remove",
             "",
-            "[PET SYSTEM]",
-            "Click Pet button to manage pets",
-            "Equip up to 3 pets",
-            "",
-            "[KITCHEN GUIDE]",
-            "Click G button to open kitchen guide",
-            "Complete tasks to earn rewards",
-            "Finish all to complete the guide",
+            "[SHOP]",
+            "Click Shop button to open shop",
+            "Use category tabs to filter items"
+            "Equipment, pets, and crafting materials can be purchased here",
             "",
             "[PRESTIGE]",
             "Reach Stage 10 to Prestige",
             "Earn Michelin Stars for permanent DMG boost",
+            ""
+            "[KITCHEN GUIDE]",
+            "Click KITCHEN GUIDE button to open kitchen guide",
+            "Complete tasks to earn rewards",
+            "Finish all to complete the guide",
+            "THE PANEL WILL DISAPPEAR ONCE ALL TASKS ARE COMPLETED",
             "",
-            "[UPGRADE]",
-            "Increase base damage permanently",
-            "Cost increases with each upgrade"
+            "[SETTINGS]",
+            "Master volume, SFX volume, and music volume can be adjusted here",
+            "Master volume affects all audio", 
+            "SFX volume affects sound effects",
+            "Music volume affects background music",
         ]
 
     def toggle(self):
@@ -365,6 +366,8 @@ class GuideSystem:
         if event.type == pg.MOUSEBUTTONDOWN and event.button == 1:
             close_rect = pg.Rect(self.rect.x + self.rect.width - 30, self.rect.y + 5, 25, 25)
             if close_rect.collidepoint(event.pos):
+                if GLOBAL_CLICK:
+                    GLOBAL_CLICK.play()
                 self.visible = False
                 return True
         
@@ -382,6 +385,7 @@ class PanelManager:
         self.active_panel = None
         self.left_column_buttons = []
         self.right_column_buttons = []
+        self.settings_system = None
         self.player_upgrade_system = None
         
 
@@ -448,6 +452,7 @@ class PanelManager:
             {"text": "S", "callback": lambda: self.toggle_panel("Shop"), "icon": "Shop"},
             {"text": "Pr", "callback": lambda: self.toggle_panel("Prestige"), "icon": "Prestige_icon"},
             {"text": "G", "callback": lambda: self.toggle_panel("Guide"), "icon": "KGuide"},
+            {"text": "Set", "callback": lambda: self.toggle_panel("Settings"), "icon": "Settings"}
         ]
 
         self.left_column_buttons = []
@@ -487,10 +492,14 @@ class PanelManager:
         if event.type == pg.MOUSEBUTTONDOWN and event.button == 1:
             for btn in self.left_column_buttons:
                 if btn.rect.collidepoint(event.pos):
+                    if GLOBAL_CLICK:
+                        GLOBAL_CLICK.play()
                     btn.callback()
                     return True
             for btn in self.right_column_buttons:
                 if btn.rect.collidepoint(event.pos):
+                    if GLOBAL_CLICK:
+                        GLOBAL_CLICK.play()
                     btn.callback()
                     return True
         return False
@@ -523,6 +532,20 @@ class PanelManager:
         self.pending_guide_data = guide_data if guide_data else {}
         self.pending_money = pocket_money
         
+        # --- FORCE INITIALIZE CRITICAL SYSTEMS ---
+        # Ensure Pet system is initialized immediately so pets spawn without opening the panel
+        if self.pet_system is None:
+            self.pet_system = PetSystem()
+            
+        # Ensure PlayerUpgrade system is initialized immediately so base damage applies
+        if self.player_upgrade_system is None:
+            upgrade_x = self.panel_rect.x + 10
+            upgrade_y = self.panel_rect.y + 50
+            upgrade_width = self.panel_rect.width - 20
+            upgrade_height = self.panel_rect.height - 80
+            self.player_upgrade_system = PlayerUpgradeSystem(upgrade_x, upgrade_y, upgrade_width, upgrade_height)
+            
+        # --- RESTORE SAVE DATA ---
         if self.inventory_system and self.pending_inventory:
             self.inventory_system.restore_inventory(self.pending_inventory)
         if self.shop_system and self.pending_shop_state:
@@ -532,20 +555,19 @@ class PanelManager:
             print(f"[BUTTON] Pet data restored: {len(self.pending_pet_data)} pets")
 
     def get_save_data(self):
-        inventory_items = []
-        if self.inventory_system:
-            inventory_items = self.inventory_system.get_inventory_state()
-        shop_state = []
-        if self.shop_system:
-            shop_state = self.shop_system.get_shop_state()
-        pet_data = []
-        if self.pet_system:
-            pet_data = self.pet_system.get_save_data()
-        guide_data = {}
-        if self.kitchen_guide_system:
-            guide_data = self.kitchen_guide_system.guide_manager.get_save_data()
+        # If a panel hasn't been opened yet, we MUST return its pending (loaded) data
+        # Otherwise, the auto-save will accidentally overwrite the save file with empty lists!
+        
+        inventory_items = self.inventory_system.get_inventory_state() if self.inventory_system else self.pending_inventory
+        
+        shop_state = self.shop_system.get_shop_state() if self.shop_system else self.pending_shop_state
+        
+        pet_data = self.pet_system.get_save_data() if self.pet_system else self.pending_pet_data
+        
+        guide_data = self.kitchen_guide_system.guide_manager.get_save_data() if self.kitchen_guide_system else self.pending_guide_data
+        
         return inventory_items, shop_state, pet_data, guide_data
-
+    
     def reset_all_on_prestige(self):
         if self.shop_system:
             self.shop_system.reset_shop()
@@ -562,15 +584,21 @@ class PanelManager:
             if event.type == pg.MOUSEBUTTONDOWN and event.button == 1:
                 for btn in self.left_column_buttons:
                     if btn.rect.collidepoint(event.pos):
+                        if GLOBAL_CLICK:
+                            GLOBAL_CLICK.play()
                         self.guide_system.visible = False
                         btn.callback()
                         return
                 for btn in self.right_column_buttons:
                     if btn.rect.collidepoint(event.pos):
+                        if GLOBAL_CLICK:
+                            GLOBAL_CLICK.play()
                         self.guide_system.visible = False
                         btn.callback()
                         return
                 if hasattr(self, 'guide_button_rect') and self.guide_button_rect.collidepoint(event.pos):
+                    if GLOBAL_CLICK:
+                        GLOBAL_CLICK.play()
                     self.guide_system.visible = False
                     return
             return
@@ -615,21 +643,9 @@ class PanelManager:
                 else:
                     self.confirm_prestige = False
             return
+        elif self.active_panel == "Settings" and self.settings_system:
+            self.settings_system.handle_event(event, GLOBAL_CLICK)
         
-    def get_active_panel_rect(self):
-        # Return the rect of the currently active panel, if any.
-        if self.active_panel:
-            return self.panel_rect
-        return None
-    
-    def is_click_on_button(self, pos):
-        # Return True if the click is inside any panel button rect."""
-        for btn in self.left_column_buttons + self.right_column_buttons:
-            if btn.rect.collidepoint(pos):
-               return True
-        if hasattr(self, 'guide_button_rect') and self.guide_button_rect.collidepoint(pos):
-            return True
-        return False
 
     def add_to_inventory(self, item_name):
         if self.pet_system is None:
@@ -671,7 +687,7 @@ class PanelManager:
             self.kitchen_guide_system = KitchenGuideSystem(0, 0, 1, 1)
             if self.pending_guide_data:
                 self.kitchen_guide_system.guide_manager.restore_save_data(self.pending_guide_data)
-        # ======================================================================
+        # ===========================================================
         
         right_area_rect = pg.Rect(850, 0, 450, 750)
         pg.draw.rect(screen, (45, 45, 55), right_area_rect)
@@ -724,13 +740,21 @@ class PanelManager:
                         (self.panel_rect.x, self.panel_rect.y + self.panel_rect.height),
                         (self.panel_rect.x + self.panel_rect.width, self.panel_rect.y + self.panel_rect.height), 2)
             
-            font = pg.font.SysFont(None, 32)
+            # --- NEW UNIFIED HEADER STYLE ---
+            font_title = pg.font.SysFont("courier", 36, bold=True)
+            
             if self.active_panel == "Guide":
-                title_text = font.render("KITCHEN GUIDE", True, (255, 220, 100))
-            else:
-                title_text = font.render(f"{self.active_panel}", True, (255, 220, 100))
-            title_rect = title_text.get_rect(center=(self.panel_rect.centerx, self.panel_rect.y + 22))
-            screen.blit(title_text, title_rect)
+                title_str = "- KITCHEN GUIDE -"
+            elif self.active_panel != "Prestige":
+                # Automatically uppercase the panel name and add hyphens
+                title_str = f"- {self.active_panel.upper()} -"
+            
+            # Only draw here if it's not Prestige (Prestige handles its own drawing)
+            if self.active_panel != "Prestige":
+                # Using the exact same yellow color (255, 255, 0) and Y-offset (+30) as the Prestige panel
+                title_text = font_title.render(title_str, True, (255, 255, 0))
+                title_rect = title_text.get_rect(center=(self.panel_rect.centerx, self.panel_rect.y + 30))
+                screen.blit(title_text, title_rect)
             
             if self.active_panel == "Shop":
                 if self.shop_system is None:
@@ -804,8 +828,10 @@ class PanelManager:
                     })
                 self.kitchen_guide_system.update()
                 self.kitchen_guide_system.draw(screen)
+
             elif self.active_panel == "Prestige":
                 self._draw_prestige_panel(screen)
+
             elif self.active_panel == "Upgrade":
                 if self.player_upgrade_system is None:
                     upgrade_x = self.panel_rect.x + 10
@@ -825,17 +851,28 @@ class PanelManager:
                     )
                 self.companion_system.draw(screen)
 
+            elif self.active_panel == "Settings":
+               if self.settings_system is None:
+                   set_x = self.panel_rect.x + 10
+                   set_y = self.panel_rect.y + 50
+                   set_width = self.panel_rect.width - 20
+                   set_height = self.panel_rect.height - 80
+                   self.settings_system = SettingsSystem(set_x, set_y, set_width, set_height)
+                   if hasattr(self, 'sync_sfx_callback'):
+                        self.settings_system.update_external_sfx = self.sync_sfx_callback
+                   self.settings_system.apply_volumes()
+                
+            
+               self.settings_system.draw(screen)
+                
+
     def _draw_prestige_panel(self, screen):
         stars_to_gain = Currency_System.calculate_prestige_rewards(self.current_stage)
         new_start = Currency_System.get_advanced_start(self.current_stage)
         
         current_stars = Currency_System.michelin_stars
         current_mult = Currency_System.get_prestige_multiplier()
-        
-        pg.draw.rect(screen, (20, 20, 40), self.panel_rect)
-        pg.draw.rect(screen, (0, 0, 0), self.panel_rect, 6) 
-        pg.draw.rect(screen, (200, 200, 200), self.panel_rect.inflate(-12, -12), 4)
-
+    
         try:
             badge_img = pg.image.load("Icon/Prestige_icon.png").convert_alpha()
             badge_img = pg.transform.scale(badge_img, (350, 450))

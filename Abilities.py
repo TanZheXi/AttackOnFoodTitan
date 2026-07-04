@@ -2,6 +2,7 @@ import pygame as pg
 import pygame.gfxdraw
 import time
 import math
+import os
 
 # =========================
 # Helper: Smooth Circle
@@ -25,7 +26,7 @@ def lerp_color(color_start, color_end, t):
 # Base Ability Template
 # =========================
 class AbilityBase:
-    def __init__(self, x, y, radius, duration=20, cooldown_time=120):
+    def __init__(self, x, y, radius, duration=20, cooldown_time=120, icon_name=None):
         self.x = x
         self.y = y
         self.radius = radius
@@ -36,6 +37,18 @@ class AbilityBase:
         self.start_time = 0
         self.cooldown_start = 0
         self.font = pg.font.SysFont(None, 24)
+        
+        # --- NEW: ICON LOADER ---
+        self.icon_image = None
+        if icon_name:
+            try:
+                icon_path = os.path.join(os.path.dirname(__file__), "Icon", f"{icon_name}.png")
+                if os.path.exists(icon_path):
+                    img = pg.image.load(icon_path).convert_alpha()
+                    # Scale the icon perfectly to fit inside the circle
+                    self.icon_image = pg.transform.scale(img, (radius * 2, radius * 2))
+            except Exception as e:
+                print(f"[ABILITY] Failed to load {icon_name}.png: {e}")
 
         # Add rect for collision detection
         self.rect = pg.Rect(x - radius, y - radius, radius * 2, radius * 2)
@@ -80,6 +93,12 @@ class AbilityBase:
             text = f"CD {remaining}s"
         if text:
             txt_surface = self.font.render(text, True, (255, 255, 255))
+            
+            # Add a small black shadow so text pops against the images
+            shadow = self.font.render(text, True, (0, 0, 0))
+            shadow_rect = shadow.get_rect(center=(self.x + 1, self.y + 1))
+            surface.blit(shadow, shadow_rect)
+            
             txt_rect = txt_surface.get_rect(center=(self.x, self.y))
             surface.blit(txt_surface, txt_rect)
 
@@ -120,6 +139,7 @@ class AbilityBase:
 # =========================
 class SpicySurge(AbilityBase):
     def __init__(self, x, y, radius):
+<<<<<<< HEAD
         super().__init__(x, y, radius)
         self.base_multiplier = 1.5
         self.upgrade_bonus = 0.0
@@ -151,15 +171,50 @@ class SpicySurge(AbilityBase):
             color = (255, 0, 0)
         elif self.cooldown:
             color = (100, 100, 100)
+=======
+        # We tell the base class exactly which image to load
+        super().__init__(x, y, radius, icon_name="SpicySurge")
+        self.damage_multiplier = 1.5
+
+    def get_multiplier(self):
+        return self.damage_multiplier if self.active else 1.0
+
+    def draw(self, surface):
+        # --- 1. DRAW BACKGROUND / ICON ---
+        if self.icon_image:
+            rect = self.icon_image.get_rect(center=(self.x, self.y))
+            surface.blit(self.icon_image, rect)
+            
+            # Apply a dark tint if on cooldown, or a red tint if active
+            if self.cooldown:
+                overlay = pg.Surface((self.radius * 2, self.radius * 2), pg.SRCALPHA)
+                pg.draw.circle(overlay, (0, 0, 0, 150), (self.radius, self.radius), self.radius)
+                surface.blit(overlay, rect)
+            elif self.active:
+                overlay = pg.Surface((self.radius * 2, self.radius * 2), pg.SRCALPHA)
+                pg.draw.circle(overlay, (255, 50, 50, 60), (self.radius, self.radius), self.radius)
+                surface.blit(overlay, rect)
+                
+            # White highlight ring on hover
+            if self.is_hovered() and not self.cooldown and not self.active:
+                pygame.gfxdraw.aacircle(surface, self.x, self.y, self.radius, (255, 255, 255))
+>>>>>>> main
         else:
-            color = (200, 0, 0)
+            # Fallback to standard colored circle if image is missing
+            if self.active:
+                color = (255, 0, 0)
+            elif self.cooldown:
+                color = (100, 100, 100)
+            else:
+                color = (200, 0, 0)
+            if self.is_hovered():
+                color = self.brighten(color)
+            draw_smooth_circle(surface, self.x, self.y, self.radius, color)
 
-        if self.is_hovered():
-            color = self.brighten(color)
-
-        draw_smooth_circle(surface, self.x, self.y, self.radius, color)
+        # --- 2. DRAW TEXT TIMER ---
         self.draw_timer(surface)
 
+        # --- 3. DRAW SWEEP PROGRESS ARC ---
         if self.active:
             progress = (time.time() - self.start_time) / self.duration
             bar_color = lerp_color((173, 216, 230), (255, 0, 0), progress)
@@ -180,6 +235,7 @@ class SpicySurge(AbilityBase):
 # =========================
 class CrispyPrecision(AbilityBase):
     def __init__(self, x, y, radius):
+<<<<<<< HEAD
         super().__init__(x, y, radius)
         self.base_crit_chance = 0.15
         self.base_crit_damage = 1.5
@@ -198,6 +254,12 @@ class CrispyPrecision(AbilityBase):
             print("[ABILITY] Not enough mana for Crispy Precision!")
             return
         super().activate()
+=======
+        # We tell the base class exactly which image to load
+        super().__init__(x, y, radius, icon_name="CrispyPrecision")
+        self.extra_crit_chance = 0.15
+        self.extra_crit_damage = 1.5
+>>>>>>> main
 
     def get_crit_bonus(self):
         if self.active:
@@ -205,6 +267,7 @@ class CrispyPrecision(AbilityBase):
                     self.base_crit_damage + self.upgrade_bonus_damage)
         return (0.0, 1.0)
 
+<<<<<<< HEAD
     def draw(self, surface, mana_system=None):
         self.rect = pg.Rect(self.x - self.radius, self.y - self.radius, self.radius * 2, self.radius * 2)
 
@@ -215,15 +278,43 @@ class CrispyPrecision(AbilityBase):
             color = (0, 255, 0)
         elif self.cooldown:
             color = (100, 100, 100)
+=======
+    def draw(self, surface):
+        # --- 1. DRAW BACKGROUND / ICON ---
+        if self.icon_image:
+            rect = self.icon_image.get_rect(center=(self.x, self.y))
+            surface.blit(self.icon_image, rect)
+            
+            # Apply a dark tint if on cooldown, or a green tint if active
+            if self.cooldown:
+                overlay = pg.Surface((self.radius * 2, self.radius * 2), pg.SRCALPHA)
+                pg.draw.circle(overlay, (0, 0, 0, 150), (self.radius, self.radius), self.radius)
+                surface.blit(overlay, rect)
+            elif self.active:
+                overlay = pg.Surface((self.radius * 2, self.radius * 2), pg.SRCALPHA)
+                pg.draw.circle(overlay, (50, 255, 50, 60), (self.radius, self.radius), self.radius)
+                surface.blit(overlay, rect)
+                
+            # White highlight ring on hover
+            if self.is_hovered() and not self.cooldown and not self.active:
+                pygame.gfxdraw.aacircle(surface, self.x, self.y, self.radius, (255, 255, 255))
+>>>>>>> main
         else:
-            color = (0, 200, 0)
+            # Fallback to standard colored circle if image is missing
+            if self.active:
+                color = (0, 255, 0)
+            elif self.cooldown:
+                color = (100, 100, 100)
+            else:
+                color = (0, 200, 0)
+            if self.is_hovered():
+                color = self.brighten(color)
+            draw_smooth_circle(surface, self.x, self.y, self.radius, color)
 
-        if self.is_hovered():
-            color = self.brighten(color)
-
-        draw_smooth_circle(surface, self.x, self.y, self.radius, color)
+        # --- 2. DRAW TEXT TIMER ---
         self.draw_timer(surface)
 
+        # --- 3. DRAW SWEEP PROGRESS ARC ---
         if self.active:
             progress = (time.time() - self.start_time) / self.duration
             bar_color = lerp_color((173, 216, 230), (255, 0, 0), progress)
