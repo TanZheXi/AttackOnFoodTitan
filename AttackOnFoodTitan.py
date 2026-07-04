@@ -11,7 +11,7 @@ import Equipment_System
 from KitchenGuide_System import KitchenGuideSystem
 from Abilities import SpicySurge, CrispyPrecision
 
-# ========== Spinner Animation ==========
+# ========== Spinner Loading Animation ==========
 def show_loading_screen(screen, message, progress=0):
     """Shows a loading screen with a spinning circle animation."""
     screen.fill((30, 30, 40))
@@ -279,7 +279,7 @@ class AttackAnimation:
         self.offset_y = offset_y
         self.alpha = 255
         
-        # --- NEW: CACHE THE SCALED FRAMES ONCE ---
+        #CACHE THE SCALED FRAMES ONCE
         self.frames = []
         for f in frames:
             if self.scale != 1.0:
@@ -310,7 +310,7 @@ class AttackAnimation:
         if not self.is_active or self.current_frame >= len(self.frames):
             return
             
-        # --- NEW: NO MORE SCALING IN THE DRAW LOOP! ---
+        #CACHE THE SCALED FRAMES ONCE
         frame = self.frames[self.current_frame]
         
         # Copy to safely apply transparency

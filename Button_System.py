@@ -91,7 +91,7 @@ class Main_button:
             self.load_icon()
         
         if self.icon_image:
-            # --- NEW: NO SCALING IN THE LOOP! ---
+            #NO SCALING IN THE LOOP
             if self.is_hovered:
                 # We calculate the scaled image dynamically here only ONCE if missing, 
                 # but a better approach is saving it. For quick inline fix without breaking init:
@@ -217,7 +217,7 @@ class VerticalScrollButton:
             self.load_icon()
         
         if self.icon_image:
-            # --- NEW: CACHE HOVER EFFECT ---
+            #CACHE HOVER EFFECT
             if self.is_hovered:
                 if not hasattr(self, 'hover_image'):
                     scale = 1.1
@@ -252,12 +252,6 @@ class GuideSystem:
             "",
             "[CONTROLS]",
             "Click on Monster - Deal damage",
-            "G Key - Gain OP WEAPON (Test)",
-            "E Key - Equip weapon (Legacy)",
-            "U Key - Unequip weapon",
-            "C Key - Craft Golden Spatula",
-            "N Key - Next Stage (Dev)",
-            "P Key - Prestige (Dev)",
             "",
             "[SHOP]",
             "Click Shop button to open shop",
@@ -274,7 +268,7 @@ class GuideSystem:
             "Equip up to 3 pets",
             "",
             "[KITCHEN GUIDE]",
-            "Click G button to open kitchen guide",
+            "Click KITCHEN GUIDE button to open kitchen guide",
             "Complete tasks to earn rewards",
             "Finish all to complete the guide",
             "",
@@ -665,7 +659,7 @@ class PanelManager:
             self.kitchen_guide_system = KitchenGuideSystem(0, 0, 1, 1)
             if self.pending_guide_data:
                 self.kitchen_guide_system.guide_manager.restore_save_data(self.pending_guide_data)
-        # ======================================================================
+        # ===========================================================
         
         right_area_rect = pg.Rect(850, 0, 450, 750)
         pg.draw.rect(screen, (45, 45, 55), right_area_rect)
