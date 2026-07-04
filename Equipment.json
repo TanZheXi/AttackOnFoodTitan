@@ -10,12 +10,12 @@
     },
     "Rusty Spatula": {
         "owned": false,
-        "multiplier": 9.0,
+        "multiplier": 11.5,
         "cost": 100,
         "scrap_value": 10,
         "rarity": "Common",
         "slot": "weapon",
-        "level": 16
+        "level": 21
     },
     "Golden Spatula": {
         "owned": false,
@@ -37,12 +37,12 @@
     },
     "Mythic Pan": {
         "owned": false,
-        "multiplier": 21.5,
+        "multiplier": 27.5,
         "cost": 10000,
         "scrap_value": 1000,
         "rarity": "Mythic",
         "slot": "weapon",
-        "level": 4
+        "level": 16
     },
     "Beginner Wok": {
         "owned": false,

@@ -107,7 +107,7 @@ def equip_equipment(item_name):
         save_equipment()  # save immediately after equipping
         print(f"[EQUIP] Saved to JSON - equipped weapon: {equipped_slots['weapon']}")
 
-        # ========== Announce Kitchen Guide Equipment Update ==========
+        # ==== Announce Kitchen Guide Equipment Update ====
         if _equip_callback:
             _equip_callback()
         # =================================================

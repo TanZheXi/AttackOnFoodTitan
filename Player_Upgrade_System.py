@@ -1,12 +1,7 @@
 import pygame as pg
 import Currency_System
 import Equipment_System
-
-try:
-    GLOBAL_CLICK = pg.mixer.Sound("Sfx/click.wav")
-    GLOBAL_CLICK.set_volume(0.5)
-except Exception as e:
-    GLOBAL_CLICK = None
+from Audio_System import GLOBAL_CLICK
 
 pg.init()
 pg.font.init()
@@ -120,7 +115,7 @@ class PlayerUpgradeSystem:
 
             print(f"[UPGRADE] Base Damage Lv {self.level} → {Equipment_System.base_damage}, Next Cost: {self.get_upgrade_cost()}")
 
-            # ========== Announce Kitchen Guide Upgrade Update ==========
+            # ===== Announce Kitchen Guide Upgrade Update =====
             if self.upgrade_callback:
                 self.upgrade_callback()
             # =================================================
