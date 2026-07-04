@@ -241,7 +241,7 @@ def start_background_music():
         return True
         
     except Exception as e:
-        print(f"[BGM] Failed to start: {e}")
+        print(f"[BGM] Failed to start: {e}")        
         return False
 
 # Load BGM
@@ -468,8 +468,9 @@ def get_current_background(stage):
 show_loading_screen(window, "Loading save data...", 0.7)
 
 clock = pg.time.Clock()
-afk_earnings, saved_monster_data, saved_money, saved_progression_index, saved_stage, saved_inventory, saved_shop_state, saved_pet_data, saved_upgrade_level, saved_guide_data, saved_boost_data = AFK_System.afk_system.load_and_calculate_afk_rewards()
+afk_earnings, saved_monster_data, saved_money, saved_progression_index, saved_stage, saved_inventory, saved_shop_state, saved_pet_data, saved_upgrade_level, saved_guide_data, saved_boost_data, saved_michelin_stars = AFK_System.afk_system.load_and_calculate_afk_rewards()
 
+Currency_System.michelin_stars = saved_michelin_stars
 Equipment_System.load_equipment()
 
 if saved_money > 0:
@@ -489,7 +490,14 @@ if saved_monster_data:
         saved_monster_data["max_hp"],
         tuple(saved_monster_data["color"])
     )
-    current_monster.hp = saved_monster_data["hp"]
+    
+    # --- NEW: Restart the fight if they quit during death animation ---
+    if saved_monster_data["hp"] <= 0:
+        current_monster.hp = saved_monster_data["max_hp"]
+    else:
+        current_monster.hp = saved_monster_data["hp"]
+    # ------------------------------------------------------------------
+        
     current_monster.rect.x = MIDDLE_CENTER_X - MONSTER_SIZE // 2
     current_monster.rect.y = 275
     monster_manager.current_monster = current_monster
@@ -499,6 +507,15 @@ else:
     current_monster.rect.y = 275
 
 show_loading_screen(window, "Initializing systems...", 0.9)
+
+try:
+    icon_path = os.path.join(os.path.dirname(__file__), "Icon", "Monster.png")
+    raw_monster_icon = pg.image.load(icon_path).convert_alpha()
+    # Scale it down to 35x35 so it fits perfectly next to the text
+    hud_monster_icon = pg.transform.scale(raw_monster_icon, (35, 35))
+except Exception as e:
+    print(f"Could not load monster icon: {e}")
+    hud_monster_icon = None
 
 IsRunning = True
 last_auto_save = time.time()
@@ -521,8 +538,9 @@ boost_indicator = BoostIndicator(x=LEFT_AREA_X + 10, y=WINDOW_HEIGHT - 100, widt
 if saved_boost_data:
     boost_indicator.restore_save_data(saved_boost_data)
 
-damage_boost = SpicySurge(x=LEFT_WIDTH + 5 + 35, y=current_monster.rect.y + current_monster.rect.height + 90, radius=35)
-crispy_precision = CrispyPrecision(x=damage_boost.x + 100, y=damage_boost.y, radius=35)
+# Moves them to the bottom-left corner of the middle area
+damage_boost = SpicySurge(x=LEFT_WIDTH + 45, y=WINDOW_HEIGHT - 60, radius=35)
+crispy_precision = CrispyPrecision(x=damage_boost.x + 90, y=damage_boost.y, radius=35)
 
 def on_prestige_reset():
     # Only reset the shop so players can re-buy things if needed
@@ -554,7 +572,24 @@ if Button_System.panel_manager.kitchen_guide_system:
             boost_indicator.activate(Button_System.panel_manager.kitchen_guide_system.guide_manager.boost_end_time)
     Button_System.panel_manager.kitchen_guide_system.guide_manager.grant_reward = enhanced_grant_reward
 
+def sync_sfx_volumes(new_volume):
+    # Multiply the incoming new_volume by the original base dampeners
+    if attack_titan_sound: 
+        attack_titan_sound.set_volume(new_volume * 1) 
+    if titan_defeated_sound: 
+        titan_defeated_sound.set_volume(new_volume * 0.6) 
+    if pet_attack_sound: 
+        pet_attack_sound.set_volume(new_volume * 0.5) 
+    if Button_System.panel_manager.prestige_sound: 
+        # Defaulting to 0.8, but you can adjust this multiplier if prestige is too loud
+        Button_System.panel_manager.prestige_sound.set_volume(new_volume * 0.8)
+
+# Pass this function into the PanelManager so the Settings panel can trigger it
+Button_System.panel_manager.sync_sfx_callback = sync_sfx_volumes
+
 show_loading_screen(window, "Starting game...", 1.0)
+
+
 
 # ========== Main Loop ==========
 while IsRunning:
@@ -589,7 +624,8 @@ while IsRunning:
                 pet_data=pet_data,
                 upgrade_level=upgrade_level,
                 guide_data=guide_data,
-                boost_data=boost_data
+                boost_data=boost_data,
+                michelin_stars=Currency_System.michelin_stars
             )
             IsRunning = False
             break
@@ -714,7 +750,7 @@ while IsRunning:
     attack_animations = new_animations
 
     # ========== Load Saved Data ==========
-    if not data_restored and Button_System.panel_manager.active_panel in ["Shop", "Inventory", "Pet"]:
+    if not data_restored:
         Button_System.panel_manager.load_saved_data(
             Currency_System.pocket_money,
             saved_inventory,
@@ -774,7 +810,8 @@ while IsRunning:
             pet_data=pet_data,
             upgrade_level=upgrade_level,
             guide_data=guide_data,
-            boost_data=boost_data
+            boost_data=boost_data,
+            michelin_stars=Currency_System.michelin_stars
         )
         AFK_System.afk_system.update_save_time()
         Equipment_System.save_equipment()
@@ -783,6 +820,114 @@ while IsRunning:
     # ========== Draw ==========
     window.fill((227, 227, 227))
     window.blit(stats_panel_bg, (LEFT_AREA_X, 0))
+    
+    # --- DRAW LIVE STATS PANEL (LEFT AREA) ---
+    overlay_y = 100
+    overlay_height = WINDOW_HEIGHT - overlay_y - 20
+    
+    # 1. Softer Overlay with Rounded Corners
+    # Create a surface for the dark overlay that supports alpha
+    overlay = pg.Surface((LEFT_WIDTH - 20, overlay_height), pg.SRCALPHA)
+    # Use Pygame's built-in drawing on the transparent surface to get rounded corners
+    pg.draw.rect(overlay, (25, 25, 35, 220), (0, 0, LEFT_WIDTH - 20, overlay_height), border_radius=12)
+    window.blit(overlay, (LEFT_AREA_X + 10, overlay_y))
+    
+    # 2. Sleek Inner Border
+    pg.draw.rect(window, (100, 100, 120), (LEFT_AREA_X + 10, overlay_y, LEFT_WIDTH - 20, overlay_height), 2, border_radius=12)
+    
+    # IDEALLY: Replace "courier" with a custom font file: pg.font.Font("Fonts/MyGameFont.ttf", size)
+    font_section = pg.font.SysFont("courier", 20, bold=True)
+    font_main_stat = pg.font.SysFont("courier", 22, bold=True) # Bigger for total output
+    font_sub_stat = pg.font.SysFont("courier", 15, bold=True)  # Smaller for breakdown
+    
+    stats_y = 120
+    
+    # Calculate Live Stats
+    raw_base = getattr(Equipment_System, "base_damage", Click_Damage_Feature.damage_per_click)
+    eq_multi = float(Equipment_System.total_damage_multiplier)
+    
+    upgrade_lvl = 0
+    if Button_System.panel_manager.player_upgrade_system:
+        upgrade_lvl = Button_System.panel_manager.player_upgrade_system.level
+        
+    base_calc = (raw_base * eq_multi) + upgrade_lvl
+    if upgrade_lvl > 0 and upgrade_lvl % 50 == 0:
+        base_calc *= 1.2
+        
+    ability_multi = damage_boost.get_multiplier()
+    prestige_multi = Currency_System.get_prestige_multiplier()
+    
+    final_click_dmg = int(base_calc * ability_multi * prestige_multi)
+    
+    pet_base = 0
+    pet_sys = Button_System.panel_manager.pet_system
+    if pet_sys:
+        pet_base = pet_sys.get_total_damage()
+        
+    final_pet_dmg = int(pet_base * ability_multi * prestige_multi)
+    
+    base_crit_c = Click_Damage_Feature.crit_chance
+    base_crit_m = Click_Damage_Feature.crit_multiplier
+    extra_crit_c, extra_crit_m = crispy_precision.get_crit_bonus()
+    
+    total_crit_c = base_crit_c + extra_crit_c
+    total_crit_m = base_crit_m * extra_crit_m
+
+    # Helper function: Draw text with a subtle drop shadow
+    def draw_text_with_shadow(text, font, color, x, y):
+        shadow = font.render(text, True, (15, 15, 20)) # Dark shadow
+        main_text = font.render(text, True, color)
+        window.blit(shadow, (x + 2, y + 2)) # Offset shadow by 2 pixels
+        window.blit(main_text, (x, y))
+        return main_text.get_width()
+
+    # Helper function: Clean Underline Headers instead of bulky boxes
+    def draw_sleek_header(title, y):
+        draw_text_with_shadow(title, font_section, (255, 220, 100), LEFT_AREA_X + 25, y)
+        # Draw a sleek fade-out line under the text
+        pg.draw.line(window, (100, 100, 120), (LEFT_AREA_X + 25, y + 25), (LEFT_AREA_X + LEFT_WIDTH - 25, y + 25), 2)
+        return y + 35
+
+    # Helper function for Main Stats (Bigger, punchier)
+    def draw_main_stat(label, value, color, y_offset):
+        draw_text_with_shadow(label, font_sub_stat, (200, 200, 210), LEFT_AREA_X + 25, y_offset + 4)
+        
+        val_surf = font_main_stat.render(str(value), True, color)
+        val_x = LEFT_AREA_X + LEFT_WIDTH - val_surf.get_width() - 25
+        draw_text_with_shadow(str(value), font_main_stat, color, val_x, y_offset)
+        return y_offset + 30
+
+    # Helper function for Sub Stats (Smaller, subdued)
+    def draw_sub_stat(label, value, color, y_offset):
+        draw_text_with_shadow(label, font_sub_stat, (160, 160, 170), LEFT_AREA_X + 25, y_offset)
+        
+        val_surf = font_sub_stat.render(str(value), True, color)
+        val_x = LEFT_AREA_X + LEFT_WIDTH - val_surf.get_width() - 25
+        draw_text_with_shadow(str(value), font_sub_stat, color, val_x, y_offset)
+        return y_offset + 22
+
+    # --- SECTION 1: DAMAGE OUTPUT ---
+    stats_y = draw_sleek_header("COMBAT POWER", stats_y)
+    stats_y = draw_main_stat("Click DMG", Currency_System.format_money(final_click_dmg), (255, 100, 100), stats_y)
+    stats_y = draw_main_stat("Pet DMG", Currency_System.format_money(final_pet_dmg), (100, 255, 100), stats_y)
+    stats_y += 15
+    
+    # --- SECTION 2: BASE BREAKDOWN ---
+    stats_y = draw_sleek_header("BASE STATS", stats_y)
+    stats_y = draw_sub_stat("Weapon Base", Currency_System.format_money(raw_base), (200, 200, 200), stats_y)
+    stats_y = draw_sub_stat("Weapon Multi", f"x{Currency_System.format_money(eq_multi)}", (200, 200, 200), stats_y)
+    stats_y = draw_sub_stat("Upgrade Added", f"+{upgrade_lvl}", (200, 200, 200), stats_y)
+    stats_y = draw_sub_stat("Pet Base", Currency_System.format_money(pet_base), (200, 200, 200), stats_y)
+    stats_y += 15
+    
+    # --- SECTION 3: MULTIPLIERS & CRITS ---
+    stats_y = draw_sleek_header("MULTIPLIERS", stats_y)
+    stats_y = draw_sub_stat("Prestige Multi", f"x{Currency_System.format_money(prestige_multi)}", (255, 215, 0), stats_y)
+    stats_y = draw_sub_stat("Ability Multi", f"x{Currency_System.format_money(ability_multi)}", (255, 150, 50), stats_y)
+    stats_y = draw_sub_stat("Crit Chance", f"{int(total_crit_c * 100)}%", (150, 200, 255), stats_y)
+    stats_y = draw_sub_stat("Crit Damage", f"x{Currency_System.format_money(total_crit_m)}", (150, 200, 255), stats_y)
+    # -----------------------------------------
+    
     window.blit(get_current_background(monster_manager.stage), (MIDDLE_AREA_X, 0))
     
     boost_indicator.draw(window)
@@ -792,12 +937,45 @@ while IsRunning:
 
     font_counter = pg.font.SysFont(None, 36)
     counter_value = (monster_manager.progression_index % 10) + 1
-    counter_surface = font_counter.render(f"Monster {counter_value}/10", True, (0, 0, 0))
-    counter_rect = counter_surface.get_rect(center=(MIDDLE_CENTER_X, 120))
-    window.blit(counter_surface, counter_rect)
+    
+    # Notice we removed the word "Monster" here!
+    counter_str = f" {counter_value}/10"
+    
+    counter_shadow = font_counter.render(counter_str, True, (0, 0, 0))
+    counter_surface = font_counter.render(counter_str, True, (255, 255, 255))
+    
+    # Calculate width to keep the icon and text perfectly centered as a group
+    text_width = counter_surface.get_width()
+    icon_width = hud_monster_icon.get_width() if hud_monster_icon else 0
+    total_width = icon_width + text_width
+    
+    start_x = MIDDLE_CENTER_X - (total_width // 2)
+    
+    # 1. Draw the Alien Icon
+    if hud_monster_icon:
+        icon_rect = hud_monster_icon.get_rect(midleft=(start_x, 120))
+        window.blit(hud_monster_icon, icon_rect)
+        text_start_x = icon_rect.right
+    else:
+        text_start_x = start_x
+        
+    # 2. Draw the Text (Shadow + Main)
+    shadow_rect = counter_shadow.get_rect(midleft=(text_start_x + 2, 120 + 2))
+    window.blit(counter_shadow, shadow_rect)
+    
+    text_rect = counter_surface.get_rect(midleft=(text_start_x, 120))
+    window.blit(counter_surface, text_rect)
 
     font_stage = pg.font.SysFont(None, 48, bold=True)
-    stage_surface = font_stage.render(f"Stage {monster_manager.stage}", True, (0, 0, 0))
+    stage_str = f"Stage {monster_manager.stage}"
+    
+    # 3. Draw Stage Shadow (Black, offset by +2 pixels)
+    stage_shadow = font_stage.render(stage_str, True, (0, 0, 0))
+    stage_shadow_rect = stage_shadow.get_rect(center=(MIDDLE_CENTER_X + 2, 70 + 2))
+    window.blit(stage_shadow, stage_shadow_rect)
+    
+    # 4. Draw Main Stage Text (White)
+    stage_surface = font_stage.render(stage_str, True, (255, 255, 255))
     stage_rect = stage_surface.get_rect(center=(MIDDLE_CENTER_X, 70))
     window.blit(stage_surface, stage_rect)
 
@@ -807,18 +985,30 @@ while IsRunning:
     if pet_system:
         equipped_pets = pet_system.get_equipped_pets()
         pet_size = 60
-        pet_spacing = 10
+        pet_spacing = 15
         start_x = MIDDLE_CENTER_X - (len(equipped_pets) * pet_size + (len(equipped_pets) - 1) * pet_spacing) // 2
         pet_y = current_monster.rect.y + current_monster.rect.height + 20
         font_pet = pg.font.SysFont(None, 14)
+        
         for idx, pet in enumerate(equipped_pets):
             pet_x = start_x + idx * (pet_size + pet_spacing)
             pet_rect = pg.Rect(pet_x, pet_y, pet_size, pet_size)
-            pg.draw.rect(window, pet.color, pet_rect)
-            pg.draw.rect(window, (200, 200, 200), pet_rect, 2)
-            name_text = font_pet.render(pet.name, True, (0, 0, 0))
-            name_rect = name_text.get_rect(center=(pet_rect.centerx, pet_rect.centery))
-            window.blit(name_text, name_rect)
+            
+            # Try to get the cached icon from Pet_System
+            pet_icon = pet_system._get_item_icon(pet.name)
+            
+            if pet_icon:
+                # Scale up to 60x60 so the sprite pops without the background box
+                display_icon = pg.transform.scale(pet_icon, (60, 60))
+                icon_rect = display_icon.get_rect(center=pet_rect.center)
+                
+                # Blit just the image directly to the window (no background!)
+                window.blit(display_icon, icon_rect)
+            else:
+                # Fallback just in case an image is missing
+                name_text = font_pet.render(pet.name[:6]+"..", True, (0, 0, 0))
+                name_rect = name_text.get_rect(center=pet_rect.center)
+                window.blit(name_text, name_rect)
 
     Currency_System.draw_ui(window)
 

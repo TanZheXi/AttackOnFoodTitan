@@ -1,6 +1,7 @@
 import pygame as pg
 import time
 from datetime import datetime
+from Audio_System import GLOBAL_CLICK
 
 pg.init()
 pg.font.init()
@@ -211,6 +212,8 @@ class KitchenGuideSystem:
                                    self.rect.width - 30, card_height)
                 btn_rect = pg.Rect(card_rect.right - 70, card_rect.bottom - 25, 60, 20)
                 if btn_rect.collidepoint(mouse_pos):
+                    if GLOBAL_CLICK:
+                        GLOBAL_CLICK.play()
                     if quest.can_claim():
                         if quest.claim(self.guide_manager):
                             reward_names = {0: "Beginner Wok", 1: "Beginner Apron", 

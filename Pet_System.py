@@ -1,10 +1,6 @@
 import pygame as pg
-
-try:
-    GLOBAL_CLICK = pg.mixer.Sound("Sfx/click.wav")
-    GLOBAL_CLICK.set_volume(0.5)
-except Exception as e:
-    GLOBAL_CLICK = None
+from Audio_System import GLOBAL_CLICK
+import os
 
 pg.init()
 pg.font.init()
@@ -69,6 +65,9 @@ class PetSystem:
         self.scroll_offset = 0
         self.max_scroll = max(0, len(self.categories) - 4)
         
+        self.pet_scroll_offset = 0
+        self.icon_cache = {}
+        
         self.pets = []
         self.update_pets_by_category()
         
@@ -87,6 +86,7 @@ class PetSystem:
 
     def set_category(self, category_index):
         self.current_category = category_index
+        self.pet_scroll_offset = 0
         self.update_pets_by_category()
         self.hovered_index = -1
         self.selected_pet = None
@@ -155,7 +155,6 @@ class PetSystem:
 
     def handle_event(self, event):
         if self.panel_rect is None:
-            # print("[PET] Warning: panel_rect is None, skipping event handling")
             return
         
         if event.type == pg.MOUSEBUTTONDOWN and event.button == 1:
@@ -185,33 +184,36 @@ class PetSystem:
                         self.toggle_equip(idx)
                     return
         
+        # Handle Mouse Wheel Scrolling
+        elif event.type == pg.MOUSEBUTTONDOWN:
+            if event.button == 4:
+                self.pet_scroll_offset = max(0, self.pet_scroll_offset - 1)
+            elif event.button == 5:
+                max_scroll = max(0, len(self.pets) - 6)
+                self.pet_scroll_offset = min(max_scroll, self.pet_scroll_offset + 1)
+        
         elif event.type == pg.MOUSEMOTION:
             self.hovered_index = -1
             self.selected_pet = None
             mouse_pos = event.pos
             
-            if not self.pets:
+            if not self.pets or self.panel_rect is None:
                 return
             
-            if self.panel_rect is None:
-                return
-            
-            cols = 2
-            item_width = (self.panel_rect.width - 45) // cols
-            item_height = 80
+            item_width = 390
+            item_height = 55
             start_x = self.panel_rect.x + 18
             start_y = self.panel_rect.y + 95
-            spacing_x = 12
-            spacing_y = 10
+            spacing_y = 6
             
-            for idx, pet in enumerate(self.pets):
-                row = idx // cols
-                col = idx % cols
-                x = start_x + col * (item_width + spacing_x)
-                y = start_y + row * (item_height + spacing_y)
-                item_rect = pg.Rect(x, y, item_width, item_height)
+            visible_items = self.pets[self.pet_scroll_offset:self.pet_scroll_offset + 6]
+            
+            for idx, pet in enumerate(visible_items):
+                actual_index = self.pet_scroll_offset + idx
+                y = start_y + idx * (item_height + spacing_y)
+                item_rect = pg.Rect(start_x, y, item_width, item_height)
                 if item_rect.collidepoint(mouse_pos):
-                    self.hovered_index = idx
+                    self.hovered_index = actual_index
                     self.selected_pet = pet
                     break
 
@@ -285,6 +287,31 @@ class PetSystem:
         if current_line:
             lines.append(' '.join(current_line))
         return lines if lines else [text]
+
+    def _get_item_icon(self, item_name):
+        if item_name in self.icon_cache:
+            return self.icon_cache[item_name]
+            
+        icon_path = os.path.join(os.path.dirname(__file__), "Icon", f"{item_name}.png")
+        if os.path.exists(icon_path):
+            try:
+                img = pg.image.load(icon_path).convert_alpha()
+                bounding_rect = img.get_bounding_rect()
+                if bounding_rect.width > 0 and bounding_rect.height > 0:
+                    img = img.subsurface(bounding_rect)
+                    
+                target_size = 40
+                scale = min(target_size / img.get_width(), target_size / img.get_height())
+                new_w, new_h = int(img.get_width() * scale), int(img.get_height() * scale)
+                img = pg.transform.scale(img, (new_w, new_h))
+                
+                self.icon_cache[item_name] = img
+                return img
+            except Exception as e:
+                pass
+                
+        self.icon_cache[item_name] = None
+        return None
     
     def draw(self, screen, panel_rect, desc_panel_rect):
         if not panel_rect:
@@ -352,13 +379,10 @@ class PetSystem:
             screen.blit(arrow_text, arrow_text_rect)
             self.arrow_right_rect = arrow_right_rect
         
-        # Pet list
-        cols = 2
-        available_width = panel_rect.width - 40
-        spacing_x = 12
-        spacing_y = 10
-        item_width = (available_width - spacing_x) // cols
-        item_height = 80
+        # Pet list (List View)
+        item_width = 390
+        item_height = 55
+        spacing_y = 6
         
         start_x = panel_rect.x + 18
         start_y = panel_rect.y + 95
@@ -370,49 +394,80 @@ class PetSystem:
             empty_rect = empty_text.get_rect(center=(panel_rect.centerx, panel_rect.centery + 20))
             screen.blit(empty_text, empty_rect)
         else:
-            for idx, pet in enumerate(self.pets):
-                row = idx // cols
-                col = idx % cols
-                x = start_x + col * (item_width + spacing_x)
-                y = start_y + row * (item_height + spacing_y)
-                item_rect = pg.Rect(x, y, item_width, item_height)
+            visible_items = self.pets[self.pet_scroll_offset:self.pet_scroll_offset + 6]
+            
+            for idx, pet in enumerate(visible_items):
+                actual_index = self.pet_scroll_offset + idx
+                y = start_y + idx * (item_height + spacing_y)
+                item_rect = pg.Rect(start_x, y, item_width, item_height)
                 
                 if pet.equipped:
                     color = (70, 100, 70)
                 else:
-                    color = (55, 55, 70) if row % 2 == 0 else (60, 60, 80)
+                    color = (55, 55, 70) if idx % 2 == 0 else (60, 60, 80)
                 
                 pg.draw.rect(screen, color, item_rect)
                 
-                if self.hovered_index == idx:
+                if self.hovered_index == actual_index:
                     pg.draw.rect(screen, (255, 220, 100), item_rect, 2)
                 else:
                     pg.draw.rect(screen, (90, 90, 110), item_rect, 1)
                 
-                name_text = font_medium.render(pet.name, True, (255, 255, 200))
-                screen.blit(name_text, (item_rect.x + 8, item_rect.y + 8))
+                # --- 1. ICON (Far Left) ---
+                icon = self._get_item_icon(pet.name)
+                if icon:
+                    icon_rect = icon.get_rect(center=(item_rect.x + 30, item_rect.centery))
+                    screen.blit(icon, icon_rect)
+                else:
+                    # Fallback circle if icon is missing
+                    pg.draw.circle(screen, pet.color, (item_rect.x + 30, item_rect.centery), 15)
                 
-                dmg_text = font_small.render(f"DMG: {pet.attack_damage}", True, (200, 200, 220))
-                screen.blit(dmg_text, (item_rect.x + 8, item_rect.y + 35))
+                # --- 2. PET NAME & RARITY (Middle Left, Upper) ---
+                name_display = pet.name[:20] + ".." if len(pet.name) > 20 else pet.name
+                name_text = font_medium.render(name_display, True, (255, 255, 200))
+                screen.blit(name_text, (item_rect.x + 65, item_rect.centery - 14))
+                
+                # --- 3. STATUS & DMG (Middle Left, Lower) ---
+                if pet.equipped:
+                    status_text = font_small.render(f"EQUIPPED  |  DMG: {pet.attack_damage}", True, (100, 255, 100))
+                else:
+                    status_text = font_small.render(f"DMG: {pet.attack_damage}", True, (200, 200, 220))
+                screen.blit(status_text, (item_rect.x + 65, item_rect.centery + 4))
+                
+                # --- 4. BUTTON (Far Right) ---
+                btn_width = 70
+                btn_height = 26
+                btn_rect = pg.Rect(item_rect.right - btn_width - 15, item_rect.centery - btn_height // 2, btn_width, btn_height)
+                mouse_pos = pg.mouse.get_pos()
                 
                 if pet.equipped:
-                    status_text = font_small.render("EQUIPPED", True, (100, 255, 100))
-                    screen.blit(status_text, (item_rect.x + 8, item_rect.y + 58))
+                    btn_color = (130, 70, 70) if btn_rect.collidepoint(mouse_pos) else (100, 50, 50)
                     btn_text = "UNEQUIP"
                 else:
-                    status_text = font_small.render("NOT EQUIPPED", True, (150, 150, 150))
-                    screen.blit(status_text, (item_rect.x + 8, item_rect.y + 58))
+                    btn_color = (70, 100, 130) if btn_rect.collidepoint(mouse_pos) else (50, 70, 100)
                     btn_text = "EQUIP"
                 
-                btn_rect = pg.Rect(item_rect.right - 55, item_rect.y + 50, 50, 25)
-                mouse_pos = pg.mouse.get_pos()
-                btn_color = (70, 100, 130) if btn_rect.collidepoint(mouse_pos) else (50, 70, 100)
                 pg.draw.rect(screen, btn_color, btn_rect)
                 pg.draw.rect(screen, (200, 200, 200), btn_rect, 1)
                 btn_render = font_small.render(btn_text, True, (255, 255, 255))
                 btn_render_rect = btn_render.get_rect(center=btn_rect.center)
                 screen.blit(btn_render, btn_render_rect)
-                self.buttons_rect[f"equip_{idx}"] = btn_rect
+                self.buttons_rect[f"equip_{actual_index}"] = btn_rect
+                
+            # Scrollbar
+            if len(self.pets) > 6:
+                scroll_bg = pg.Rect(panel_rect.x + panel_rect.width - 15, start_y, 8, 6 * (item_height + spacing_y) - spacing_y)
+                pg.draw.rect(screen, (40, 40, 50), scroll_bg)
+                pg.draw.rect(screen, (100, 100, 120), scroll_bg, 1)
+                
+                max_scroll = max(0, len(self.pets) - 6)
+                if max_scroll > 0:
+                    scroll_ratio = self.pet_scroll_offset / max_scroll
+                    scroll_bar_height = max(20, scroll_bg.height * 0.3)
+                    scroll_bar_y = scroll_bg.y + int(scroll_ratio * (scroll_bg.height - scroll_bar_height))
+                    scroll_bar = pg.Rect(scroll_bg.x, scroll_bar_y, scroll_bg.width, scroll_bar_height)
+                    pg.draw.rect(screen, (180, 180, 200), scroll_bar)
+                    pg.draw.rect(screen, (220, 220, 240), scroll_bar, 1)
         
         if self.message and self.message_timer > 0:
             msg_font = pg.font.SysFont(None, 16)

@@ -1,6 +1,6 @@
 {
     "OP WEAPON": {
-        "owned": false,
+        "owned": true,
         "multiplier": 1000002.0,
         "cost": 999999,
         "scrap_value": 50000,
@@ -37,12 +37,12 @@
     },
     "Mythic Pan": {
         "owned": false,
-        "multiplier": 21.5,
+        "multiplier": 27.5,
         "cost": 10000,
         "scrap_value": 1000,
         "rarity": "Mythic",
         "slot": "weapon",
-        "level": 4
+        "level": 16
     },
     "Beginner Wok": {
         "owned": false,
@@ -88,9 +88,9 @@
         "level": 3
     },
     "Player_Data": {
-        "scraps": 0,
+        "scraps": 50000,
         "equipped": {
-            "weapon": null,
+            "weapon": "OP WEAPON",
             "hat": null,
             "armor": null,
             "aroma": null
