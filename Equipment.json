@@ -1,6 +1,6 @@
 {
     "OP WEAPON": {
-        "owned": false,
+        "owned": true,
         "multiplier": 1000002.0,
         "cost": 999999,
         "scrap_value": 50000,
@@ -10,11 +10,7 @@
     },
     "Rusty Spatula": {
         "owned": false,
-<<<<<<< HEAD
-        "multiplier": 11.5,
-=======
         "multiplier": 9.0,
->>>>>>> debug
         "cost": 100,
         "scrap_value": 10,
         "rarity": "Common",
@@ -41,11 +37,7 @@
     },
     "Mythic Pan": {
         "owned": false,
-<<<<<<< HEAD
-        "multiplier": 27.5,
-=======
         "multiplier": 21.5,
->>>>>>> debug
         "cost": 10000,
         "scrap_value": 1000,
         "rarity": "Mythic",
@@ -96,11 +88,7 @@
         "level": 3
     },
     "Player_Data": {
-<<<<<<< HEAD
-        "scraps": 0,
-=======
         "scraps": 50000,
->>>>>>> debug
         "equipped": {
             "weapon": null,
             "hat": null,

@@ -189,7 +189,6 @@ class Monster:
             pg.draw.rect(surface, display_color, draw_rect, border_radius=15)
 
         # --- DRAW HEALTH BARS ---
-        bar_y = self.rect.y - 25
         if self.state != "dead":
             # 1. DEFINE YOUR LONGER WIDTH HERE
             bar_width = 300  
@@ -231,20 +230,12 @@ class Monster:
             hp_text = font.render(hp_str, True, (255, 255, 255))
             hp_rect = hp_text.get_rect(midright=(bar_x + bar_width - 10, text_center_y))
             surface.blit(hp_text, hp_rect)
-            pg.draw.rect(surface, (100, 100, 100), (self.rect.x, bar_y, self.rect.width, 10))
-            hp_bar_width = int((self.hp / self.max_hp) * self.rect.width)
-            pg.draw.rect(surface, (255, 0, 0), (self.rect.x, bar_y, hp_bar_width, 10))
-            
-            font = pg.font.SysFont(None, 30)
 
             # Scientific Notation
             text = font.render(
                 f"{self.name} HP: {format_number_short(self.hp)}/{format_number_short(self.max_hp)}",
                 True, (0, 0, 0)
                 )
-
-            text_rect = text.get_rect(center=(self.rect.centerx, bar_y - 15))
-            surface.blit(text, text_rect)
 
         # --- BOSS TIMER DISPLAY ---
         if self.boss_timer_active:
@@ -272,6 +263,7 @@ def calculate_monster_hp(stage, is_boss=False):
         multiplier = cycle[(stage - 1) % 5]
         return int(base_hp * multiplier)
     return int(base_hp)
+
 class MonsterManager:
     def __init__(self):
         self.food_monsters = [
