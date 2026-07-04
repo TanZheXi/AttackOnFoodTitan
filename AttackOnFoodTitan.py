@@ -562,8 +562,12 @@ while IsRunning:
     #debug_get_mouse_pos() 
     
     boost_indicator.update()
-    damage_boost.update()
-    crispy_precision.update()
+
+    # Update abilities only if unlocked
+    if player_upgrade_system.spicy_unlocked:
+       damage_boost.update()
+    if player_upgrade_system.crispy_unlocked:
+       crispy_precision.update() 
 
     for event in pg.event.get():
         if event.type == pg.USEREVENT + 1:
@@ -633,8 +637,10 @@ while IsRunning:
                 if current_monster.is_defeated() and not hasattr(current_monster, "last_hit_by"):
                     current_monster.last_hit_by = "player"
 
-        damage_boost.handle_event(event)
-        crispy_precision.handle_event(event)
+        if player_upgrade_system.spicy_unlocked:
+           damage_boost.handle_event(event)
+        if player_upgrade_system.crispy_unlocked:
+           crispy_precision.handle_event(event)
 
         Button_System.panel_manager.monster_manager = monster_manager
         Button_System.panel_manager.handle_event(event)
@@ -847,8 +853,12 @@ while IsRunning:
         button.draw(window)
 
     Button_System.panel_manager.draw(window)
-    damage_boost.draw(window)
-    crispy_precision.draw(window)
+    
+    # Draw abilities only if unlocked
+    if player_upgrade_system.spicy_unlocked:
+       damage_boost.draw(window, mana_system)
+    if player_upgrade_system.crispy_unlocked:
+       crispy_precision.draw(window, mana_system)
 
     pg.display.update()
 

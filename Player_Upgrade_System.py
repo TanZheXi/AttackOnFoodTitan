@@ -122,17 +122,20 @@ class PlayerUpgradeSystem:
         self.spicy_ability = None
         self.crispy_ability = None
 
+        self.spicy_unlocked = False
+        self.crispy_unlocked = False
+
         # Spicy Surge upgrade tracking
         self.spicy_level = 0
-        self.spicy_cost = 20000   # base cost 20k
-        self.spicy_ratio = 1.30
+        self.spicy_cost = 50000   # base cost 50k
+        self.spicy_ratio = 1.08   # growth per level
         self.spicy_max_level = 30
-        self.spicy_damage_boost = 0.0  # cumulative boost
+        self.spicy_damage_boost = 0.0
 
         # Crispy Precision upgrade tracking
         self.crispy_level = 0
-        self.crispy_cost = 150000  # base cost 150k
-        self.crispy_ratio = 1.25
+        self.crispy_cost = 250000   # base cost 250k
+        self.crispy_ratio = 1.10    # growth per level
         self.crispy_max_level = 30
         self.crispy_crit_damage = 0.0
         self.crispy_crit_chance = 0.0
@@ -298,34 +301,44 @@ class PlayerUpgradeSystem:
 
                 # Spicy Surge upgrade
                 if hasattr(self, "spicy_rect") and self.spicy_rect.collidepoint(event.pos):
-                   if self.level >= 50 and self.spicy_level < self.spicy_max_level:
-                     if Currency_System.pocket_money >= self.spicy_cost:
-                        Currency_System.pocket_money -= self.spicy_cost
-                        self.spicy_level += 1
-                        self.spicy_damage_boost += 0.15
-                        self.spicy_cost = int(self.spicy_cost * self.spicy_ratio)
+                   if self.level >= 100 and self.spicy_level < self.spicy_max_level:   # unlock at level 100
+                      if Currency_System.pocket_money >= self.spicy_cost:
+                         Currency_System.pocket_money -= self.spicy_cost
+                         self.spicy_level += 1
+                         self.spicy_damage_boost += 0.15
+                         self.spicy_cost = int(self.spicy_cost * self.spicy_ratio)
+                         if self.spicy_level % 10 == 0:
+                            self.spicy_cost = int(self.spicy_cost * 1.25)   # milestone spike
+                         if self.spicy_level == 1:   # first upgrade purchased
+                            self.spicy_unlocked = True
 
-                        # ✅ Scale mana cost and push into ability
-                        if self.spicy_ability:
-                           new_mana_cost = int(self.spicy_ability.mana_cost * 1.3)
-                           self.spicy_ability.set_upgrade_bonus(self.spicy_damage_boost, new_mana_cost)
-                           print(f"[SPICY SURGE] Lv {self.spicy_level} → Damage Boost +{self.spicy_damage_boost:.2f}, Mana Cost {self.spicy_ability.mana_cost}, Next Cost: {self.spicy_cost}")
+                         # ✅ Scale mana cost
+                         if self.spicy_ability:
+                            new_mana_cost = int(self.spicy_ability.mana_cost * 1.07)  # ~7% growth
+                            self.spicy_ability.set_upgrade_bonus(self.spicy_damage_boost, new_mana_cost)
+
+                         print(f"[SPICY SURGE] Lv {self.spicy_level} → Damage Boost +{self.spicy_damage_boost:.2f}, Mana Cost {self.spicy_ability.mana_cost}, Next Cost: {self.spicy_cost}")
         
                 # Crispy Precision upgrade
                 if hasattr(self, "crispy_rect") and self.crispy_rect.collidepoint(event.pos):
-                   if self.level >= 125 and self.crispy_level < self.crispy_max_level:
+                   if self.level >= 200 and self.crispy_level < self.crispy_max_level:   # unlock at level 200
                       if Currency_System.pocket_money >= self.crispy_cost:
                          Currency_System.pocket_money -= self.crispy_cost
                          self.crispy_level += 1
                          self.crispy_crit_damage += 0.25
                          self.crispy_crit_chance += 0.01
                          self.crispy_cost = int(self.crispy_cost * self.crispy_ratio)
+                         if self.crispy_level % 10 == 0:
+                            self.crispy_cost = int(self.crispy_cost * 1.35)   # milestone spike
+                         if self.crispy_level == 1:  # first upgrade purchased
+                            self.crispy_unlocked = True
 
-                         # ✅ Scale mana cost and push into ability
+                         # ✅ Scale mana cost
                          if self.crispy_ability:
-                            new_mana_cost = int(self.crispy_ability.mana_cost * 1.3)
+                            new_mana_cost = int(self.crispy_ability.mana_cost * 1.09)  # ~9% growth
                             self.crispy_ability.set_upgrade_bonus(self.crispy_crit_chance, self.crispy_crit_damage, new_mana_cost)
-                            print(f"[CRISPY PRECISION] Lv {self.crispy_level} → Crit +{self.crispy_crit_chance:.2f}, Damage +{self.crispy_crit_damage:.2f}, Mana Cost {self.crispy_ability.mana_cost}, Next Cost: {self.crispy_cost}")
+
+                         print(f"[CRISPY PRECISION] Lv {self.crispy_level} → Crit +{self.crispy_crit_chance:.2f}, Damage +{self.crispy_crit_damage:.2f}, Mana Cost {self.crispy_ability.mana_cost}, Next Cost: {self.crispy_cost}")
                 
                 # Critical Damage upgrade
                 if hasattr(self, "crit_dmg_rect") and self.crit_dmg_rect.collidepoint(event.pos):
@@ -418,25 +431,26 @@ class PlayerUpgradeSystem:
         screen.set_clip(None)
 
     def _draw_upgrade_box(self, screen, rect, mouse_pos,
-                          unlock_level, current_level, max_level, cost, label):
+                      unlock_level, current_level, max_level, cost, label):
         if self.level < unlock_level:
-            pg.draw.rect(screen, (0, 0, 0), rect)
-            txt = self.font_text.render(f"Reach Player Level {unlock_level} to Unlock", True, (255, 255, 255))
-            screen.blit(txt, txt.get_rect(center=rect.center))
+           # Locked ability placeholder
+           pg.draw.rect(screen, (30, 30, 30), rect)  # dark grey background
+           pg.draw.rect(screen, (120, 120, 120), rect, 2)  # grey border
+           txt = self.font_text.render(f"{label} - Unlock at Lv {unlock_level}", True, (200, 200, 200))
+           screen.blit(txt, txt.get_rect(center=rect.center))
         elif current_level >= max_level:
-            pg.draw.rect(screen, (60, 60, 60), rect)
-            txt = self.font_text.render("Max Upgrade Level", True, (255, 255, 255))
-            screen.blit(txt, txt.get_rect(center=rect.center))
+           pg.draw.rect(screen, (60, 60, 60), rect)
+           txt = self.font_text.render("Max Upgrade Level", True, (255, 255, 255))
+           screen.blit(txt, txt.get_rect(center=rect.center))
         else:
-            color = (100, 100, 200) if not rect.collidepoint(mouse_pos) else (140, 140, 240)
-            pg.draw.rect(screen, color, rect)
-            pg.draw.rect(screen, (200, 200, 200), rect, 2)
-            # Scientific Notation
-            txt = self.font_text.render(
-                f"{label} Lv {current_level} - Cost: {format_number_short(cost)}",
-                True, (255, 255, 255)
-                )
-            screen.blit(txt, txt.get_rect(center=rect.center))
+           color = (100, 100, 200) if not rect.collidepoint(mouse_pos) else (140, 140, 240)
+           pg.draw.rect(screen, color, rect)
+           pg.draw.rect(screen, (200, 200, 200), rect, 2)
+           txt = self.font_text.render(
+               f"{label} Lv {current_level} - Cost: {format_number_short(cost)}",
+               True, (255, 255, 255)
+           )
+           screen.blit(txt, txt.get_rect(center=rect.center))
 
     def _draw_player_upgrade(self, screen):
         mouse_pos = pg.mouse.get_pos()
@@ -529,12 +543,12 @@ class PlayerUpgradeSystem:
 
         # Spicy Surge upgrade box
         self.spicy_rect = pg.Rect(self.rect.x + 20, y_offset, self.rect.width - 40, box_height)
-        self._draw_upgrade_box(screen, self.spicy_rect, mouse_pos, 200, self.spicy_level, self.spicy_max_level, self.spicy_cost, "Spicy Surge")
+        self._draw_upgrade_box(screen, self.spicy_rect, mouse_pos, 100, self.spicy_level, self.spicy_max_level, self.spicy_cost, "Spicy Surge")
         y_offset += box_height + spacing
 
         # Crispy Precision upgrade box
         self.crispy_rect = pg.Rect(self.rect.x + 20, y_offset, self.rect.width - 40, box_height)
-        self._draw_upgrade_box(screen, self.crispy_rect, mouse_pos, 250, self.crispy_level, self.crispy_max_level, self.crispy_cost, "Crispy Precision")
+        self._draw_upgrade_box(screen, self.crispy_rect, mouse_pos, 200, self.crispy_level, self.crispy_max_level, self.crispy_cost, "Crispy Precision") 
 
         # Scrollbar
         total_boxes = 7  # Base Damage + Crit Dmg + Crit Chance + Mana Cap + Mana Regen + Spicy + Crispy
