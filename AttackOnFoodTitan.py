@@ -544,7 +544,7 @@ show_loading_screen(window, "Starting game...", 1.0)
     #if pg.mouse.get_pressed()[0]:  # left click
         #print("Mouse clicked at:", pg.mouse.get_pos())
 
-# ========== Main Loop ==========
+# ========== Main Loop ========== #
 while IsRunning:
     dt_ms = clock.tick(60)
     dt_sec = dt_ms / 1000.0
@@ -683,6 +683,18 @@ while IsRunning:
                       current_monster.last_hit_by = comp.name
 
         last_companion_attack_time = current_time
+    
+    # ========== Boss Timer Check ==========
+    if current_monster.boss_timer_active and not current_monster.is_defeated():
+       elapsed = time.time() - current_monster.boss_timer_start
+       if elapsed >= current_monster.boss_timer_duration:
+           print("[BOSS TIMER] Failed to defeat boss in time!")
+           # Reset to monster 5 of current stage
+           monster_manager.progression_index = (monster_manager.stage - 1) * 10 + 4
+           monster_manager.current_monster = monster_manager.spawn_monster()
+           current_monster = monster_manager.current_monster
+           current_monster.rect.x = MIDDLE_CENTER_X - MONSTER_SIZE // 2
+           current_monster.rect.y = 275
 
     # ========== Monster Death & Respawn Logic ==========
     if current_monster.state == "dead":

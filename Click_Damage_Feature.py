@@ -30,6 +30,11 @@ class Monster:
         self.color = color
         self.rect = pg.Rect(0, 0, 200, 200)
         
+        # Boss Timer
+        self.boss_timer_active = False
+        self.boss_timer_start = 0
+        self.boss_timer_duration = 30  # seconds
+
         self.creation_time = time.time()
         self.hurt_time = 0
         
@@ -209,6 +214,24 @@ class Monster:
             text_rect = text.get_rect(center=(self.rect.centerx, bar_y - 15))
             surface.blit(text, text_rect)
 
+        # --- BOSS TIMER DISPLAY ---
+        if self.boss_timer_active:
+            elapsed = time.time() - self.boss_timer_start
+            remaining = max(0, int(self.boss_timer_duration - elapsed))
+
+            # Draw timer bar
+            timer_bar_y = bar_y - 40
+            pg.draw.rect(surface, (80, 80, 80), (self.rect.x, timer_bar_y, self.rect.width, 12))
+            timer_width = int((remaining / self.boss_timer_duration) * self.rect.width)
+            pg.draw.rect(surface, (255, 100, 100), (self.rect.x, timer_bar_y, timer_width, 12))
+            pg.draw.rect(surface, (200, 200, 200), (self.rect.x, timer_bar_y, self.rect.width, 12), 2)
+    
+            # Draw timer text
+            timer_font = pg.font.SysFont(None, 28, bold=True)
+            timer_text = timer_font.render(f"Boss Timer: {remaining}s", True, (255, 50, 50))
+            timer_rect = timer_text.get_rect(center=(self.rect.centerx, timer_bar_y - 15))
+            surface.blit(timer_text, timer_rect)
+
 # Scaling for Monster HP
 def calculate_monster_hp(stage, is_boss=False):
     base_hp = 25 * (1.35 ** min(stage, 100)) * (1.10 ** max(stage - 100, 0))
@@ -236,12 +259,24 @@ class MonsterManager:
         self.current_monster = self.spawn_monster()
 
     def spawn_monster(self):
-        # Every 10th monster is a boss
-        is_boss = (self.progression_index % 10 == 9)
-        hp_value = calculate_monster_hp(self.stage, is_boss)
+       # Every 10th monster is a boss
+       is_boss = (self.progression_index % 10 == 9)
+       hp_value = calculate_monster_hp(self.stage, is_boss)
 
-        data = random.choice(self.food_monsters)
-        return Monster(data["name"], hp_value, data["color"])
+       data = random.choice(self.food_monsters)
+       monster = Monster(data["name"], hp_value, data["color"])
+    
+       # Link monster back to manager
+       monster.manager = self
+
+       # Activate Boss Timer if boss
+       if is_boss:
+           monster.boss_timer_active = True
+           monster.boss_timer_start = time.time()
+       else:
+           monster.boss_timer_active = False
+
+       return monster
 
     def next_monster(self):
         self.progression_index += 1
