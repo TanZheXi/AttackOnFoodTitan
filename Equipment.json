@@ -1,6 +1,6 @@
 {
     "OP WEAPON": {
-        "owned": true,
+        "owned": false,
         "multiplier": 1000002.0,
         "cost": 999999,
         "scrap_value": 50000,
@@ -9,7 +9,7 @@
         "level": 5
     },
     "Rusty Spatula": {
-        "owned": true,
+        "owned": false,
         "multiplier": 11.5,
         "cost": 100,
         "scrap_value": 10,
@@ -18,7 +18,7 @@
         "level": 21
     },
     "Golden Spatula": {
-        "owned": true,
+        "owned": false,
         "multiplier": 10.5,
         "cost": 500,
         "scrap_value": 50,
@@ -27,7 +27,7 @@
         "level": 16
     },
     "Chef's Wok": {
-        "owned": true,
+        "owned": false,
         "multiplier": 10.5,
         "cost": 2000,
         "scrap_value": 200,
@@ -36,7 +36,7 @@
         "level": 6
     },
     "Mythic Pan": {
-        "owned": true,
+        "owned": false,
         "multiplier": 27.5,
         "cost": 10000,
         "scrap_value": 1000,
@@ -61,7 +61,7 @@
         "slot": "armor"
     },
     "Master Chef Hat": {
-        "owned": true,
+        "owned": false,
         "multiplier": 6.0,
         "cost": 1500,
         "scrap_value": 150,
@@ -70,7 +70,7 @@
         "level": 3
     },
     "Titanium Apron": {
-        "owned": true,
+        "owned": false,
         "multiplier": 15.5,
         "cost": 4000,
         "scrap_value": 400,
@@ -79,7 +79,7 @@
         "level": 8
     },
     "Roasted Garlic Aroma": {
-        "owned": true,
+        "owned": false,
         "multiplier": 11.0,
         "cost": 5000,
         "scrap_value": 500,
@@ -88,7 +88,7 @@
         "level": 3
     },
     "Player_Data": {
-        "scraps": 49100,
+        "scraps": 0,
         "equipped": {
             "weapon": null,
             "hat": null,

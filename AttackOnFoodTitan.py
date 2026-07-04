@@ -573,16 +573,14 @@ if Button_System.panel_manager.kitchen_guide_system:
     Button_System.panel_manager.kitchen_guide_system.guide_manager.grant_reward = enhanced_grant_reward
 
 def sync_sfx_volumes(new_volume):
-    # Multiply the incoming new_volume by the original base dampeners
     if attack_titan_sound: 
-        attack_titan_sound.set_volume(new_volume * 1) 
+        attack_titan_sound.set_volume(new_volume)
     if titan_defeated_sound: 
-        titan_defeated_sound.set_volume(new_volume * 0.6) 
+        titan_defeated_sound.set_volume(new_volume)
     if pet_attack_sound: 
-        pet_attack_sound.set_volume(new_volume * 0.5) 
+        pet_attack_sound.set_volume(new_volume)
     if Button_System.panel_manager.prestige_sound: 
-        # Defaulting to 0.8, but you can adjust this multiplier if prestige is too loud
-        Button_System.panel_manager.prestige_sound.set_volume(new_volume * 0.8)
+        Button_System.panel_manager.prestige_sound.set_volume(new_volume)
 
 # Pass this function into the PanelManager so the Settings panel can trigger it
 Button_System.panel_manager.sync_sfx_callback = sync_sfx_volumes
@@ -590,6 +588,8 @@ Button_System.panel_manager.sync_sfx_callback = sync_sfx_volumes
 show_loading_screen(window, "Starting game...", 1.0)
 
 
+# ---  Developer Mode Flag ---
+dev_mode = False
 
 # ========== Main Loop ==========
 while IsRunning:
@@ -631,24 +631,31 @@ while IsRunning:
             break
 
         elif event.type == pg.KEYDOWN:
-            if event.key == pg.K_g:
-                Equipment_System.gain_equipment("OP WEAPON")
-                Button_System.panel_manager.add_to_inventory("OP WEAPON")
-            elif event.key == pg.K_e:
-                selected_item = Button_System.panel_manager.get_selected_inventory_item()
-                if selected_item and selected_item in Equipment_System.equipment_database:
-                    Equipment_System.equip_equipment(selected_item)
-            elif event.key == pg.K_u:
-                Equipment_System.unequip_equipment("weapon")
-            elif event.key == pg.K_c:
-                if Equipment_System.craft_item("Golden Spatula"):
-                    Button_System.panel_manager.add_to_inventory("Golden Spatula")
-            elif event.key == pg.K_n:
-                monster_manager.stage += 1
-                monster_manager.progression_index = (monster_manager.stage - 1) * 10
-                monster_manager.current_monster = monster_manager.spawn_monster()
-            elif event.key == pg.K_p:
-                Currency_System.trigger_prestige(monster_manager)
+            # --- NEW: Developer Mode Toggle (F12 Key) ---
+            if event.key == pg.K_F12:
+                dev_mode = not dev_mode
+                print(f"[SYSTEM] Developer Mode is now {'ON' if dev_mode else 'OFF'}")
+                
+            # Only allow these keybinds if Developer Mode is ON
+            if dev_mode:
+                if event.key == pg.K_g:
+                    Equipment_System.gain_equipment("OP WEAPON")
+                    Button_System.panel_manager.add_to_inventory("OP WEAPON")
+                elif event.key == pg.K_e:
+                    selected_item = Button_System.panel_manager.get_selected_inventory_item()
+                    if selected_item and selected_item in Equipment_System.equipment_database:
+                        Equipment_System.equip_equipment(selected_item)
+                elif event.key == pg.K_u:
+                    Equipment_System.unequip_equipment("weapon")
+                elif event.key == pg.K_c:
+                    if Equipment_System.craft_item("Golden Spatula"):
+                        Button_System.panel_manager.add_to_inventory("Golden Spatula")
+                elif event.key == pg.K_n:
+                    monster_manager.stage += 1
+                    monster_manager.progression_index = (monster_manager.stage - 1) * 10
+                    monster_manager.current_monster = monster_manager.spawn_monster()
+                elif event.key == pg.K_p:
+                    Currency_System.trigger_prestige(monster_manager)
 
         elif event.type == pg.MOUSEBUTTONDOWN and event.button == 1:
             if current_monster.rect.collidepoint(event.pos):
