@@ -187,7 +187,14 @@ class Monster:
             text_rect = text.get_rect(center=(self.rect.centerx, bar_y - 15))
             surface.blit(text, text_rect)
 
-
+# Scaling for Monster HP
+def calculate_monster_hp(stage, is_boss=False):
+    base_hp = 25 * (1.35 ** min(stage, 100)) * (1.10 ** max(stage - 100, 0))
+    if is_boss:
+        cycle = [2, 3, 4, 5, 7]
+        multiplier = cycle[(stage - 1) % 5]
+        return int(base_hp * multiplier)
+    return int(base_hp)
 class MonsterManager:
     def __init__(self):
         self.food_monsters = [
@@ -207,7 +214,10 @@ class MonsterManager:
         self.current_monster = self.spawn_monster()
 
     def spawn_monster(self):
-        hp_value = 50 + (self.progression_index * 100)
+        # Every 10th monster is a boss
+        is_boss = (self.progression_index % 10 == 9)
+        hp_value = calculate_monster_hp(self.stage, is_boss)
+
         data = random.choice(self.food_monsters)
         return Monster(data["name"], hp_value, data["color"])
 
