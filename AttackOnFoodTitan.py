@@ -15,35 +15,42 @@ from Player_Upgrade_System import PlayerUpgradeSystem
 
 
 
-# ========== Show Loading Screen ==========
+# ========== Spinner Animation ==========
 def show_loading_screen(screen, message, progress=0):
-    """Shows a loading screen with a message and progress bar."""
+    """Shows a loading screen with a spinning circle animation."""
     screen.fill((30, 30, 40))
     font = pg.font.SysFont(None, 48)
     font_small = pg.font.SysFont(None, 24)
     
-    # Loading text
+    # "Loading..." text
     text = font.render("Loading...", True, (255, 255, 255))
     text_rect = text.get_rect(center=(WINDOW_WIDTH//2, WINDOW_HEIGHT//2 - 50))
     screen.blit(text, text_rect)
     
-    # Message text
+    # message text
     msg_text = font_small.render(message, True, (200, 200, 200))
     msg_rect = msg_text.get_rect(center=(WINDOW_WIDTH//2, WINDOW_HEIGHT//2 + 20))
     screen.blit(msg_text, msg_rect)
-    
-    # Progress bar
-    bar_width = 400
-    bar_height = 20
-    bar_x = (WINDOW_WIDTH - bar_width) // 2
-    bar_y = WINDOW_HEIGHT // 2 + 60
-    
-    pg.draw.rect(screen, (60, 60, 80), (bar_x, bar_y, bar_width, bar_height))
-    pg.draw.rect(screen, (100, 200, 100), (bar_x, bar_y, int(bar_width * progress), bar_height))
-    pg.draw.rect(screen, (200, 200, 200), (bar_x, bar_y, bar_width, bar_height), 2)
+
+    # ===== Spinner（Spirit image） =====
+    if spinner_frames:
+        # Calculate which frame to display based on time (the frame changes each time this function is called)
+        frame_index = int((pg.time.get_ticks() / 80) % len(spinner_frames))
+        frame = spinner_frames[frame_index]
+        
+        # Print it at middle
+        draw_x = WINDOW_WIDTH//2 - frame.get_width()//2
+        draw_y = WINDOW_HEIGHT//2 + 80 - frame.get_height()//2
+        screen.blit(frame, (draw_x, draw_y))
+    else:
+        # Show fallback text if spinner frames are not loaded
+        fallback_text = font_small.render("Loading...", True, (200, 200, 200))
+        fallback_rect = fallback_text.get_rect(center=(WINDOW_WIDTH//2, WINDOW_HEIGHT//2 + 70))
+        screen.blit(fallback_text, fallback_rect)
+    # =================================
     
     pg.display.flip()
-
+    
 class BoostIndicator:
     def __init__(self, x, y, width, height):
         self.rect = pg.Rect(x, y, width, height)
@@ -147,6 +154,35 @@ pg.mixer.init()
 window = pg.display.set_mode((WINDOW_WIDTH, WINDOW_HEIGHT))
 pg.display.set_caption("Attack On Food Titan")
 
+#Load spinner spirit image
+spinner_frames = []
+spinner_frame_count = 18
+
+try:
+    spinner_path = os.path.join(os.path.dirname(__file__), "Background", "Image", "Spinner.png")
+    if os.path.exists(spinner_path):
+        spinner_sheet = pg.image.load(spinner_path).convert_alpha()
+
+        # Remove near-white background from the spinner sheet
+        for x in range(spinner_sheet.get_width()):
+            for y in range(spinner_sheet.get_height()):
+                r, g, b, a = spinner_sheet.get_at((x, y))
+                # If RGB > 240, set to transparent
+                if r > 240 and g > 240 and b > 240:
+                    spinner_sheet.set_at((x, y), (0, 0, 0, 0))
+
+        # Automatically calculate frame width based on the number of frames
+        frame_width = spinner_sheet.get_width() // spinner_frame_count
+        frame_height = spinner_sheet.get_height()
+        for i in range(spinner_frame_count):
+            frame = spinner_sheet.subsurface((i * frame_width, 0, frame_width, frame_height))
+            spinner_frames.append(frame)
+        print(f"[SPINNER] Loaded {len(spinner_frames)} frames from Spinner.png")
+    else:
+        print(f"[SPINNER] Warning: Spinner.png not found at {spinner_path}")
+except Exception as e:
+    print(f"[SPINNER] Error loading spinner: {e}")
+
 # Show initial loading screen
 show_loading_screen(window, "Initializing...", 0.05)
 
@@ -238,7 +274,6 @@ class AttackAnimation:
     def __init__(self, x, y, frames, scale=0.5, offset_x=0, offset_y=0):
         self.x = x
         self.y = y
-        self.frames = frames
         self.current_frame = 0
         self.animation_speed = 0.08
         self.time_since_last_frame = 0
@@ -247,6 +282,16 @@ class AttackAnimation:
         self.offset_x = offset_x
         self.offset_y = offset_y
         self.alpha = 255
+        
+        # --- NEW: CACHE THE SCALED FRAMES ONCE ---
+        self.frames = []
+        for f in frames:
+            if self.scale != 1.0:
+                new_width = int(f.get_width() * self.scale)
+                new_height = int(f.get_height() * self.scale)
+                self.frames.append(pg.transform.scale(f, (new_width, new_height)))
+            else:
+                self.frames.append(f)
 
     def update(self, dt):
         if not self.is_active:
@@ -268,19 +313,17 @@ class AttackAnimation:
     def draw(self, screen):
         if not self.is_active or self.current_frame >= len(self.frames):
             return
+            
+        # --- NEW: NO MORE SCALING IN THE DRAW LOOP! ---
         frame = self.frames[self.current_frame]
         
-        if self.scale != 1.0:
-            new_width = int(frame.get_width() * self.scale)
-            new_height = int(frame.get_height() * self.scale)
-            frame = pg.transform.scale(frame, (new_width, new_height))
+        # Copy to safely apply transparency
+        temp_frame = frame.copy()
+        temp_frame.set_alpha(self.alpha)
         
-        frame.set_alpha(self.alpha)
-        
-        # Calculate draw position with offset
-        draw_x = self.x - frame.get_width() // 2 + self.offset_x
-        draw_y = self.y - frame.get_height() // 2 + self.offset_y
-        screen.blit(frame, (draw_x, draw_y))
+        draw_x = self.x - temp_frame.get_width() // 2 + self.offset_x
+        draw_y = self.y - temp_frame.get_height() // 2 + self.offset_y
+        screen.blit(temp_frame, (draw_x, draw_y))
 
     def is_finished(self):
         return not self.is_active
