@@ -261,20 +261,22 @@ class ManaSystem:
             return True
         return False
 
-    def draw(self, surface, left_boundary_x, ability_y, ability_radius, width=120, height=16):
-        x = left_boundary_x + 5
-        y = ability_y - ability_radius - height - 10
+    def draw(self, surface, ability_x, ability_y, ability_radius, width=120, height=16):
+        x = ability_x - width // 2          # Center the bar on the given x position
+        y = ability_y - ability_radius - height - 15
 
         # Background
         pg.draw.rect(surface, (40, 40, 40), (x, y, width, height))
-        # Filled portion (cyan)
+
+        # Filled portion
         mana_ratio = self.current_mana / self.max_mana
         pg.draw.rect(surface, (0, 255, 255), (x, y, int(width * mana_ratio), height))
+
         # Border
         pg.draw.rect(surface, (200, 200, 200), (x, y, width, height), 2)
 
-        # Text display: current/max
+        # Text
         font = pg.font.SysFont(None, 20)
-        text_surface = font.render(f"{int(self.current_mana)}/{self.max_mana}", True, (0, 0, 0))
-        text_rect = text_surface.get_rect(midleft=(x + width + 10, y + height // 2))
-        surface.blit(text_surface, text_rect)
+        text = font.render(f"{int(self.current_mana)}/{self.max_mana}", True, (0, 0, 0))
+        text_rect = text.get_rect(center=(x + width // 2, y - 10))
+        surface.blit(text, text_rect)

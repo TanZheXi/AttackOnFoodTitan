@@ -412,7 +412,7 @@ class PlayerUpgradeSystem:
            if self.level % 50 == 0:
                self.current_cost = int(self.current_cost * 1.5)
 
-           print(f"[UPGRADE] {self.name} Lv {self.level} → {Equipment_System.base_damage}, Next Cost: {self.get_upgrade_cost()}")
+           print(f"[UPGRADE] Base Damage Lv {self.level} → {Equipment_System.base_damage}, Next Cost: {self.get_upgrade_cost()}")
 
            # ==========  Kitchen Guide  ==========
            if self.upgrade_callback:

@@ -562,6 +562,7 @@ while IsRunning:
     #debug_get_mouse_pos() 
     
     boost_indicator.update()
+    mana_system.update()
 
     # Update abilities only if unlocked
     if player_upgrade_system.spicy_unlocked:
@@ -853,12 +854,22 @@ while IsRunning:
         button.draw(window)
 
     Button_System.panel_manager.draw(window)
-    
+
     # Draw abilities only if unlocked
     if player_upgrade_system.spicy_unlocked:
        damage_boost.draw(window, mana_system)
     if player_upgrade_system.crispy_unlocked:
        crispy_precision.draw(window, mana_system)
+    
+    # Draw Mana bar
+    ability_center = (damage_boost.x + crispy_precision.x) // 2
+
+    mana_system.draw(
+        window,
+        ability_center,
+        damage_boost.y,
+        damage_boost.radius
+    )
 
     pg.display.update()
 

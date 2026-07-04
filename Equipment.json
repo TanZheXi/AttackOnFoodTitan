@@ -45,7 +45,7 @@
         "level": 4
     },
     "Beginner Wok": {
-        "owned": false,
+        "owned": true,
         "multiplier": 2.5,
         "cost": 0,
         "scrap_value": 5,
@@ -53,7 +53,7 @@
         "slot": "weapon"
     },
     "Beginner Apron": {
-        "owned": false,
+        "owned": true,
         "multiplier": 2.5,
         "cost": 0,
         "scrap_value": 5,
@@ -88,7 +88,7 @@
         "level": 3
     },
     "Player_Data": {
-        "scraps": 50000,
+        "scraps": 50010,
         "equipped": {
             "weapon": null,
             "hat": null,
