@@ -76,10 +76,10 @@ class ShopSystem:
             ShopItem("Speed Boots", 2000, "Rare", "Increases movement speed. Very comfortable.", (100, 150, 200), "equipment"),
             ShopItem("Magic Ring", 8000, "Legendary", "Boosts all stats. Glows with power.", (255, 200, 100), "equipment"),
             # Pet Shop (2)
-            ShopItem("Baby Slime", 500, "Common", "A cute slime pet. Jiggly and friendly.", (100, 200, 100), "pet"),
+            ShopItem("Baby Slime", 100, "Common", "A cute slime pet. Jiggly and friendly.", (100, 200, 100), "pet"),
             ShopItem("Fire Spirit", 2000, "Epic", "Burns enemies with passion. Handle with care.", (255, 100, 50), "pet"),
-            ShopItem("Fairy", 5000, "Epic", "Heals owner over time. Very rare indeed.", (200, 150, 255), "pet"),
-            ShopItem("Dragon Whelp", 15000, "Legendary", "A baby dragon. Breathes tiny flames.", (255, 100, 100), "pet"),
+            ShopItem("Fairy", 2000, "Epic", "Heals owner over time. Very rare indeed.", (200, 150, 255), "pet"),
+            ShopItem("Dragon Whelp", 5000, "Legendary", "A baby dragon. Breathes tiny flames.", (100, 200, 255), "pet"),
             ShopItem("Phoenix", 30000, "Mythic", "Rises from ashes. Immortal companion.", (255, 100, 50), "pet"),
             # Scraps Shop (3)
             ShopItem("Scrap Pack S", 100, "Common", "Contains 10 scraps. For basic crafting.", (200, 200, 200), "scraps"),
