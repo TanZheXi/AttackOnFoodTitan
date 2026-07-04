@@ -384,13 +384,9 @@ def calculate_damage(base_damage=None, extra_chance=0.0, extra_multi=1.0):
     else:
         damage = float(base_damage)
     
-    # Apply equipment multiplier
-    damage *= float(getattr(Equipment_System, "total_damage_multiplier", 1.0))
-    
-    upgrade_level = getattr(Player_Upgrade_System, "level", 0)
-    damage += upgrade_level
-    if upgrade_level > 0 and upgrade_level % 50 == 0:
-        damage *= 1.2
+    # REMOVED: Equipment_System.total_damage_multiplier 
+    # REMOVED: Player_Upgrade_System.level 
+    # (These are now fully handled in the main script to perfectly match the UI)
     
     total_crit_chance = crit_chance + float(extra_chance)
     total_crit_multi = crit_multiplier * float(extra_multi)
