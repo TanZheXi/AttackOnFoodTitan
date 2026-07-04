@@ -119,6 +119,8 @@ class PlayerUpgradeSystem:
 
         self.button_rect = None
         
+        self.upgrade_callback = None
+
         self.spicy_ability = None
         self.crispy_ability = None
 
@@ -398,26 +400,25 @@ class PlayerUpgradeSystem:
            Currency_System.pocket_money -= cost
            self.level += 1
 
+           old_damage = Equipment_System.base_damage 
+
            # Damage scaling: exponential growth
-           Equipment_System.base_damage = int(Equipment_System.base_damage * 1.10)
+           Equipment_System.base_damage = Equipment_System.base_damage * 1.10
+           
+           print(f"[DEBUG] Damage changed from {old_damage} to {Equipment_System.base_damage}")
 
            # Cost scaling: exponential growth, slightly slower
            self.current_cost = int(self.base_cost * (1.09 ** self.level))
 
            # Milestones
            if self.level % 25 == 0:
-               Equipment_System.base_damage = int(Equipment_System.base_damage * 2)
+               Equipment_System.base_damage = (Equipment_System.base_damage * 2)
            if self.level % 100 == 0:
-               Equipment_System.base_damage = int(Equipment_System.base_damage * 10)
+               Equipment_System.base_damage = (Equipment_System.base_damage * 10)
            if self.level % 50 == 0:
                self.current_cost = int(self.current_cost * 1.5)
 
-           print(f"[UPGRADE] Base Damage Lv {self.level} → {Equipment_System.base_damage}, Next Cost: {self.get_upgrade_cost()}")
-
-           # ========== Announce Kitchen Guide Upgrade Update ==========
-           if self.upgrade_callback:
-                self.upgrade_callback()
-           # =================================================
+           print(f"[UPGRADE] Base Damage Lv {self.level} → {int(Equipment_System.base_damage)}, Next Cost: {self.get_upgrade_cost()}")
 
     def draw(self, screen):
         # Panel background

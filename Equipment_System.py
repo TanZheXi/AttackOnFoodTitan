@@ -5,9 +5,9 @@ import os
 with open('Equipment.json', 'r') as file:
     equipment_database = json.load(file)
 
-"""Variables"""
+# Variables #
 total_damage_multiplier = 1.0
-base_damage = 1
+base_damage = 1.0
 crafting_scraps = 0
 
 # --- Kitchen Guide callback ---
