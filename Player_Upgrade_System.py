@@ -52,12 +52,23 @@ class Companion:
         return int(dmg)
 
     def purchase_upgrade(self):
-        cost = self.get_upgrade_cost()
-        if Currency_System.pocket_money >= cost:
-            Currency_System.pocket_money -= cost
-            self.level += 1
-            self.current_cost = self.base_cost * (self.cost_growth ** self.level)
-            print(f"[COMPANION] {self.name} Lv {self.level} → DMG {self.get_damage()}, Next Cost {self.get_upgrade_cost()}")
+       cost = self.get_upgrade_cost()
+       if Currency_System.pocket_money >= cost:
+           Currency_System.pocket_money -= cost
+           self.level += 1
+
+           # Damage scaling: exponential growth
+           Equipment_System.base_damage = int(Equipment_System.base_damage * 1.08 + 2)
+
+           # Cost scaling: exponential growth, slightly faster
+           self.current_cost = int(self.base_cost * (1.12 ** self.level))
+
+           # Milestones: every 50 levels, extra multiplier
+           if self.level % 50 == 0:
+              Equipment_System.base_damage = int(Equipment_System.base_damage * 1.25)
+              self.current_cost = int(self.current_cost * 1.5)
+
+           print(f"[UPGRADE] Base Damage Lv {self.level} → {Equipment_System.base_damage}, Next Cost: {self.get_upgrade_cost()}")
 
     def draw_circle(self, screen):
         if self.level > 0:
