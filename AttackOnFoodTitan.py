@@ -705,7 +705,7 @@ while IsRunning:
 
                 extra_chance, extra_multi = crispy_precision.get_crit_bonus()
                 final_damage, is_critical = calculate_damage(None, extra_chance, extra_multi)
-                final_damage = int(final_damage * damage_boost.get_multiplier() * Currency_System.get_prestige_multiplier())
+                final_damage = (final_damage * damage_boost.get_multiplier() * Currency_System.get_prestige_multiplier())
                 current_monster.take_damage(final_damage)
 
                 popup_x = current_monster.rect.x + random.randint(20, current_monster.rect.width - 20)

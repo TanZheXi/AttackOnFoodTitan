@@ -243,11 +243,7 @@ class PlayerUpgradeSystem:
     # Get Companion Damage
     def get_companion_damage(self, index):
         return self.companions[index].get_damage()
- 
-        # ========== Kitchen Guide callback ==========
-        self.upgrade_callback = None  # Set external callback function
-        # ===========================================
-
+    
     def _init_category_buttons(self):
         btn_width = 100
         btn_height = 30

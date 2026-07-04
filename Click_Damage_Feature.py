@@ -399,4 +399,4 @@ def calculate_damage(base_damage=None, extra_chance=0.0, extra_multi=1.0):
     if is_critical:
         damage *= total_crit_multi
     
-    return int(damage), is_critical
+    return damage, is_critical 
