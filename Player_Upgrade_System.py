@@ -74,15 +74,15 @@ class Companion:
            self.level += 1
 
            # Damage scaling: exponential growth
-           Equipment_System.base_damage = int(Equipment_System.base_damage * 1.08 + 2)
+           Equipment_System.base_damage = int(Equipment_System.base_damage * 1.08)
 
            # Cost scaling: exponential growth, slightly faster
            self.current_cost = int(self.base_cost * (1.12 ** self.level))
 
-           # Milestones: every 50 levels, extra multiplier
-           if self.level % 50 == 0:
-              Equipment_System.base_damage = int(Equipment_System.base_damage * 1.25)
-              self.current_cost = int(self.current_cost * 1.5)
+           if self.level % 25 == 0:
+              Equipment_System.base_damage = int(Equipment_System.base_damage * 2)
+           if self.level % 100 == 0:
+              Equipment_System.base_damage = int(Equipment_System.base_damage * 10)
 
            print(f"[UPGRADE] Base Damage Lv {self.level} → {Equipment_System.base_damage}, Next Cost: {self.get_upgrade_cost()}")
 
@@ -395,25 +395,29 @@ class PlayerUpgradeSystem:
     def purchase_upgrade(self):
         cost = self.get_upgrade_cost()
         if Currency_System.pocket_money >= cost:
-            Currency_System.pocket_money -= cost
-            self.level += 1
+           Currency_System.pocket_money -= cost
+           self.level += 1
 
-            # Apply effect: +1 base damage each upgrade
-            Equipment_System.base_damage += 1
+           # Damage scaling: exponential growth
+           Equipment_System.base_damage = int(Equipment_System.base_damage * 1.10)
 
-            # Milestone: every 50 upgrades multiply damage and spike cost
-            if self.level % 50 == 0:
-                Equipment_System.base_damage = int(Equipment_System.base_damage * 1.2)
-                self.current_cost = int(self.current_cost * 1.5)
-            else:
-                self.current_cost = self.current_cost * self.common_ratio
+           # Cost scaling: exponential growth, slightly slower
+           self.current_cost = int(self.base_cost * (1.09 ** self.level))
 
-            print(f"[UPGRADE] Base Damage Lv {self.level} → {Equipment_System.base_damage}, Next Cost: {self.get_upgrade_cost()}")
+           # Milestones
+           if self.level % 25 == 0:
+               Equipment_System.base_damage = int(Equipment_System.base_damage * 2)
+           if self.level % 100 == 0:
+               Equipment_System.base_damage = int(Equipment_System.base_damage * 10)
+           if self.level % 50 == 0:
+               self.current_cost = int(self.current_cost * 1.5)
 
-            # ==========  Kitchen Guide  ==========
-            if self.upgrade_callback:
+           print(f"[UPGRADE] {self.name} Lv {self.level} → {Equipment_System.base_damage}, Next Cost: {self.get_upgrade_cost()}")
+
+           # ==========  Kitchen Guide  ==========
+           if self.upgrade_callback:
                 self.upgrade_callback()
-            # =================================================
+           # =================================================
 
     def draw(self, screen):
         # Panel background
