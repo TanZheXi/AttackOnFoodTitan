@@ -491,12 +491,12 @@ if saved_monster_data:
         tuple(saved_monster_data["color"])
     )
     
-    # --- NEW: Restart the fight if they quit during death animation ---
+    # --- Restart the fight if they quit during death animation ---
     if saved_monster_data["hp"] <= 0:
         current_monster.hp = saved_monster_data["max_hp"]
     else:
         current_monster.hp = saved_monster_data["hp"]
-    # ------------------------------------------------------------------
+    # -------------------------------------------------------------
         
     current_monster.rect.x = MIDDLE_CENTER_X - MONSTER_SIZE // 2
     current_monster.rect.y = 275
