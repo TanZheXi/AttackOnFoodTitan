@@ -86,7 +86,7 @@ class GuideManager:
             "Reach Stage", 5, "boost"
         )
 
-        quest4.set_progress(1) # Start with Stage 1 progress to encourage players to reach Stage 2
+        quest4.set_progress(1) # Start with Stage 1 progress to encourage players to reach Stage 5
 
         self.quests = [quest1, quest2, quest3, quest4]
 

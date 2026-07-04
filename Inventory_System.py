@@ -271,7 +271,6 @@ class InventorySystem:
             card_spacing_x = 12
             card_spacing_y = 10
             
-            # SHIFTED LEFT: Changed from 18 to 8
             start_x = self.rect.x + 8 
             start_y = self.rect.y + 65
             
@@ -293,7 +292,7 @@ class InventorySystem:
 
         for item_name, item_data in Equipment_System.equipment_database.items():
             if item_name != "Player_Data" and item_data.get("owned", False):
-                # If we own it, but it's missing from the UI list, add it back!
+                # If we own it, but it's missing from the UI list, add it back
                 if not any(name == item_name for name, cat in self.all_items):
                     self.add_item(item_name)
         
@@ -315,7 +314,6 @@ class InventorySystem:
         card_spacing_x = 12
         card_spacing_y = 10
         
-        # SHIFTED LEFT: Changed from 18 to 8
         start_x = self.rect.x + 8 
         start_y = self.rect.y + 65
 
