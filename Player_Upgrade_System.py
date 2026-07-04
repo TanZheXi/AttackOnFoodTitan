@@ -115,7 +115,7 @@ class PlayerUpgradeSystem:
 
             print(f"[UPGRADE] Base Damage Lv {self.level} → {Equipment_System.base_damage}, Next Cost: {self.get_upgrade_cost()}")
 
-            # ========== Announce Kitchen Guide Upgrade Update ==========
+            # ===== Announce Kitchen Guide Upgrade Update =====
             if self.upgrade_callback:
                 self.upgrade_callback()
             # =================================================
