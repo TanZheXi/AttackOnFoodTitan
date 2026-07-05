@@ -408,7 +408,7 @@ def set_crit_chance(value):
 def set_crit_multiplier(value):
     _crit_stats.set_multiplier(value)
 
-def calculate_damage(base_damage=None, extra_chance=0.0, extra_multi=1.0):
+def calculate_damage(base_damage=None, extra_chance=0.0, extra_multi=0.0): # <-- Change default to 0.0
     if base_damage is None:
         damage = float(Equipment_System.base_damage)
     else:

@@ -1,4 +1,5 @@
 import pygame as pg
+import os
 import Currency_System
 import Equipment_System
 from Audio_System import GLOBAL_CLICK
@@ -61,6 +62,17 @@ class Companion:
         self.circle_pos = circle_pos
         self.radius = 15
 
+        # --- NEW: LOAD COMPANION IMAGE ---
+        self.image = None
+        try:
+            icon_path = os.path.join(os.path.dirname(__file__), "Icon", f"{self.name}.png")
+            if os.path.exists(icon_path):
+                raw_image = pg.image.load(icon_path).convert_alpha()
+                # Scaling to 40x40 to ensure it fits nicely around the monster
+                self.image = pg.transform.scale(raw_image, (40, 40))
+        except Exception as e:
+            print(f"[COMPANION] Failed to load image for {self.name}: {e}")
+
     def get_upgrade_cost(self):
         return int(self.current_cost)
 
@@ -95,10 +107,16 @@ class Companion:
 
     def draw_circle(self, screen):
         if self.level > 0:
-            pg.draw.circle(screen, (200, 200, 50), self.circle_pos, self.radius)
-            font = pg.font.SysFont(None, 16)
-            txt = font.render(self.name[0], True, (0, 0, 0))
-            screen.blit(txt, txt.get_rect(center=self.circle_pos))
+            if self.image:
+                # Draw the loaded image perfectly centered on the circle_pos coordinates
+                img_rect = self.image.get_rect(center=self.circle_pos)
+                screen.blit(self.image, img_rect)
+            else:
+                # Fallback: Draw the yellow circle if the image is missing
+                pg.draw.circle(screen, (200, 200, 50), self.circle_pos, self.radius)
+                font = pg.font.SysFont(None, 16)
+                txt = font.render(self.name[0], True, (0, 0, 0))
+                screen.blit(txt, txt.get_rect(center=self.circle_pos))
 
 # =========================
 # Player Upgrade System
@@ -555,22 +573,22 @@ class PlayerUpgradeSystem:
  
         # ===== Critical Damage upgrade box (UNLIMITED - no max) =====
         self.crit_dmg_rect = pg.Rect(self.rect.x + 20, y_offset, self.rect.width - 40, box_height)
-        self._draw_upgrade_box(screen, self.crit_dmg_rect, mouse_pos, 50, self.crit_dmg_level, self.crit_dmg_max, self.crit_dmg_cost, "Critical Damage")
+        self._draw_upgrade_box(screen, self.crit_dmg_rect, mouse_pos, 50, self.crit_dmg_level, self.crit_dmg_max, self.crit_dmg_cost, "Crit Damage (+1%/Lv)")
         y_offset += box_height + spacing
 
         # ===== Critical Chance upgrade box (500 max) =====
         self.crit_chance_rect = pg.Rect(self.rect.x + 20, y_offset, self.rect.width - 40, box_height)
-        self._draw_upgrade_box(screen, self.crit_chance_rect, mouse_pos, 75, self.crit_chance_level, self.crit_chance_max, self.crit_chance_cost, "Critical Chance")
+        self._draw_upgrade_box(screen, self.crit_chance_rect, mouse_pos, 75, self.crit_chance_level, self.crit_chance_max, self.crit_chance_cost, "Crit Chance (+0.1%/Lv)")
         y_offset += box_height + spacing
 
         # ===== Mana Capacity upgrade box (300 max) =====
         self.mana_cap_rect = pg.Rect(self.rect.x + 20, y_offset, self.rect.width - 40, box_height)
-        self._draw_upgrade_box(screen, self.mana_cap_rect, mouse_pos, 100, self.mana_cap_level, self.mana_cap_max, self.mana_cap_cost, "Mana Capacity")
+        self._draw_upgrade_box(screen, self.mana_cap_rect, mouse_pos, 100, self.mana_cap_level, self.mana_cap_max, self.mana_cap_cost, "Mana Capacity (+1/Lv)")
         y_offset += box_height + spacing
 
         # ===== Mana Regen upgrade box (100 max) =====
         self.mana_regen_rect = pg.Rect(self.rect.x + 20, y_offset, self.rect.width - 40, box_height)
-        self._draw_upgrade_box(screen, self.mana_regen_rect, mouse_pos, 150, self.mana_regen_level, self.mana_regen_max, self.mana_regen_cost, "Mana Regen")
+        self._draw_upgrade_box(screen, self.mana_regen_rect, mouse_pos, 150, self.mana_regen_level, self.mana_regen_max, self.mana_regen_cost, "Mana Regen (+0.1s/Lv)")
         y_offset += box_height + spacing
 
         # Spicy Surge upgrade box
