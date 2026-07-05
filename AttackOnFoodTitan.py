@@ -914,9 +914,9 @@ while IsRunning:
                     current_monster.last_hit_by = "player"
 
         if player_upgrade_system.spicy_unlocked:
-           damage_boost.handle_event(event)
+           damage_boost.handle_event(event, mana_system)  
         if player_upgrade_system.crispy_unlocked:
-           crispy_precision.handle_event(event)
+           crispy_precision.handle_event(event, mana_system)  
 
         Button_System.panel_manager.monster_manager = monster_manager
         Button_System.panel_manager.handle_event(event)
