@@ -1642,31 +1642,75 @@ pg.quit()
 # 10. Game UI & Sound Effect System (Currency_System.py, Button_System.py)
 #     Source code: Gemini & Copilot
 #
-# 11. Gain & Lost of Equipment & Currency System (Currency_System.py)
+# 11. Boss Timer (AttackOnFoodTitan.py, Click_Damage_Feature.py)
+#     Source code: Copilot
+#     Link: None
+#
+# 12. Monster HP Scaling (Click_Damage_System.py)
+#     Source code: Copilot
+#     Link: None
+#
+# 13. Base Damage Upgrade scaling (Player_Upgrade_system.py) 
+#     Source: Copilot
+#     Link: None
+#
+# 14. Other Upgrade Scaling (Player_Upgrade_System.py, Abilities.py)
+#     Source: DeepSeek
+#     Link: None
+#
+# 15. Scrollbar for easier navigation in Player Upgrade Panel (Player_Upgrade_System.py)
+#     Source: Copilot
+#     Link: None
+#
+# 16. Companion upgrade scaling (Player_Upgrade_System.py)
+#     Source: Copilot
+#     Link: None
+#
+# 17. Prestige requirement (Currency_System.py)
+#     Source: DeepSeek
+#     Link: None
+#
+# 18. Critical Hit Chance and Damage (Click_Damage_Feature.py)
+#     Source: Copilot
+#     Link: None
+#
+# 19. Mana Bar and Mana Point System (Abilities.py)
+#     Source: Copilot
+#     Link: None
+#
+# 20. Help received when fixing bug 
+#     Source: Copilot and DeepSeek
+#     Link: None
+#
+# 21. Companions (Player_Upgrade_System)
+#     Source: Copilot
+#     Link: None
+#
+# 22. Gain & Lost of Equipment & Currency System (Currency_System.py)
 #     Source code: Gemini & Copilot
 #
-# 12. Crafting System (Crafting_System.py)
+# 23. Crafting System (Crafting_System.py)
 #     Source code: Gemini & Copilot
 #
-# 13. Prestige Progression System (Adding buffs per prestige)
+# 24. Prestige Progression System (Adding buffs per prestige)
 #     Source code: Gemini & Copilot
 #
-# 14. Settings System (Settings_System.py)
+# 25. Settings System (Settings_System.py)
 #     Source code: Gemini & Copilot
 #
-# 15. Sprite Animation System (AttackOnFoodTitan.py)
+# 26. Sprite Animation System (AttackOnFoodTitan.py)
 #     Source code: Gemini & Copilot
 #
-# 16. sfx and music (AttackOnFoodTitan.py)
+# 27. sfx and music (AttackOnFoodTitan.py)
 #     Source code: Gemini & Copilot
 # 
-# 17. Equipment System (Equipment_System.py)
+# 28. Equipment System (Equipment_System.py)
 #     Source code: Gemini 
 #
-# 18. Image loading and scaling (AttackOnFoodTitan.py)
+# 29. Image loading and scaling (AttackOnFoodTitan.py)
 #     Source code: Gemini & Copilot
 # 
-# 19. Statistic Panel (AttackOnFoodTitan.py)
+# 30. Statistic Panel (AttackOnFoodTitan.py)
 #     Source code: Gemini & Copilot
 
 
@@ -1674,11 +1718,12 @@ pg.quit()
 # Contributors
 # ==========================================
 # Tan Zhe Xi (TZX)
-#   - TZX_1. MINIGAME SYSTEM
-#   - TZX_2. EQUIPMENT & DATA DESIGN
-#   - TZX_3. ABILITY TO CLICK TO DEAL DAMAGE
-#     (Handled by Click_Damage_Feature.py)
-#   - TZX_4. ADJUSTING STATS ACCORDING TO PRESTIGE LEVELS
+#   - TZX_1. Prestige Gimmick (Handled by AttackOnFoodTitan.py, Iventory_System.py, Pet_System.py,Currency_System.py, Button_System.py, Player_Upgrade_System.py)
+#   - TZX_2. Player Data Design (Handled by Player_Upgrade_System.py, AttackOnFoodTitan.py, Abilities.py)
+#   - TZX_3. ABILITY TO CLICK TO DEAL DAMAGE (Handled by Click_Damage_Feature.py)
+#   - TZX_4. Abilities/Power Up (Abilities.py, AttackOnFoodTitan.py, Player_Upgrade_System.py, AFK_System.py)
+#   - TZX_5. Companion Data Design (Player_Upgrade_System.py, AttackOnFoodTitan.py, AFK_System.py)
+#   - TZX_6. Scaling (Player_Upgrade_System.py, Click_Damage_Feature.py, Abilities.py)
 #
 # Eng Kai Hin (EKH)
 #   - EKH_1. BUTTON INTERACTION SYSTEM
