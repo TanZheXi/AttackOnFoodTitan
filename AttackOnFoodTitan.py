@@ -9,7 +9,11 @@ import AFK_System
 import Currency_System
 import Equipment_System
 from KitchenGuide_System import KitchenGuideSystem
-from Abilities import SpicySurge, CrispyPrecision
+from Abilities import SpicySurge, CrispyPrecision,ManaSystem
+from Player_Upgrade_System import PlayerUpgradeSystem
+
+
+
 
 # ========== Spinner Loading Animation ==========
 def show_loading_screen(screen, message, progress=0):
@@ -524,6 +528,9 @@ auto_save_interval = 5
 PET_ATTACK_INTERVAL = 1.0
 last_pet_attack_time = time.time()
 
+COMPANION_ATTACK_INTERVAL = 1.0  # one attack per second
+last_companion_attack_time = time.time()
+
 Button_System.panel_manager.pending_inventory = saved_inventory if saved_inventory else []
 Button_System.panel_manager.pending_shop_state = saved_shop_state if saved_shop_state else []
 Button_System.panel_manager.pending_pet_data = saved_pet_data if saved_pet_data else []
@@ -538,9 +545,37 @@ boost_indicator = BoostIndicator(x=LEFT_AREA_X + 10, y=WINDOW_HEIGHT - 100, widt
 if saved_boost_data:
     boost_indicator.restore_save_data(saved_boost_data)
 
-# Moves them to the bottom-left corner of the middle area
-damage_boost = SpicySurge(x=LEFT_WIDTH + 45, y=WINDOW_HEIGHT - 60, radius=35)
-crispy_precision = CrispyPrecision(x=damage_boost.x + 90, y=damage_boost.y, radius=35)
+# ✅ Place abilities near the left panel, bottom aligned
+damage_boost = SpicySurge(
+    x=LEFT_WIDTH + 60,        # safely inside middle area, not touching left panel
+    y=WINDOW_HEIGHT - 120,    # keep same vertical position
+    radius=35
+)
+
+crispy_precision = CrispyPrecision(
+    x=damage_boost.x + 100,   # offset to the right of Spicy Surge
+    y=damage_boost.y,
+    radius=35
+)
+
+mana_system = ManaSystem()
+
+# =========================
+# Initialize upgrade system
+# =========================
+player_upgrade_system = PlayerUpgradeSystem(
+    x=RIGHT_AREA_X + 20,
+    y=100,
+    width=400,
+    height=400
+)
+
+# ✅ Link into PanelManager so auto‑attack and events can use it
+Button_System.panel_manager.player_upgrade_system = player_upgrade_system
+
+# ✅ Link abilities before events fire
+player_upgrade_system.spicy_ability = damage_boost
+player_upgrade_system.crispy_ability = crispy_precision
 
 def on_prestige_reset():
     # Only reset the shop so players can re-buy things if needed
@@ -591,14 +626,20 @@ show_loading_screen(window, "Starting game...", 1.0)
 # ---  Developer Mode Flag ---
 dev_mode = False
 
-# ========== Main Loop ==========
+# ========== Main Loop ========== #
 while IsRunning:
     dt_ms = clock.tick(60)
     dt_sec = dt_ms / 1000.0
     
+    #debug_get_mouse_pos() 
+    
     boost_indicator.update()
-    damage_boost.update()
-    crispy_precision.update()
+
+    # Update abilities only if unlocked
+    if player_upgrade_system.spicy_unlocked:
+       damage_boost.update()
+    if player_upgrade_system.crispy_unlocked:
+       crispy_precision.update() 
 
     for event in pg.event.get():
         if event.type == pg.USEREVENT + 1:
@@ -689,8 +730,10 @@ while IsRunning:
                 if current_monster.is_defeated() and not hasattr(current_monster, "last_hit_by"):
                     current_monster.last_hit_by = "player"
 
-        damage_boost.handle_event(event)
-        crispy_precision.handle_event(event)
+        if player_upgrade_system.spicy_unlocked:
+           damage_boost.handle_event(event)
+        if player_upgrade_system.crispy_unlocked:
+           crispy_precision.handle_event(event)
 
         Button_System.panel_manager.monster_manager = monster_manager
         Button_System.panel_manager.handle_event(event)
@@ -732,7 +775,37 @@ while IsRunning:
                     
         last_pet_attack_time = current_time
 
-        # ========== Monster Death & Respawn Logic ==========
+    # ========== Companion auto attack ==========
+    current_time = time.time()
+    if current_time - last_companion_attack_time >= COMPANION_ATTACK_INTERVAL:
+        if Button_System.panel_manager.player_upgrade_system:
+            for comp in Button_System.panel_manager.player_upgrade_system.companions:
+                if comp.level > 0 and current_monster.hp > 0:
+                   dmg = comp.get_damage()
+                   current_monster.take_damage(dmg)
+
+                   popup_x = current_monster.rect.x + random.randint(20, current_monster.rect.width - 20)
+                   popup_y = current_monster.rect.y + random.randint(20, current_monster.rect.height - 20)
+                   damage_texts.append(DamageText(str(dmg), (popup_x, popup_y), False))
+
+                   if current_monster.is_defeated() and not hasattr(current_monster, "last_hit_by"):
+                      current_monster.last_hit_by = comp.name
+
+        last_companion_attack_time = current_time
+    
+    # ========== Boss Timer Check ==========
+    if current_monster.boss_timer_active and not current_monster.is_defeated():
+       elapsed = time.time() - current_monster.boss_timer_start
+       if elapsed >= current_monster.boss_timer_duration:
+           print("[BOSS TIMER] Failed to defeat boss in time!")
+           # Reset to monster 5 of current stage
+           monster_manager.progression_index = (monster_manager.stage - 1) * 10 + 4
+           monster_manager.current_monster = monster_manager.spawn_monster()
+           current_monster = monster_manager.current_monster
+           current_monster.rect.x = MIDDLE_CENTER_X - MONSTER_SIZE // 2
+           current_monster.rect.y = 275
+
+    # ========== Monster Death & Respawn Logic ==========
     if current_monster.state == "dead":
         # 1. Give rewards ONLY ONCE
         if not hasattr(current_monster, "rewards_given"):
@@ -1029,6 +1102,10 @@ while IsRunning:
                 name_text = font_pet.render(pet.name[:6]+"..", True, (0, 0, 0))
                 name_rect = name_text.get_rect(center=pet_rect.center)
                 window.blit(name_text, name_rect)
+                
+    # Always draw companions around the monster
+    if Button_System.panel_manager.player_upgrade_system:
+       Button_System.panel_manager.player_upgrade_system.draw_companions(window)
 
     Currency_System.draw_ui(window)
 
@@ -1040,8 +1117,12 @@ while IsRunning:
         button.draw(window)
 
     Button_System.panel_manager.draw(window)
-    damage_boost.draw(window)
-    crispy_precision.draw(window)
+    
+    # Draw abilities only if unlocked
+    if player_upgrade_system.spicy_unlocked:
+       damage_boost.draw(window, mana_system)
+    if player_upgrade_system.crispy_unlocked:
+       crispy_precision.draw(window, mana_system)
 
     pg.display.update()
 

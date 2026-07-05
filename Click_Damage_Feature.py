@@ -6,22 +6,22 @@ import math
 import os
 import Player_Upgrade_System
 
-def format_number(amount):
-    """Formats large numbers with K, M, B, etc. suffixes."""
-    if amount < 1000:
-        return f"{int(amount)}"
-
-    suffixes = ["", "K", "M", "B", "T", "Qa", "Qi"]
-    
-    magnitude = 0
-    temp_amount = float(amount)
-    while temp_amount >= 1000 and magnitude < len(suffixes) - 1:
-        magnitude += 1
-        temp_amount /= 1000.0
-    if temp_amount >= 1000 and magnitude == len(suffixes) - 1:
-        return f"{float(amount):.2e}"
-    return f"{temp_amount:.2f}{suffixes[magnitude]}"
-
+# Scientific Notation
+def format_number_short(value):
+    # Convert large numbers into short format (K, M, B, T, etc.).
+    abs_val = abs(value)
+    if abs_val < 1000:
+        return str(int(value))
+    elif abs_val < 1_000_000:
+        return f"{value/1_000:.2f}K"
+    elif abs_val < 1_000_000_000:
+        return f"{value/1_000_000:.2f}M"
+    elif abs_val < 1_000_000_000_000:
+        return f"{value/1_000_000_000:.2f}B"
+    elif abs_val < 1_000_000_000_000_000:
+        return f"{value/1_000_000_000_000:.2f}T"
+    else:
+        return f"{value:.2e}"  # fallback for astronomically large
 class Monster:
     def __init__(self, name, max_hp, color):
         self.name = name
@@ -30,6 +30,11 @@ class Monster:
         self.color = color
         self.rect = pg.Rect(0, 0, 200, 200)
         
+        # Boss Timer
+        self.boss_timer_active = False
+        self.boss_timer_start = 0
+        self.boss_timer_duration = 30  # seconds
+
         self.creation_time = time.time()
         self.hurt_time = 0
         
@@ -216,7 +221,7 @@ class Monster:
             surface.blit(name_text, name_rect)
             
             # --- RIGHT SIDE: HP AMOUNT ---
-            hp_str = f"{format_number(self.hp)} HP"
+            hp_str = f"{format_number_short(self.hp)} HP"
             hp_shadow = font.render(hp_str, True, (0, 0, 0))
             # midright anchors the text to the right side with a 10px padding
             hp_shadow_rect = hp_shadow.get_rect(midright=(bar_x + bar_width - 10 + 1, text_center_y + 1))
@@ -226,6 +231,38 @@ class Monster:
             hp_rect = hp_text.get_rect(midright=(bar_x + bar_width - 10, text_center_y))
             surface.blit(hp_text, hp_rect)
 
+            # Scientific Notation
+            text = font.render(
+                f"{self.name} HP: {format_number_short(self.hp)}/{format_number_short(self.max_hp)}",
+                True, (0, 0, 0)
+                )
+
+        # --- BOSS TIMER DISPLAY ---
+        if self.boss_timer_active:
+            elapsed = time.time() - self.boss_timer_start
+            remaining = max(0, int(self.boss_timer_duration - elapsed))
+
+            # Draw timer bar
+            timer_bar_y = bar_y - 40
+            pg.draw.rect(surface, (80, 80, 80), (self.rect.x, timer_bar_y, self.rect.width, 12))
+            timer_width = int((remaining / self.boss_timer_duration) * self.rect.width)
+            pg.draw.rect(surface, (255, 100, 100), (self.rect.x, timer_bar_y, timer_width, 12))
+            pg.draw.rect(surface, (200, 200, 200), (self.rect.x, timer_bar_y, self.rect.width, 12), 2)
+    
+            # Draw timer text
+            timer_font = pg.font.SysFont(None, 28, bold=True)
+            timer_text = timer_font.render(f"Boss Timer: {remaining}s", True, (255, 50, 50))
+            timer_rect = timer_text.get_rect(center=(self.rect.centerx, timer_bar_y - 15))
+            surface.blit(timer_text, timer_rect)
+
+# Scaling for Monster HP
+def calculate_monster_hp(stage, is_boss=False):
+    base_hp = 25 * (1.35 ** min(stage, 100)) * (1.10 ** max(stage - 100, 0))
+    if is_boss:
+        cycle = [2, 3, 4, 5, 7]
+        multiplier = cycle[(stage - 1) % 5]
+        return int(base_hp * multiplier)
+    return int(base_hp)
 
 class MonsterManager:
     def __init__(self):
@@ -246,9 +283,24 @@ class MonsterManager:
         self.current_monster = self.spawn_monster()
 
     def spawn_monster(self):
-        hp_value = 50 + (self.progression_index * 100)
-        data = random.choice(self.food_monsters)
-        return Monster(data["name"], hp_value, data["color"])
+       # Every 10th monster is a boss
+       is_boss = (self.progression_index % 10 == 9)
+       hp_value = calculate_monster_hp(self.stage, is_boss)
+
+       data = random.choice(self.food_monsters)
+       monster = Monster(data["name"], hp_value, data["color"])
+    
+       # Link monster back to manager
+       monster.manager = self
+
+       # Activate Boss Timer if boss
+       if is_boss:
+           monster.boss_timer_active = True
+           monster.boss_timer_start = time.time()
+       else:
+           monster.boss_timer_active = False
+
+       return monster
 
     def next_monster(self):
         self.progression_index += 1
@@ -271,7 +323,7 @@ class MonsterManager:
 class DamageText:
     def __init__(self, damage, pos, is_critical=False, suffix=""):
         self.damage = float(damage)   
-        self.display_text = f"+${format_number(self.damage)}{suffix}" 
+        self.display_text = f"+${format_number_short(self.damage)}{suffix}" 
         self.x, self.y = float(pos[0]), float(pos[1])
         self.vy = -60.0
         self.alpha = 255
@@ -299,15 +351,16 @@ class DamageText:
         return False
 
     def draw(self, surface):
+        # Scientific Notation
         if self.is_critical:
-            text_str = f"{format_number(self.damage)}!"
+           text_str = f"{format_number_short(self.damage)}!" # Critical Hit
         else:
-            text_str = f"{format_number(self.damage)}"
+           text_str = format_number_short(self.damage)       # Normal Hit
 
-        txt_surf = self.font.render(text_str, True, self.color)
-        txt_surf.set_alpha(self.alpha)
-        rect = txt_surf.get_rect(center=(int(self.x), int(self.y)))
-        surface.blit(txt_surf, rect)
+           txt_surf = self.font.render(text_str, True, self.color)
+           txt_surf.set_alpha(self.alpha)
+           rect = txt_surf.get_rect(center=(int(self.x), int(self.y)))
+           surface.blit(txt_surf, rect)
 
     def is_alive(self):
         elapsed = pg.time.get_ticks() - self.start_ms

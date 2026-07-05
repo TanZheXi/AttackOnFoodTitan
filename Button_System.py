@@ -11,6 +11,17 @@ from Crafting_System import CraftingSystem
 from KitchenGuide_System import KitchenGuideSystem
 from Settings_System import SettingsSystem
 
+
+
+# --- NEW: GLOBAL SOUND SYSTEM (CLS_1) ---
+try:
+    # load it ONCE here at the top of the file
+    GLOBAL_CLICK = pg.mixer.Sound("Sound_Effects/Click_sfx.wav")
+    GLOBAL_CLICK.set_volume(0.3)
+except Exception as e:
+    GLOBAL_CLICK = None
+    print(f"Warning: Could not load click sound: {e}")
+
 pg.init()
 pg.font.init()  
 
@@ -377,6 +388,7 @@ class PanelManager:
         self.right_column_buttons = []
         self.settings_system = None
         self.player_upgrade_system = None
+        
 
         try:
             self.prestige_sound = pg.mixer.Sound("Sound_Effects/prestige_sfx2.wav") 
@@ -607,6 +619,8 @@ class PanelManager:
             self.pet_system.handle_event(event)
         elif self.active_panel == "Upgrade" and self.player_upgrade_system:
             self.player_upgrade_system.handle_event(event)
+        elif self.active_panel == "Upgrade" and self.player_upgrade_system:
+            self.player_upgrade_system.handle_event(event)
         elif self.active_panel == "Guide" and self.kitchen_guide_system:
             self.kitchen_guide_system.handle_event(event)
         elif self.active_panel == "Prestige":
@@ -633,6 +647,21 @@ class PanelManager:
         elif self.active_panel == "Settings" and self.settings_system:
             self.settings_system.handle_event(event, GLOBAL_CLICK)
         
+        
+    def get_active_panel_rect(self):
+        # Return the rect of the currently active panel, if any.
+        if self.active_panel:
+            return self.panel_rect
+        return None
+    
+    def is_click_on_button(self, pos):
+        # Return True if the click is inside any panel button rect."""
+        for btn in self.left_column_buttons + self.right_column_buttons:
+            if btn.rect.collidepoint(pos):
+               return True
+        if hasattr(self, 'guide_button_rect') and self.guide_button_rect.collidepoint(pos):
+            return True
+        return False
 
     def add_to_inventory(self, item_name):
         if self.pet_system is None:
@@ -706,6 +735,9 @@ class PanelManager:
             screen.blit(hint_text2, hint_rect2)
             return
         
+        if self.active_panel == "Upgrade" and self.player_upgrade_system:
+           self.player_upgrade_system.draw(screen)
+
         if self.active_panel:
             panel_surface = pg.Surface((self.panel_rect.width, self.panel_rect.height))
             panel_surface.set_alpha(self.panel_color[3])
@@ -824,6 +856,31 @@ class PanelManager:
                     upgrade_height = self.panel_rect.height - 80
                     self.player_upgrade_system = PlayerUpgradeSystem(upgrade_x, upgrade_y, upgrade_width, upgrade_height)
                 self.player_upgrade_system.draw(screen)
+            elif self.active_panel == "Companion":
+                if self.companion_system is None:
+                    self.companion_system = CompanionSystem(
+                    self.panel_rect.x + 10,
+                    self.panel_rect.y + 50,
+                    self.panel_rect.width - 20,
+                    self.panel_rect.height - 80,
+                    self.monster_manager.current_monster.rect
+                    )
+                self.companion_system.draw(screen)
+
+            elif self.active_panel == "Settings":
+               if self.settings_system is None:
+                   set_x = self.panel_rect.x + 10
+                   set_y = self.panel_rect.y + 50
+                   set_width = self.panel_rect.width - 20
+                   set_height = self.panel_rect.height - 80
+                   self.settings_system = SettingsSystem(set_x, set_y, set_width, set_height)
+                   if hasattr(self, 'sync_sfx_callback'):
+                        self.settings_system.update_external_sfx = self.sync_sfx_callback
+                   self.settings_system.apply_volumes()
+                
+            
+               self.settings_system.draw(screen)
+                
 
             elif self.active_panel == "Settings":
                if self.settings_system is None:
