@@ -104,6 +104,7 @@ class AFKSystem:
             companion_data = save_data.get("companion_data", [])
             
             
+            
 
             # Restore crit values from save data
             Click_Damage_Feature.set_crit_chance(save_data.get("crit_chance", 0.05))

@@ -199,10 +199,9 @@ class PlayerUpgradeSystem:
 
         # Companion 
         monster_rect = pg.Rect(600, 250, 200, 200)  # placeholder, pass actual monster rect
-        names = ["Metal Spoon","Metal Fork","Chopstick","Spatula","Whisk",
-         "Can Opener","Tongs","Soup Ladle","Fruit Knife","Meat Cleaver"]
-        base_costs = [100, 200, 300, 500, 800, 1200, 2000, 3000, 5000, 8000]
-        base_damages = [5, 8, 12, 20, 30, 45, 60, 80, 100, 150]
+        names = ["Metal Spoon","Metal Fork","Chopstick","Spatula","Whisk","Tongs","Soup Ladle","Fruit Knife","Meat Cleaver"]
+        base_costs = [100, 200, 300, 500, 800, 2000, 3000, 5000, 8000]
+        base_damages = [5, 8, 12, 20, 30, 60, 80, 100, 150]
 
         circle_positions = []
         cx, cy = monster_rect.center
@@ -213,11 +212,10 @@ class PlayerUpgradeSystem:
              (337, 409),  # 3 → Chopstick
              (350, 342),  # 4 → Spatula
              (401, 291),  # 5 → Whisk
-             (705, 512),  # 6 → Can Opener
-             (743, 461),  # 7 → Tongs
-             (769, 413),  # 8 → Soup Ladle
-             (755, 343),  # 9 → Fruit Knife
-             (718, 290) # 10 → Meat Cleaver
+             (743, 461),  # 6 → Tongs
+             (769, 413),  # 7 → Soup Ladle
+             (755, 343),  # 8 → Fruit Knife
+             (718, 290) # 9 → Meat Cleaver
             ] 
 
         self.companions = [
