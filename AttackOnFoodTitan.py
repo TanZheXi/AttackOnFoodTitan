@@ -1124,6 +1124,49 @@ while IsRunning:
     if player_upgrade_system.crispy_unlocked:
        crispy_precision.draw(window, mana_system)
 
+    # ========== DRAW MANA BAR ABOVE ABILITY BUTTONS ==========
+    # Update mana system
+    mana_system.update()
+    
+    # Fixed positions from where abilities are created
+    SPICY_X = LEFT_WIDTH + 60      # damage_boost.x
+    CRISPY_X = SPICY_X + 100       # crispy_precision.x (damage_boost.x + 100)
+    ABILITY_Y = WINDOW_HEIGHT - 120
+    ABILITY_RADIUS = 35
+    
+    mana_bar_height = 16
+    
+    # Center the mana bar between both ability positions
+    left_x = SPICY_X - ABILITY_RADIUS - 10
+    right_x = CRISPY_X + ABILITY_RADIUS + 10
+    mana_bar_width = right_x - left_x
+    mana_bar_x = left_x
+    mana_bar_y = ABILITY_Y - ABILITY_RADIUS - mana_bar_height - 20
+    
+    mana_rect = pg.Rect(mana_bar_x, mana_bar_y, mana_bar_width, mana_bar_height)
+
+    # Background
+    pg.draw.rect(window, (40, 40, 40), mana_rect)
+
+    # Filled portion
+    mana_ratio = mana_system.current_mana / mana_system.max_mana
+    fill_rect = pg.Rect(mana_rect.x, mana_rect.y, int(mana_rect.width * mana_ratio), mana_rect.height)
+    pg.draw.rect(window, (0, 255, 255), fill_rect)
+    
+    # Border
+    pg.draw.rect(window, (200, 200, 200), mana_rect, 2)
+
+    # Text
+    font = pg.font.SysFont(None, 20)
+    text = font.render(f"{int(mana_system.current_mana)}/{mana_system.max_mana}", True, (0, 0, 0))
+    text_rect = text.get_rect(center=mana_rect.center)
+    window.blit(text, text_rect)
+
+    # Label
+    label = font.render("MANA", True, (200, 200, 200))
+    label_rect = label.get_rect(center=(mana_rect.centerx, mana_rect.y - 15))
+    window.blit(label, label_rect)
+
     pg.display.update()
 
 pg.quit()
