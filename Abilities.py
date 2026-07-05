@@ -137,7 +137,8 @@ class AbilityBase:
 # =========================
 class SpicySurge(AbilityBase):
     def __init__(self, x, y, radius):
-        super().__init__(x, y, radius)
+        # FIX 1: Pass the exact filename (without .png) to load the icon
+        super().__init__(x, y, radius, icon_name="SpicySurge")
         self.base_multiplier = 1.5
         self.upgrade_bonus = 0.0
         self.mana_cost = 20
@@ -161,29 +162,45 @@ class SpicySurge(AbilityBase):
     def draw(self, surface, mana_system=None):
         self.rect = pg.Rect(self.x - self.radius, self.y - self.radius, self.radius * 2, self.radius * 2)
 
-         # Grey if not enough mana
-        if mana_system and mana_system.current_mana < self.mana_cost:
-            color = (80, 80, 80)
-        elif self.active:
-            color = (255, 0, 0)
-        elif self.cooldown:
-            color = (100, 100, 100)
+        # FIX 2: Added Image Rendering Logic 
+        if self.icon_image:
+            rect = self.icon_image.get_rect(center=(self.x, self.y))
+            surface.blit(self.icon_image, rect)
+            
+            # Apply dynamic tinting overlays
+            overlay = pg.Surface((self.radius * 2, self.radius * 2), pg.SRCALPHA)
+            if mana_system and mana_system.current_mana < self.mana_cost and not self.active and not self.cooldown:
+                pg.draw.circle(overlay, (0, 0, 0, 150), (self.radius, self.radius), self.radius) # Darken if no mana
+                surface.blit(overlay, rect)
+            elif self.cooldown:
+                pg.draw.circle(overlay, (0, 0, 0, 150), (self.radius, self.radius), self.radius) # Darken on CD
+                surface.blit(overlay, rect)
+            elif self.active:
+                pg.draw.circle(overlay, (255, 50, 50, 60), (self.radius, self.radius), self.radius) # Red tint when active
+                surface.blit(overlay, rect)
+                
+            # White highlight ring on hover
+            if self.is_hovered() and not self.cooldown and not self.active and (not mana_system or mana_system.current_mana >= self.mana_cost):
+                pygame.gfxdraw.aacircle(surface, self.x, self.y, self.radius, (255, 255, 255))
+                
         else:
-            # Fallback to standard colored circle if image is missing
-            if self.active:
+            # Fallback to circles if the image fails to load
+            if mana_system and mana_system.current_mana < self.mana_cost:
+                color = (80, 80, 80)
+            elif self.active:
                 color = (255, 0, 0)
             elif self.cooldown:
                 color = (100, 100, 100)
             else:
                 color = (200, 0, 0)
-            if self.is_hovered():
-                color = self.brighten(color)
+                if self.is_hovered():
+                    color = self.brighten(color)
             draw_smooth_circle(surface, self.x, self.y, self.radius, color)
 
-        # --- 2. DRAW TEXT TIMER ---
+        # --- DRAW TEXT TIMER ---
         self.draw_timer(surface)
 
-        # --- 3. DRAW SWEEP PROGRESS ARC ---
+        # --- DRAW SWEEP PROGRESS ARC ---
         if self.active:
             progress = (time.time() - self.start_time) / self.duration
             bar_color = lerp_color((173, 216, 230), (255, 0, 0), progress)
@@ -193,18 +210,20 @@ class SpicySurge(AbilityBase):
             bar_color = lerp_color((255, 0, 0), (173, 216, 230), progress)
             self.draw_progress_arc(surface, progress, clockwise=False, color=bar_color)
 
-        # Draw mana cost label below the button
+        # --- MANA COST LABEL ---
         font = pg.font.SysFont(None, 18)
         txt = font.render(f"{self.mana_cost} MP", True, (0, 0, 0))
         txt_rect = txt.get_rect(center=(self.x, self.y + self.radius + 15))
         surface.blit(txt, txt_rect)
+
 
 # =========================
 # Crispy Precision (Crit Boost)
 # =========================
 class CrispyPrecision(AbilityBase):
     def __init__(self, x, y, radius):
-        super().__init__(x, y, radius)
+        # FIX 3: Pass icon_name parameter
+        super().__init__(x, y, radius, icon_name="CrispyPrecision")
         self.base_crit_chance = 0.15
         self.base_crit_damage = 1.5
         self.upgrade_bonus_chance = 0.0
@@ -227,53 +246,50 @@ class CrispyPrecision(AbilityBase):
         if self.active:
             return (self.base_crit_chance + self.upgrade_bonus_chance,
                     self.base_crit_damage + self.upgrade_bonus_damage)
-        return (0.0, 1.0)
+        return (0.0, 0.0)
 
-    def draw(self, surface):
-        # --- 1. DRAW BACKGROUND / ICON ---
+    # FIX 4: Combined the two duplicate draw methods into one unified method
+    def draw(self, surface, mana_system=None):
+        self.rect = pg.Rect(self.x - self.radius, self.y - self.radius, self.radius * 2, self.radius * 2)
+
         if self.icon_image:
             rect = self.icon_image.get_rect(center=(self.x, self.y))
             surface.blit(self.icon_image, rect)
             
-            # Apply a dark tint if on cooldown, or a green tint if active
-            if self.cooldown:
-                overlay = pg.Surface((self.radius * 2, self.radius * 2), pg.SRCALPHA)
-                pg.draw.circle(overlay, (0, 0, 0, 150), (self.radius, self.radius), self.radius)
+            # Apply dynamic tinting overlays
+            overlay = pg.Surface((self.radius * 2, self.radius * 2), pg.SRCALPHA)
+            if mana_system and mana_system.current_mana < self.mana_cost and not self.active and not self.cooldown:
+                pg.draw.circle(overlay, (0, 0, 0, 150), (self.radius, self.radius), self.radius) # Darken if no mana
+                surface.blit(overlay, rect)
+            elif self.cooldown:
+                pg.draw.circle(overlay, (0, 0, 0, 150), (self.radius, self.radius), self.radius) # Darken on CD
                 surface.blit(overlay, rect)
             elif self.active:
-                overlay = pg.Surface((self.radius * 2, self.radius * 2), pg.SRCALPHA)
-                pg.draw.circle(overlay, (50, 255, 50, 60), (self.radius, self.radius), self.radius)
+                pg.draw.circle(overlay, (50, 255, 50, 60), (self.radius, self.radius), self.radius) # Green tint when active
                 surface.blit(overlay, rect)
                 
             # White highlight ring on hover
-            if self.is_hovered() and not self.cooldown and not self.active:
+            if self.is_hovered() and not self.cooldown and not self.active and (not mana_system or mana_system.current_mana >= self.mana_cost):
                 pygame.gfxdraw.aacircle(surface, self.x, self.y, self.radius, (255, 255, 255))
-    def draw(self, surface, mana_system=None):
-        self.rect = pg.Rect(self.x - self.radius, self.y - self.radius, self.radius * 2, self.radius * 2)
-
-        # Grey if not enough mana
-        if mana_system and mana_system.current_mana < self.mana_cost:
-            color = (80, 80, 80)
-        elif self.active:
-            color = (0, 255, 0)
-        elif self.cooldown:
-            color = (100, 100, 100)
+                
         else:
-            # Fallback to standard colored circle if image is missing
-            if self.active:
+            # Fallback to circles if the image fails to load
+            if mana_system and mana_system.current_mana < self.mana_cost:
+                color = (80, 80, 80)
+            elif self.active:
                 color = (0, 255, 0)
             elif self.cooldown:
                 color = (100, 100, 100)
             else:
                 color = (0, 200, 0)
-            if self.is_hovered():
-                color = self.brighten(color)
+                if self.is_hovered():
+                    color = self.brighten(color)
             draw_smooth_circle(surface, self.x, self.y, self.radius, color)
 
-        # --- 2. DRAW TEXT TIMER ---
+        # --- DRAW TEXT TIMER ---
         self.draw_timer(surface)
 
-        # --- 3. DRAW SWEEP PROGRESS ARC ---
+        # --- DRAW SWEEP PROGRESS ARC ---
         if self.active:
             progress = (time.time() - self.start_time) / self.duration
             bar_color = lerp_color((173, 216, 230), (255, 0, 0), progress)
@@ -283,7 +299,7 @@ class CrispyPrecision(AbilityBase):
             bar_color = lerp_color((255, 0, 0), (173, 216, 230), progress)
             self.draw_progress_arc(surface, progress, clockwise=False, color=bar_color)
 
-        # ✅ Draw mana cost label below the button
+        # --- MANA COST LABEL ---
         font = pg.font.SysFont(None, 18)
         txt = font.render(f"{self.mana_cost} MP", True, (0, 0, 0))
         txt_rect = txt.get_rect(center=(self.x, self.y + self.radius + 15))
