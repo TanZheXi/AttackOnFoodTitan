@@ -12,16 +12,6 @@ from KitchenGuide_System import KitchenGuideSystem
 from Settings_System import SettingsSystem
 
 
-
-# --- NEW: GLOBAL SOUND SYSTEM (CLS_1) ---
-try:
-    # load it ONCE here at the top of the file
-    GLOBAL_CLICK = pg.mixer.Sound("Sound_Effects/Click_sfx.wav")
-    GLOBAL_CLICK.set_volume(0.3)
-except Exception as e:
-    GLOBAL_CLICK = None
-    print(f"Warning: Could not load click sound: {e}")
-
 pg.init()
 pg.font.init()  
 

@@ -1651,7 +1651,51 @@ pg.quit()
 # 10. Loading screen implementation (AttackOnFoodTitan.py)
 #     Source code: Deepseek
 #     Link: None
+
+# 11. Game UI & Sound Effect System (Currency_System.py, Button_System.py)
+#     Source code: Gemini & Copilot
+#     Link: None
 #
+# 12. Gain & Lost of Equipment & Currency System (Currency_System.py)
+#     Source code: Gemini & Copilot
+#     Link: None
+#
+# 13. Crafting System (Crafting_System.py)
+#     Source code: Gemini & Copilot
+#     Link: None
+#
+# 14. Prestige Progression System (Adding buffs per prestige)
+#     Source code: Gemini & Copilot
+#     Link: None
+#
+# 15. Settings System (Settings_System.py)
+#     Source code: Gemini & Copilot
+#     Link: None
+#
+# 16. Sprite Animation System (AttackOnFoodTitan.py)
+#     Source code: Gemini & Copilot
+#     Link: None
+#
+# 17. sfx and music (AttackOnFoodTitan.py)
+#     Source code: Gemini & Copilot
+#     Link: None
+# 
+# 18. Equipment System (Equipment_System.py)
+#     Source code: Gemini 
+#     Link: None
+#
+# 19. Image loading and scaling (AttackOnFoodTitan.py)
+#     Source code: Gemini & Copilot
+#     Link: None
+# 
+# 20. Statistic Panel (AttackOnFoodTitan.py)
+#     Source code: Gemini & Copilot
+#     Link: None
+#
+#
+#
+#
+
 # ==========================================
 # Contributors
 # ==========================================
@@ -1677,4 +1721,18 @@ pg.quit()
 #   - CLS_2. GAIN & LOST OF EQUIPMENT & CURRENCY SYSTEM
 #     (Handled by Currency_System.py)
 #   - CLS_3. CRAFTING SYSTEM
-#   - CLS_4. SYSTEM TO ADD NEW EQUIPMENT, CHARACTER, AND RECIPES ACCORDING TO EACH PRESTIGE LEVELS
+#     (Handled by Crafting_System.py)
+#   - CLS_4. SYSTEM TO ADD BUFFS ACCORDING TO EACH PRESTIGE LEVELS
+#     (Handled by Currency_System.py) 
+#   - CLS_5. SETTINGS SYSTEM
+#     (Handled by Settings_System.py)
+#   - CLS_6. SPRITE ANIMATION SYSTEM
+#     (Handled by AttackOnFoodTitan.py)
+#   - CLS_7. SFX AND MUSIC
+#     (Handled by AttackOnFoodTitan.py)
+#   - CLS_8. Equipment System
+#     (Handled by Equipment_System.py, saves equipment data and calculate total damage multiplier)
+#   - CLS_9. Image loading and scaling
+#     (Handled by AttackOnFoodTitan.py)
+#   - CLS_10. Statistic Panel
+#     (Handled by AttackOnFoodTitan.py)
