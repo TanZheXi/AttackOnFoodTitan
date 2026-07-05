@@ -596,6 +596,26 @@ if saved_player_upgrade_data:
     player_upgrade_system.mana_regen_cost = saved_player_upgrade_data.get("mana_regen_cost", 750)
     player_upgrade_system.mana_regen_bonus = saved_player_upgrade_data.get("mana_regen_bonus", 0.0)
 
+    # --- NEW FIX 1: Apply loaded stats directly to the real Mana System ---
+    mana_system.max_mana += player_upgrade_system.mana_cap_bonus
+    mana_system.regen_rate += player_upgrade_system.mana_regen_bonus
+    
+    # --- NEW FIX 2: Recalculate Ability Mana Costs based on Level ---
+    spicy_mana = 20
+    for _ in range(player_upgrade_system.spicy_level):
+        spicy_mana = int(spicy_mana * 1.07)
+        
+    crispy_mana = 30
+    for _ in range(player_upgrade_system.crispy_level):
+        crispy_mana = int(crispy_mana * 1.09)
+
+    # --- NEW FIX 3: Apply the Ability Upgrades & correctly scaled Mana Costs ---
+    if player_upgrade_system.spicy_unlocked:
+        damage_boost.set_upgrade_bonus(player_upgrade_system.spicy_damage_boost, spicy_mana)
+    if player_upgrade_system.crispy_unlocked:
+        crispy_precision.set_upgrade_bonus(player_upgrade_system.crispy_crit_chance, player_upgrade_system.crispy_crit_damage, crispy_mana)
+
+
 # ========== Restore Companion Data ==========
 if saved_companion_data:
     for i, comp_data in enumerate(saved_companion_data):
@@ -638,6 +658,7 @@ Button_System.panel_manager.player_upgrade_system = player_upgrade_system
 # ✅ Link abilities before events fire
 player_upgrade_system.spicy_ability = damage_boost
 player_upgrade_system.crispy_ability = crispy_precision
+player_upgrade_system.mana_system = mana_system
 
 def on_prestige_reset():
     # Only reset the shop so players can re-buy things if needed
@@ -888,8 +909,14 @@ while IsRunning:
 
                 extra_chance, extra_multi = crispy_precision.get_crit_bonus()
                 
+                # Add permanent player upgrades to the ability bonus!
+                if Button_System.panel_manager.player_upgrade_system:
+                    extra_chance += Button_System.panel_manager.player_upgrade_system.crit_chance_bonus
+                    extra_multi += Button_System.panel_manager.player_upgrade_system.crit_dmg_bonus
+                
                 # Match the Stats Panel calculation
                 raw_base = getattr(Equipment_System, "base_damage", Click_Damage_Feature.damage_per_click)
+            
                 eq_multi = float(Equipment_System.total_damage_multiplier)
                 
                 upgrade_lvl = 0
@@ -944,6 +971,12 @@ while IsRunning:
                     ))
 
                 extra_chance, extra_multi = crispy_precision.get_crit_bonus()
+                
+                # Add permanent player upgrades for the pet 
+                if Button_System.panel_manager.player_upgrade_system:
+                    extra_chance += Button_System.panel_manager.player_upgrade_system.crit_chance_bonus
+                    extra_multi += Button_System.panel_manager.player_upgrade_system.crit_dmg_bonus
+
                 pet_damage, is_critical = calculate_damage(base_pet_damage, extra_chance, extra_multi)
                 final_pet_damage = int(pet_damage * damage_boost.get_multiplier() * Currency_System.get_prestige_multiplier())
                 current_monster.take_damage(final_pet_damage)
@@ -1211,8 +1244,15 @@ while IsRunning:
     base_crit_m = Click_Damage_Feature.crit_multiplier
     extra_crit_c, extra_crit_m = crispy_precision.get_crit_bonus()
     
-    total_crit_c = base_crit_c + extra_crit_c
-    total_crit_m = base_crit_m * extra_crit_m
+    # Grab the permanent player upgrades
+    upgrade_crit_c = 0.0
+    upgrade_crit_m = 0.0
+    if Button_System.panel_manager.player_upgrade_system:
+        upgrade_crit_c = Button_System.panel_manager.player_upgrade_system.crit_chance_bonus
+        upgrade_crit_m = Button_System.panel_manager.player_upgrade_system.crit_dmg_bonus
+    
+    total_crit_c = base_crit_c + extra_crit_c + upgrade_crit_c
+    total_crit_m = base_crit_m + extra_crit_m + upgrade_crit_m
 
     # Helper function: Draw text with a subtle drop shadow
     def draw_text_with_shadow(text, font, color, x, y):
@@ -1264,12 +1304,16 @@ while IsRunning:
     stats_y = draw_sleek_header("MULTIPLIERS", stats_y)
     stats_y = draw_sub_stat("Prestige Multi", f"x{(prestige_multi)}", (255, 215, 0), stats_y)
     stats_y = draw_sub_stat("  1 Michelin Star =", "+0.1x", (180, 180, 180), stats_y)
-    stats_y = draw_sub_stat("Ability Multi", f"x{Currency_System.format_money(ability_multi)}", (255, 150, 50), stats_y)
-    stats_y = draw_sub_stat("Crit Chance", f"{int(total_crit_c * 100)}%", (150, 200, 255), stats_y)
-    stats_y = draw_sub_stat("Crit Damage", f"x{Currency_System.format_money(total_crit_m)}", (150, 200, 255), stats_y)
-    # -----------------------------------------
-    
+    stats_y = draw_sub_stat("Ability Multi", f"x{ability_multi:.2f}", (255, 150, 50), stats_y)
+    stats_y = draw_sub_stat("Crit Chance", f"{total_crit_c * 100:.1f}%", (150, 200, 255), stats_y)
+    stats_y = draw_sub_stat("Crit Damage", f"{total_crit_m * 100:.1f}%", (150, 200, 255), stats_y)    
     window.blit(get_current_background(monster_manager.stage), (MIDDLE_AREA_X, 0))
+
+    # --- SECTION 4: MANA SYSTEM ---
+    stats_y += 15
+    stats_y = draw_sleek_header("MANA SYSTEM", stats_y)
+    stats_y = draw_sub_stat("Current Mana", f"{int(mana_system.current_mana)} / {mana_system.max_mana}", (0, 255, 255), stats_y)
+    stats_y = draw_sub_stat("Mana Regen", f"+{mana_system.regen_rate:.1f}/sec", (0, 200, 200), stats_y)
     
     boost_indicator.draw(window)
 

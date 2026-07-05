@@ -372,22 +372,17 @@ damage_per_click = getattr(Equipment_System, "base_damage", 1)
 crit_chance = 0.05        
 crit_multiplier = 2.0     
 
-def calculate_damage(base_damage=None, extra_chance=0.0, extra_multi=1.0):
+def calculate_damage(base_damage=None, extra_chance=0.0, extra_multi=0.0): # <-- Change default to 0.0
     if base_damage is None:
         damage = float(Equipment_System.base_damage)
     else:
         damage = float(base_damage)
     
-    # REMOVED: Equipment_System.total_damage_multiplier 
-    # REMOVED: Player_Upgrade_System.level 
-    # (These are now fully handled in the main script to perfectly match the UI)
-    
     total_crit_chance = crit_chance + float(extra_chance)
-    total_crit_multi = crit_multiplier * float(extra_multi)
+    total_crit_multi = crit_multiplier + float(extra_multi) 
     
     is_critical = random.random() < total_crit_chance
     if is_critical:
         damage *= total_crit_multi
     
-    # Return as a float to prevent double-rounding errors (fixes the 29 crit bug)
     return damage, is_critical
