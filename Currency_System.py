@@ -242,25 +242,26 @@ def trigger_prestige(monster_manager):
     
     # Reset player upgrade system
     try:
-        import Button_System
-        if Button_System.panel_manager and Button_System.panel_manager.player_upgrade_system:
-            upgrade_system = Button_System.panel_manager.player_upgrade_system
-            upgrade_system.level = 0
-            upgrade_system.current_cost = 20
-            Equipment_System.base_damage = 1
-            
-            # Reset ability unlocks
-            upgrade_system.spicy_unlocked = False
-            upgrade_system.crispy_unlocked = False
-            upgrade_system.spicy_level = 0
-            upgrade_system.crispy_level = 0
-            upgrade_system.spicy_damage_boost = 0.0
-            upgrade_system.crispy_crit_damage = 0.0
-            upgrade_system.crispy_crit_chance = 0.0
-            
-            print("[PRESTIGE] Upgrade system reset")
+       import Button_System
+       if Button_System.panel_manager and Button_System.panel_manager.player_upgrade_system:
+           upgrade_system = Button_System.panel_manager.player_upgrade_system
+           upgrade_system.level = 0
+           # Scale cost with prestige stars
+           upgrade_system.current_cost = int(20 * (1 + michelin_stars * 0.1))
+           Equipment_System.base_damage = 1
+        
+           # Reset ability unlocks
+           upgrade_system.spicy_unlocked = False
+           upgrade_system.crispy_unlocked = False
+           upgrade_system.spicy_level = 0
+           upgrade_system.crispy_level = 0
+           upgrade_system.spicy_damage_boost = 0.0
+           upgrade_system.crispy_crit_damage = 0.0
+           upgrade_system.crispy_crit_chance = 0.0
+        
+           print("[PRESTIGE] Upgrade system reset")
     except Exception as e:
-        print(f"[PRESTIGE] Error resetting upgrade system: {e}")
+           print(f"[PRESTIGE] Error resetting upgrade system: {e}")
     
     # Reset pet system (unequip all pets)
     try:
