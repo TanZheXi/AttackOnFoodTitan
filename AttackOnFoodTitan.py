@@ -1614,87 +1614,61 @@ pg.quit()
 # ==========================================
 # 1. ABILITY TO CLICK TO DEAL DAMAGE (Click_Damage_Feature.py)
 #    Source code: Copilot
-#    Link: None
 #
 # 2. Drawer system (Button_System.py)
 #    Source code: Deepseek
-#    Link: None
 #
-# 3. Shop system's UI system (Shop_System.py)
+# 3. Shop system's grid (Shop_System.py)
 #    Source code: Deepseek
-#    Link: None
 #
 # 4. Code for fixing bug (AFK_System.py)
 #    Source code: Deepseek
-#    Link: None
 #
-# 5. Code for decorational circle (Inventory_System.py)
+# 5. UI reedit (Every file before window size=1300x750)
 #    Source code: Deepseek
-#    Link: None
 #
-# 6. UI reedit (Every file before window size=1300x750)
+# 6. Pet system tutorial (Pet_System.py)
 #    Source code: Deepseek
-#    Link: None
 #
-# 7. Pet system (Pet_System.py)
+# 7. Kitchen Guide system  for deleting button after complete all tasks(KitchenGuide_System.py)
 #    Source code: Deepseek
-#    Link: None
 #
-# 8. Kitchen Guide system (KitchenGuide_System.py)
+# 8. Animation Tutorial (AttackOnFoodTitan.py)
 #    Source code: Deepseek
-#    Link: None
 #
-# 9. Animation Tutorial (AttackOnFoodTitan.py)
-#    Source code: Deepseek
-#    Link: None
-#
-# 10. Loading screen implementation (AttackOnFoodTitan.py)
+# 9. Loading screen implementation (AttackOnFoodTitan.py)
 #     Source code: Deepseek
-#     Link: None
 
-# 11. Game UI & Sound Effect System (Currency_System.py, Button_System.py)
+# 10. Game UI & Sound Effect System (Currency_System.py, Button_System.py)
 #     Source code: Gemini & Copilot
-#     Link: None
 #
-# 12. Gain & Lost of Equipment & Currency System (Currency_System.py)
+# 11. Gain & Lost of Equipment & Currency System (Currency_System.py)
 #     Source code: Gemini & Copilot
-#     Link: None
 #
-# 13. Crafting System (Crafting_System.py)
+# 12. Crafting System (Crafting_System.py)
 #     Source code: Gemini & Copilot
-#     Link: None
 #
-# 14. Prestige Progression System (Adding buffs per prestige)
+# 13. Prestige Progression System (Adding buffs per prestige)
 #     Source code: Gemini & Copilot
-#     Link: None
 #
-# 15. Settings System (Settings_System.py)
+# 14. Settings System (Settings_System.py)
 #     Source code: Gemini & Copilot
-#     Link: None
 #
-# 16. Sprite Animation System (AttackOnFoodTitan.py)
+# 15. Sprite Animation System (AttackOnFoodTitan.py)
 #     Source code: Gemini & Copilot
-#     Link: None
 #
-# 17. sfx and music (AttackOnFoodTitan.py)
+# 16. sfx and music (AttackOnFoodTitan.py)
 #     Source code: Gemini & Copilot
-#     Link: None
 # 
-# 18. Equipment System (Equipment_System.py)
+# 17. Equipment System (Equipment_System.py)
 #     Source code: Gemini 
-#     Link: None
 #
-# 19. Image loading and scaling (AttackOnFoodTitan.py)
+# 18. Image loading and scaling (AttackOnFoodTitan.py)
 #     Source code: Gemini & Copilot
-#     Link: None
 # 
-# 20. Statistic Panel (AttackOnFoodTitan.py)
+# 19. Statistic Panel (AttackOnFoodTitan.py)
 #     Source code: Gemini & Copilot
-#     Link: None
-#
-#
-#
-#
+
 
 # ==========================================
 # Contributors
