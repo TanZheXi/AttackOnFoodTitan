@@ -4,6 +4,7 @@ import Currency_System
 import Equipment_System
 from Audio_System import GLOBAL_CLICK
 import math
+import Click_Damage_Feature  
 
 try:
     GLOBAL_CLICK = pg.mixer.Sound("Sfx/click.wav")
@@ -30,6 +31,7 @@ def format_number_short(value):
         return f"{value/1_000_000_000_000:.2f}T"
     else:
         return f"{value:.2e}"  # fallback for astronomically large
+
 class CategoryButton:
     def __init__(self, rect, text, category_id):
         self.rect = rect
@@ -144,6 +146,9 @@ class PlayerUpgradeSystem:
         
         self.spicy_ability = None
         self.crispy_ability = None
+        
+        # ✅ Add mana system reference
+        self.mana_system = None
 
         self.spicy_unlocked = False
         self.crispy_unlocked = False
@@ -163,40 +168,40 @@ class PlayerUpgradeSystem:
         self.crispy_crit_damage = 0.0
         self.crispy_crit_chance = 0.0
 
-        # Critical Damage upgrade
+        # ===== UPDATED MAX LEVELS =====
+        # Critical Damage upgrade (UNLIMITED)
         self.crit_dmg_level = 0
-        self.crit_dmg_cost = 100
-        self.crit_dmg_ratio = 1.02
-        self.crit_dmg_max = 100
+        self.crit_dmg_cost = 150
+        self.crit_dmg_ratio = 1.04
+        self.crit_dmg_max = 9999  # Effectively unlimited
         self.crit_dmg_bonus = 0.0
 
-        # Critical Chance upgrade
+        # Critical Chance upgrade (500 levels max)
         self.crit_chance_level = 0
-        self.crit_chance_cost = 250
-        self.crit_chance_ratio = 1.02
-        self.crit_chance_max = 100
+        self.crit_chance_cost = 300
+        self.crit_chance_ratio = 1.05
+        self.crit_chance_max = 500
         self.crit_chance_bonus = 0.0
 
-        # Mana Capacity upgrade
+        # Mana Capacity upgrade (300 levels max)
         self.mana_cap_level = 0
-        self.mana_cap_cost = 500
-        self.mana_cap_ratio = 1.02
-        self.mana_cap_max = 100
+        self.mana_cap_cost = 200
+        self.mana_cap_ratio = 1.03
+        self.mana_cap_max = 300
         self.mana_cap_bonus = 0
 
-        # Mana Regen upgrade
+        # Mana Regen upgrade (100 levels max)
         self.mana_regen_level = 0
-        self.mana_regen_cost = 750
-        self.mana_regen_ratio = 1.02
+        self.mana_regen_cost = 250
+        self.mana_regen_ratio = 1.035
         self.mana_regen_max = 100
         self.mana_regen_bonus = 0.0
 
         # Companion 
         monster_rect = pg.Rect(600, 250, 200, 200)  # placeholder, pass actual monster rect
-        names = ["Metal Spoon","Metal Fork","Chopstick","Spatula","Whisk",
-         "Can Opener","Tongs","Soup Ladle","Fruit Knife","Meat Cleaver"]
-        base_costs = [100, 200, 300, 500, 800, 1200, 2000, 3000, 5000, 8000]
-        base_damages = [5, 8, 12, 20, 30, 45, 60, 80, 100, 150]
+        names = ["Metal Spoon","Metal Fork","Chopstick","Spatula","Whisk","Tongs","Soup Ladle","Fruit Knife","Meat Cleaver"]
+        base_costs = [100, 200, 300, 500, 800, 2000, 3000, 5000, 8000]
+        base_damages = [5, 8, 12, 20, 30, 60, 80, 100, 150]
 
         circle_positions = []
         cx, cy = monster_rect.center
@@ -207,11 +212,10 @@ class PlayerUpgradeSystem:
              (337, 409),  # 3 → Chopstick
              (350, 342),  # 4 → Spatula
              (401, 291),  # 5 → Whisk
-             (705, 512),  # 6 → Can Opener
-             (743, 461),  # 7 → Tongs
-             (769, 413),  # 8 → Soup Ladle
-             (755, 343),  # 9 → Fruit Knife
-             (718, 290) # 10 → Meat Cleaver
+             (743, 461),  # 6 → Tongs
+             (769, 413),  # 7 → Soup Ladle
+             (755, 343),  # 8 → Fruit Knife
+             (718, 290) # 9 → Meat Cleaver
             ] 
 
         self.companions = [
@@ -290,7 +294,7 @@ class PlayerUpgradeSystem:
             self.category_buttons.append(btn)
 
     def set_category(self, category_index):
-        """Change the current category and update button states"""
+        # Change the current category and update button states
         self.current_category = category_index
         for btn in self.category_buttons:
             btn.is_selected = (btn.category_id == self.current_category)
@@ -324,92 +328,93 @@ class PlayerUpgradeSystem:
 
                 # Spicy Surge upgrade
                 if hasattr(self, "spicy_rect") and self.spicy_rect.collidepoint(event.pos):
-                   if self.level >= 100 and self.spicy_level < self.spicy_max_level:   # unlock at level 100
-                      if Currency_System.pocket_money >= self.spicy_cost:
-                         Currency_System.pocket_money -= self.spicy_cost
-                         self.spicy_level += 1
-                         self.spicy_damage_boost += 0.15
-                         self.spicy_cost = int(self.spicy_cost * self.spicy_ratio)
-                         if self.spicy_level % 10 == 0:
-                            self.spicy_cost = int(self.spicy_cost * 1.25)   # milestone spike
-                         if self.spicy_level == 1:   # first upgrade purchased
-                            self.spicy_unlocked = True
+                    if self.level >= 100 and self.spicy_level < self.spicy_max_level:
+                        if Currency_System.pocket_money >= self.spicy_cost:
+                            Currency_System.pocket_money -= self.spicy_cost
+                            self.spicy_level += 1
+                            self.spicy_damage_boost += 0.15
+                            self.spicy_cost = int(self.spicy_cost * self.spicy_ratio)
+                            if self.spicy_level % 10 == 0:
+                                self.spicy_cost = int(self.spicy_cost * 1.25)
+                            if self.spicy_level == 1:
+                                self.spicy_unlocked = True
 
-                         # ✅ Scale mana cost
-                         if self.spicy_ability:
-                            new_mana_cost = int(self.spicy_ability.mana_cost * 1.07)  # ~7% growth
-                            self.spicy_ability.set_upgrade_bonus(self.spicy_damage_boost, new_mana_cost)
+                            if self.spicy_ability:
+                                new_mana_cost = int(self.spicy_ability.mana_cost * 1.07)
+                                self.spicy_ability.set_upgrade_bonus(self.spicy_damage_boost, new_mana_cost)
 
-                         print(f"[SPICY SURGE] Lv {self.spicy_level} → Damage Boost +{self.spicy_damage_boost:.2f}, Mana Cost {self.spicy_ability.mana_cost}, Next Cost: {self.spicy_cost}")
+                            print(f"[SPICY SURGE] Lv {self.spicy_level} → Damage Boost +{self.spicy_damage_boost:.2f}, Mana Cost {self.spicy_ability.mana_cost}, Next Cost: {self.spicy_cost}")
         
                 # Crispy Precision upgrade
                 if hasattr(self, "crispy_rect") and self.crispy_rect.collidepoint(event.pos):
-                   if self.level >= 200 and self.crispy_level < self.crispy_max_level:   # unlock at level 200
-                      if Currency_System.pocket_money >= self.crispy_cost:
-                         Currency_System.pocket_money -= self.crispy_cost
-                         self.crispy_level += 1
-                         self.crispy_crit_damage += 0.25
-                         self.crispy_crit_chance += 0.01
-                         self.crispy_cost = int(self.crispy_cost * self.crispy_ratio)
-                         if self.crispy_level % 10 == 0:
-                            self.crispy_cost = int(self.crispy_cost * 1.35)   # milestone spike
-                         if self.crispy_level == 1:  # first upgrade purchased
-                            self.crispy_unlocked = True
+                    if self.level >= 200 and self.crispy_level < self.crispy_max_level:
+                        if Currency_System.pocket_money >= self.crispy_cost:
+                            Currency_System.pocket_money -= self.crispy_cost
+                            self.crispy_level += 1
+                            self.crispy_crit_damage += 0.25
+                            self.crispy_crit_chance += 0.01
+                            self.crispy_cost = int(self.crispy_cost * self.crispy_ratio)
+                            if self.crispy_level % 10 == 0:
+                                self.crispy_cost = int(self.crispy_cost * 1.35)
+                            if self.crispy_level == 1:
+                                self.crispy_unlocked = True
 
-                         # ✅ Scale mana cost
-                         if self.crispy_ability:
-                            new_mana_cost = int(self.crispy_ability.mana_cost * 1.09)  # ~9% growth
-                            self.crispy_ability.set_upgrade_bonus(self.crispy_crit_chance, self.crispy_crit_damage, new_mana_cost)
+                            if self.crispy_ability:
+                                new_mana_cost = int(self.crispy_ability.mana_cost * 1.09)
+                                self.crispy_ability.set_upgrade_bonus(self.crispy_crit_chance, self.crispy_crit_damage, new_mana_cost)
 
-                         print(f"[CRISPY PRECISION] Lv {self.crispy_level} → Crit +{self.crispy_crit_chance:.2f}, Damage +{self.crispy_crit_damage:.2f}, Mana Cost {self.crispy_ability.mana_cost}, Next Cost: {self.crispy_cost}")
+                            print(f"[CRISPY PRECISION] Lv {self.crispy_level} → Crit +{self.crispy_crit_chance:.2f}, Damage +{self.crispy_crit_damage:.2f}, Mana Cost {self.crispy_ability.mana_cost}, Next Cost: {self.crispy_cost}")
                 
-                # Critical Damage upgrade
+                # ===== FIXED: Critical Damage upgrade =====
                 if hasattr(self, "crit_dmg_rect") and self.crit_dmg_rect.collidepoint(event.pos):
-                   if self.level >= 50 and self.crit_dmg_level < self.crit_dmg_max:
+                   if self.level >= 50:
                       if Currency_System.pocket_money >= self.crit_dmg_cost:
                          Currency_System.pocket_money -= self.crit_dmg_cost
                          self.crit_dmg_level += 1
-                         self.crit_dmg_bonus += 0.01  # +1% per upgrade
+                         self.crit_dmg_bonus += 0.01
                          self.crit_dmg_cost = int(self.crit_dmg_cost * self.crit_dmg_ratio)
-                         print(f"[CRIT DMG] Lv {self.crit_dmg_level} → +{self.crit_dmg_bonus*100:.1f}% Crit Damage, Next Cost: {self.crit_dmg_cost}")
+                         # ✅ Use setter function
+                         Click_Damage_Feature.set_crit_multiplier(2.0 + self.crit_dmg_bonus)
+                         print(f"[CRIT DMG] Lv {self.crit_dmg_level} → Crit Multiplier: {Click_Damage_Feature.get_crit_multiplier():.2f}, Next Cost: {self.crit_dmg_cost}")
 
-                # Critical Chance upgrade
+                # ===== FIXED: Critical Chance upgrade =====
                 if hasattr(self, "crit_chance_rect") and self.crit_chance_rect.collidepoint(event.pos):
                    if self.level >= 75 and self.crit_chance_level < self.crit_chance_max:
                       if Currency_System.pocket_money >= self.crit_chance_cost:
                          Currency_System.pocket_money -= self.crit_chance_cost
                          self.crit_chance_level += 1
-                         self.crit_chance_bonus += 0.001  # +0.1% per upgrade
+                         self.crit_chance_bonus += 0.001
                          self.crit_chance_cost = int(self.crit_chance_cost * self.crit_chance_ratio)
-                         print(f"[CRIT CHANCE] Lv {self.crit_chance_level} → +{self.crit_chance_bonus*100:.2f}% Crit Chance, Next Cost: {self.crit_chance_cost}")
+                         # ✅ Use setter function
+                         Click_Damage_Feature.set_crit_chance(0.05 + self.crit_chance_bonus)
+                         print(f"[CRIT CHANCE] Lv {self.crit_chance_level} → Crit Chance: {Click_Damage_Feature.get_crit_chance()*100:.1f}%, Next Cost: {self.crit_chance_cost}")
 
-                # Mana Capacity upgrade
+                # ===== FIXED: Mana Capacity upgrade =====
                 if hasattr(self, "mana_cap_rect") and self.mana_cap_rect.collidepoint(event.pos):
-                   if self.level >= 100 and self.mana_cap_level < self.mana_cap_max:
-                      if Currency_System.pocket_money >= self.mana_cap_cost:
-                         Currency_System.pocket_money -= self.mana_cap_cost
-                         self.mana_cap_level += 1
-                         self.mana_cap_bonus += 1  # +1 per upgrade
-                         self.mana_cap_cost = int(self.mana_cap_cost * self.mana_cap_ratio)
-                         
-                         # FIX: Now properly checks for the linked mana_system
-                         if hasattr(self, "mana_system"):
-                            self.mana_system.max_mana += 1
-                            print(f"[MANA CAP] Lv {self.mana_cap_level} → +{self.mana_cap_bonus} Max Mana, Next Cost: {self.mana_cap_cost}")
+                    if self.level >= 100 and self.mana_cap_level < self.mana_cap_max:
+                        if Currency_System.pocket_money >= self.mana_cap_cost:
+                            Currency_System.pocket_money -= self.mana_cap_cost
+                            self.mana_cap_level += 1
+                            self.mana_cap_bonus += 1
+                            self.mana_cap_cost = int(self.mana_cap_cost * self.mana_cap_ratio)
+                            # ✅ Apply to global mana system
+                            if self.mana_system:
+                                self.mana_system.max_mana += 1
+                                self.mana_system.current_mana = min(self.mana_system.current_mana + 1, self.mana_system.max_mana)
+                            print(f"[MANA CAP] Lv {self.mana_cap_level} → Max Mana: {self.mana_system.max_mana if self.mana_system else 'N/A'}, Next Cost: {self.mana_cap_cost}")
 
-                # Mana Regen upgrade
+                # ===== FIXED: Mana Regen upgrade =====
                 if hasattr(self, "mana_regen_rect") and self.mana_regen_rect.collidepoint(event.pos):
-                   if self.level >= 150 and self.mana_regen_level < self.mana_regen_max:
-                      if Currency_System.pocket_money >= self.mana_regen_cost:
-                         Currency_System.pocket_money -= self.mana_regen_cost
-                         self.mana_regen_level += 1
-                         self.mana_regen_bonus += 0.1  # +0.1/s per upgrade
-                         self.mana_regen_cost = int(self.mana_regen_cost * self.mana_regen_ratio)
-                         
-                         # FIX: Now properly checks for the linked mana_system
-                         if hasattr(self, "mana_system"):
-                            self.mana_system.regen_rate += 0.1
-                            print(f"[MANA REGEN] Lv {self.mana_regen_level} → +{self.mana_regen_bonus:.1f}/s Regen, Next Cost: {self.mana_regen_cost}")
+                    if self.level >= 150 and self.mana_regen_level < self.mana_regen_max:
+                        if Currency_System.pocket_money >= self.mana_regen_cost:
+                            Currency_System.pocket_money -= self.mana_regen_cost
+                            self.mana_regen_level += 1
+                            self.mana_regen_bonus += 0.1
+                            self.mana_regen_cost = int(self.mana_regen_cost * self.mana_regen_ratio)
+                            # ✅ Apply to global mana system
+                            if self.mana_system:
+                                self.mana_system.regen_rate += 0.1
+                            print(f"[MANA REGEN] Lv {self.mana_regen_level} → Regen Rate: {self.mana_system.regen_rate if self.mana_system else 'N/A'}/s, Next Cost: {self.mana_regen_cost}")
   
         elif self.current_category == 1:  # Companion upgrade
              if event.type == pg.MOUSEBUTTONDOWN and event.button == 1:
@@ -457,27 +462,43 @@ class PlayerUpgradeSystem:
         
         screen.set_clip(None)
 
+    # ===== UPDATED: Draw upgrade box with "Max Level Reached" support =====
     def _draw_upgrade_box(self, screen, rect, mouse_pos,
-                      unlock_level, current_level, max_level, cost, label):
+                          unlock_level, current_level, max_level, cost, label):
+        # Check if this upgrade has a max level (not unlimited)
+        has_max_level = max_level != 9999
+        
         if self.level < unlock_level:
-           # Locked ability placeholder
-           pg.draw.rect(screen, (30, 30, 30), rect)  # dark grey background
-           pg.draw.rect(screen, (120, 120, 120), rect, 2)  # grey border
-           txt = self.font_text.render(f"{label} - Unlock at Lv {unlock_level}", True, (200, 200, 200))
-           screen.blit(txt, txt.get_rect(center=rect.center))
-        elif current_level >= max_level:
-           pg.draw.rect(screen, (60, 60, 60), rect)
-           txt = self.font_text.render("Max Upgrade Level", True, (255, 255, 255))
-           screen.blit(txt, txt.get_rect(center=rect.center))
+            # Locked ability placeholder
+            pg.draw.rect(screen, (30, 30, 30), rect)
+            pg.draw.rect(screen, (120, 120, 120), rect, 2)
+            txt = self.font_text.render(f"{label} - Unlock at Lv {unlock_level}", True, (200, 200, 200))
+            screen.blit(txt, txt.get_rect(center=rect.center))
+            
+        # ✅ Check if max level reached (only if it has a max level)
+        elif has_max_level and current_level >= max_level:
+            pg.draw.rect(screen, (60, 60, 60), rect)
+            pg.draw.rect(screen, (100, 200, 100), rect, 2)  # Green border to indicate maxed
+            txt = self.font_text.render("★ MAX LEVEL REACHED ★", True, (100, 255, 100))
+            screen.blit(txt, txt.get_rect(center=rect.center))
+            
         else:
-           color = (100, 100, 200) if not rect.collidepoint(mouse_pos) else (140, 140, 240)
-           pg.draw.rect(screen, color, rect)
-           pg.draw.rect(screen, (200, 200, 200), rect, 2)
-           txt = self.font_text.render(
-               f"{label} Lv {current_level} - Cost: {format_number_short(cost)}",
-               True, (255, 255, 255)
-           )
-           screen.blit(txt, txt.get_rect(center=rect.center))
+            # Normal upgrade box (available to purchase)
+            color = (100, 100, 200) if not rect.collidepoint(mouse_pos) else (140, 140, 240)
+            pg.draw.rect(screen, color, rect)
+            pg.draw.rect(screen, (200, 200, 200), rect, 2)
+            
+            # Show level and cost
+            if max_level == 9999:
+                level_text = f"Lv {current_level}"
+            else:
+                level_text = f"Lv {current_level}/{max_level}"
+                
+            txt = self.font_text.render(
+                f"{label} {level_text} - Cost: {format_number_short(cost)}",
+                True, (255, 255, 255)
+            )
+            screen.blit(txt, txt.get_rect(center=rect.center))
 
     def _draw_player_upgrade(self, screen):
         mouse_pos = pg.mouse.get_pos()
@@ -548,22 +569,22 @@ class PlayerUpgradeSystem:
         )
         screen.blit(text, text.get_rect(center=self.button_rect.center))
  
-        # Critical Damage upgrade box
+        # ===== Critical Damage upgrade box (UNLIMITED - no max) =====
         self.crit_dmg_rect = pg.Rect(self.rect.x + 20, y_offset, self.rect.width - 40, box_height)
         self._draw_upgrade_box(screen, self.crit_dmg_rect, mouse_pos, 50, self.crit_dmg_level, self.crit_dmg_max, self.crit_dmg_cost, "Crit Damage (+1%/Lv)")
         y_offset += box_height + spacing
 
-        # Critical Chance upgrade box
+        # ===== Critical Chance upgrade box (500 max) =====
         self.crit_chance_rect = pg.Rect(self.rect.x + 20, y_offset, self.rect.width - 40, box_height)
         self._draw_upgrade_box(screen, self.crit_chance_rect, mouse_pos, 75, self.crit_chance_level, self.crit_chance_max, self.crit_chance_cost, "Crit Chance (+0.1%/Lv)")
         y_offset += box_height + spacing
 
-        # Mana Capacity upgrade box
+        # ===== Mana Capacity upgrade box (300 max) =====
         self.mana_cap_rect = pg.Rect(self.rect.x + 20, y_offset, self.rect.width - 40, box_height)
         self._draw_upgrade_box(screen, self.mana_cap_rect, mouse_pos, 100, self.mana_cap_level, self.mana_cap_max, self.mana_cap_cost, "Mana Capacity (+1/Lv)")
         y_offset += box_height + spacing
 
-        # Mana Regen upgrade box
+        # ===== Mana Regen upgrade box (100 max) =====
         self.mana_regen_rect = pg.Rect(self.rect.x + 20, y_offset, self.rect.width - 40, box_height)
         self._draw_upgrade_box(screen, self.mana_regen_rect, mouse_pos, 150, self.mana_regen_level, self.mana_regen_max, self.mana_regen_cost, "Mana Regen (+0.1s/Lv)")
         y_offset += box_height + spacing

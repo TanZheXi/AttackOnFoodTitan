@@ -580,6 +580,9 @@ player_upgrade_system = PlayerUpgradeSystem(
     height=400
 )
 
+# ✅ Link mana system to player upgrade system
+player_upgrade_system.mana_system = mana_system
+
 # ========== Restore Player Upgrade Data ==========
 if saved_player_upgrade_data:
     player_upgrade_system.level = saved_player_upgrade_data.get("level", 0)
@@ -605,6 +608,18 @@ if saved_player_upgrade_data:
     player_upgrade_system.mana_regen_level = saved_player_upgrade_data.get("mana_regen_level", 0)
     player_upgrade_system.mana_regen_cost = saved_player_upgrade_data.get("mana_regen_cost", 750)
     player_upgrade_system.mana_regen_bonus = saved_player_upgrade_data.get("mana_regen_bonus", 0.0)
+    
+    # ✅ CRITICAL FIX: Restore crit values from saved data
+    crit_dmg_bonus = saved_player_upgrade_data.get("crit_dmg_bonus", 0.0)
+    crit_chance_bonus = saved_player_upgrade_data.get("crit_chance_bonus", 0.0)
+    
+    if crit_dmg_bonus > 0:
+        Click_Damage_Feature.set_crit_multiplier(2.0 + crit_dmg_bonus)
+        print(f"[LOAD] Restored Crit Multiplier: {Click_Damage_Feature.get_crit_multiplier():.2f}")
+    
+    if crit_chance_bonus > 0:
+        Click_Damage_Feature.set_crit_chance(0.05 + crit_chance_bonus)
+        print(f"[LOAD] Restored Crit Chance: {Click_Damage_Feature.get_crit_chance()*100:.1f}%")
 
     # --- NEW FIX 1: Apply loaded stats directly to the real Mana System ---
     mana_system.max_mana += player_upgrade_system.mana_cap_bonus
@@ -1287,19 +1302,13 @@ while IsRunning:
         
     final_pet_dmg = int(pet_base * ability_multi * prestige_multi)
     
-    base_crit_c = Click_Damage_Feature.crit_chance
-    base_crit_m = Click_Damage_Feature.crit_multiplier
+    # Use getter functions to get current crit values
+    base_crit_c = Click_Damage_Feature.get_crit_chance()
+    base_crit_m = Click_Damage_Feature.get_crit_multiplier()
     extra_crit_c, extra_crit_m = crispy_precision.get_crit_bonus()
-    
-    # Grab the permanent player upgrades
-    upgrade_crit_c = 0.0
-    upgrade_crit_m = 0.0
-    if Button_System.panel_manager.player_upgrade_system:
-        upgrade_crit_c = Button_System.panel_manager.player_upgrade_system.crit_chance_bonus
-        upgrade_crit_m = Button_System.panel_manager.player_upgrade_system.crit_dmg_bonus
-    
-    total_crit_c = base_crit_c + extra_crit_c + upgrade_crit_c
-    total_crit_m = base_crit_m + extra_crit_m + upgrade_crit_m
+
+    total_crit_c = base_crit_c + extra_crit_c
+    total_crit_m = base_crit_m * extra_crit_m
 
     # Helper function: Draw text with a subtle drop shadow
     def draw_text_with_shadow(text, font, color, x, y):
