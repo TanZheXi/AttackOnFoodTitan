@@ -1,6 +1,7 @@
 import pygame as pg
 import random 
 import Equipment_System
+import Click_Damage_Feature
 import sys
 
 pg.init()
@@ -207,11 +208,11 @@ def trigger_prestige(monster_manager):
     
     if next_requirement is None:
         print(f"[PRESTIGE] MAX PRESTIGE REACHED! You have {current_stars} stars!")
-        return False
+        return False, None
     
     if not can_do:
         print(f"[PRESTIGE] Need Stage {next_requirement} to prestige! (Current: Stage {current_stage})")
-        return False
+        return False, None
     
     print(f"[PRESTIGE] ✓ READY TO PRESTIGE! Stage {current_stage} >= {next_requirement}")
     
@@ -238,30 +239,40 @@ def trigger_prestige(monster_manager):
     # Reset monster to Stage 1
     monster_manager.stage = 1
     monster_manager.progression_index = 0
-    monster_manager.current_monster = monster_manager.spawn_monster()
+    new_monster = monster_manager.spawn_monster()
+    
+    # ✅ FORCE SET HP TO MAX
+    new_monster.hp = new_monster.max_hp
+    new_monster.state = "idle"
+    new_monster.death_time = 0
+    new_monster.rewards_given = False
+    new_monster.last_hit_by = None
+    new_monster.boss_timer_active = False
+    
+    monster_manager.current_monster = new_monster
     
     # Reset player upgrade system
     try:
-       import Button_System
-       if Button_System.panel_manager and Button_System.panel_manager.player_upgrade_system:
-           upgrade_system = Button_System.panel_manager.player_upgrade_system
-           upgrade_system.level = 0
-           # Scale cost with prestige stars
-           upgrade_system.current_cost = int(20 * (1 + michelin_stars * 0.1))
-           Equipment_System.base_damage = 1
-        
-           # Reset ability unlocks
-           upgrade_system.spicy_unlocked = False
-           upgrade_system.crispy_unlocked = False
-           upgrade_system.spicy_level = 0
-           upgrade_system.crispy_level = 0
-           upgrade_system.spicy_damage_boost = 0.0
-           upgrade_system.crispy_crit_damage = 0.0
-           upgrade_system.crispy_crit_chance = 0.0
-        
-           print("[PRESTIGE] Upgrade system reset")
+        import Button_System
+        if Button_System.panel_manager and Button_System.panel_manager.player_upgrade_system:
+            upgrade_system = Button_System.panel_manager.player_upgrade_system
+            upgrade_system.level = 0
+            # Scale cost with prestige stars
+            upgrade_system.current_cost = int(20 * (1 + michelin_stars * 0.1))
+            Equipment_System.base_damage = 1
+            
+            # Reset ability unlocks
+            upgrade_system.spicy_unlocked = False
+            upgrade_system.crispy_unlocked = False
+            upgrade_system.spicy_level = 0
+            upgrade_system.crispy_level = 0
+            upgrade_system.spicy_damage_boost = 0.0
+            upgrade_system.crispy_crit_damage = 0.0
+            upgrade_system.crispy_crit_chance = 0.0
+            
+            print("[PRESTIGE] Upgrade system reset")
     except Exception as e:
-           print(f"[PRESTIGE] Error resetting upgrade system: {e}")
+        print(f"[PRESTIGE] Error resetting upgrade system: {e}")
     
     # Reset pet system (unequip all pets)
     try:
@@ -291,10 +302,11 @@ def trigger_prestige(monster_manager):
     next_req = get_next_prestige_requirement(michelin_stars)
     print(f"[PRESTIGE] Next Prestige Requirement: Stage {next_req if next_req else 'MAX REACHED'}")
     print(f"[PRESTIGE] Starting fresh from Stage 1 with ${pocket_money}")
+    print(f"[PRESTIGE] Monster HP reset to Stage 1: {new_monster.hp}/{new_monster.max_hp}")
     print(f"[PRESTIGE] Damage Multiplier: x{get_prestige_multiplier():.1f}")
     print(f"[PRESTIGE] ★★★★★★★★★★★★★★★★★★★★★★★★★★")
     
-    return True
+    return True, new_monster
 
 def get_prestige_progress(current_stage, current_stars):
     # Get progress towards next prestige as a percentage.

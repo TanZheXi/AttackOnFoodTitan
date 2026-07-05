@@ -45,22 +45,20 @@ class AbilityBase:
                 icon_path = os.path.join(os.path.dirname(__file__), "Icon", f"{icon_name}.png")
                 if os.path.exists(icon_path):
                     img = pg.image.load(icon_path).convert_alpha()
-                    # Scale the icon perfectly to fit inside the circle
                     self.icon_image = pg.transform.scale(img, (radius * 2, radius * 2))
             except Exception as e:
                 print(f"[ABILITY] Failed to load {icon_name}.png: {e}")
 
-        # Add rect for collision detection
         self.rect = pg.Rect(x - radius, y - radius, radius * 2, radius * 2)
 
-    def handle_event(self, event):
+    def handle_event(self, event, mana_system=None):
         if event.type == pg.MOUSEBUTTONDOWN and event.button == 1:
             mouse_x, mouse_y = event.pos
             if not self.active and not self.cooldown:
                 if (mouse_x - self.x) ** 2 + (mouse_y - self.y) ** 2 <= self.radius ** 2:
-                    self.activate()
+                    self.activate(mana_system)  # Pass mana_system
 
-    def activate(self):
+    def activate(self, mana_system=None):
         self.active = True
         self.start_time = time.time()
         print(f"[ABILITY] Activated at {self.start_time}")
@@ -152,7 +150,7 @@ class SpicySurge(AbilityBase):
 
     def activate(self, mana_system=None):
         if mana_system and not mana_system.spend(self.mana_cost):
-            print("[ABILITY] Not enough mana for Spicy Surge!")
+            print(f"[ABILITY] Not enough mana for Spicy Surge! Need {self.mana_cost}, have {mana_system.current_mana}")
             return
         super().activate()
 
@@ -240,7 +238,7 @@ class CrispyPrecision(AbilityBase):
 
     def activate(self, mana_system=None):
         if mana_system and not mana_system.spend(self.mana_cost):
-            print("[ABILITY] Not enough mana for Crispy Precision!")
+            print(f"[ABILITY] Not enough mana for Crispy Precision! Need {self.mana_cost}, have {mana_system.current_mana}")
             return
         super().activate()
 
