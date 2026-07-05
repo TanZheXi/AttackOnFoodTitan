@@ -2,6 +2,7 @@ import pygame as pg
 import json
 import os
 import time
+import Click_Damage_Feature
 
 pg.init()
 pg.font.init()  
@@ -14,6 +15,9 @@ class AFKSystem:
         self.max_afk_earnings = 100
         
     def save_game_data(self, pocket_money, monster_hp, monster_max_hp, monster_name, monster_color, progression_index, stage, inventory_items=None, shop_items_state=None, pet_data=None, upgrade_level=0, guide_data=None, boost_data=None, michelin_stars=0, ability_data=None, player_upgrade_data=None, companion_data=None, boss_timer_active=False, boss_timer_start=0, boss_timer_duration=30):
+        # ✅ Save crit values BEFORE anything else
+        crit_chance_value = Click_Damage_Feature.get_crit_chance()
+        crit_multiplier_value = Click_Damage_Feature.get_crit_multiplier()
         shop_state = []
         if shop_items_state:
             for item in shop_items_state:
@@ -48,7 +52,9 @@ class AFKSystem:
             "pet_data": pet_data if pet_data else [],
             "upgrade_level": upgrade_level,
             "guide_data": guide_data if guide_data else {},
-            "boost_data": boost_data if boost_data else {"visible": False}
+            "boost_data": boost_data if boost_data else {"visible": False},
+            "crit_chance": crit_chance_value,
+            "crit_multiplier": crit_multiplier_value,
         }
         
         if ability_data:
@@ -94,6 +100,10 @@ class AFKSystem:
             ability_data = save_data.get("ability_data", {})
             player_upgrade_data = save_data.get("player_upgrade_data", {})
             companion_data = save_data.get("companion_data", [])
+
+            # Restore crit values from save data
+            Click_Damage_Feature.set_crit_chance(save_data.get("crit_chance", 0.05))
+            Click_Damage_Feature.set_crit_multiplier(save_data.get("crit_multiplier", 2.0))
             
             if monster_data and "boss_timer_active" not in monster_data:
                 monster_data["boss_timer_active"] = False

@@ -351,16 +351,15 @@ class DamageText:
         return False
 
     def draw(self, surface):
-        # Scientific Notation
-        if self.is_critical:
-           text_str = f"{format_number_short(self.damage)}!" # Critical Hit
-        else:
-           text_str = format_number_short(self.damage)       # Normal Hit
+       if self.is_critical:
+          text_str = f"{format_number_short(self.damage)}!"  # Critical Hit
+       else:
+          text_str = format_number_short(self.damage)        # Normal Hit
 
-           txt_surf = self.font.render(text_str, True, self.color)
-           txt_surf.set_alpha(self.alpha)
-           rect = txt_surf.get_rect(center=(int(self.x), int(self.y)))
-           surface.blit(txt_surf, rect)
+       txt_surf = self.font.render(text_str, True, self.color)
+       txt_surf.set_alpha(self.alpha)
+       rect = txt_surf.get_rect(center=(int(self.x), int(self.y)))
+       surface.blit(txt_surf, rect)
 
     def is_alive(self):
         elapsed = pg.time.get_ticks() - self.start_ms
@@ -369,8 +368,45 @@ class DamageText:
 
 damage_per_click = getattr(Equipment_System, "base_damage", 1)
 
-crit_chance = 0.05        
-crit_multiplier = 2.0     
+# ===== CRIT STATS MANAGEMENT =====
+class CritStats:
+    """Centralized crit statistics management with persistence"""
+    def __init__(self):
+        self._chance = 0.05
+        self._multiplier = 2.0
+    
+    def get_chance(self):
+        return self._chance
+    
+    def get_multiplier(self):
+        return self._multiplier
+    
+    def set_chance(self, value):
+        self._chance = value
+        print(f"[CRIT] Crit chance set to: {self._chance}")
+    
+    def set_multiplier(self, value):
+        self._multiplier = value
+        print(f"[CRIT] Crit multiplier set to: {self._multiplier}")
+
+# Create a single instance
+_crit_stats = CritStats()
+
+# Keep backward compatibility
+crit_chance = _crit_stats.get_chance()
+crit_multiplier = _crit_stats.get_multiplier()
+
+def get_crit_chance():
+    return _crit_stats.get_chance()
+
+def get_crit_multiplier():
+    return _crit_stats.get_multiplier()
+
+def set_crit_chance(value):
+    _crit_stats.set_chance(value)
+
+def set_crit_multiplier(value):
+    _crit_stats.set_multiplier(value)
 
 def calculate_damage(base_damage=None, extra_chance=0.0, extra_multi=1.0):
     if base_damage is None:
@@ -378,16 +414,14 @@ def calculate_damage(base_damage=None, extra_chance=0.0, extra_multi=1.0):
     else:
         damage = float(base_damage)
     
-    # REMOVED: Equipment_System.total_damage_multiplier 
-    # REMOVED: Player_Upgrade_System.level 
-    # (These are now fully handled in the main script to perfectly match the UI)
-    
-    total_crit_chance = crit_chance + float(extra_chance)
-    total_crit_multi = crit_multiplier * float(extra_multi)
+    # Use getter functions for current values
+    total_crit_chance = get_crit_chance() + float(extra_chance)
+    total_crit_multi = get_crit_multiplier() * float(extra_multi)
     
     is_critical = random.random() < total_crit_chance
     if is_critical:
         damage *= total_crit_multi
     
-    # Return as a float to prevent double-rounding errors (fixes the 29 crit bug)
     return damage, is_critical
+
+
