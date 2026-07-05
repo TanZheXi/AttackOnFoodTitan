@@ -188,14 +188,14 @@ class Monster:
             display_color = (255, 100, 100) if is_hurt_flash else self.color
             pg.draw.rect(surface, display_color, draw_rect, border_radius=15)
 
+        # DEFINE YOUR LONGER WIDTH HERE
+        bar_width = 300  
+        bar_x = self.rect.centerx - (bar_width // 2) 
+        bar_y = self.rect.y - 35
+        bar_height = 28
+
         # --- DRAW HEALTH BARS ---
         if self.state != "dead":
-            # 1. DEFINE YOUR LONGER WIDTH HERE
-            bar_width = 300  
-            bar_x = self.rect.centerx - (bar_width // 2) 
-            bar_y = self.rect.y - 35
-            bar_height = 28
-            
             # Draw the gray background bar
             pg.draw.rect(surface, (60, 60, 60), (bar_x, bar_y, bar_width, bar_height))
             

@@ -90,7 +90,7 @@
     "Player_Data": {
         "scraps": 100000,
         "equipped": {
-            "weapon": null,
+            "weapon": "OP WEAPON",
             "hat": null,
             "armor": null,
             "aroma": null
