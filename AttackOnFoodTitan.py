@@ -920,7 +920,6 @@ while IsRunning:
                       current_monster.last_hit_by = comp.name
 
         last_companion_attack_time = current_time
-
     # ========== Boss Timer Check ==========
     if current_monster.boss_timer_active and not current_monster.is_defeated():
        elapsed = time.time() - current_monster.boss_timer_start
