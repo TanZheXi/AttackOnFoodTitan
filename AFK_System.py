@@ -13,7 +13,7 @@ class AFKSystem:
         self.afk_income_rate = 1 / 3600
         self.max_afk_earnings = 100
         
-    def save_game_data(self, pocket_money, monster_hp, monster_max_hp, monster_name, monster_color, progression_index, stage, inventory_items=None, shop_items_state=None, pet_data=None, upgrade_level=0, guide_data=None, boost_data=None, michelin_stars=0, ability_data=None, player_upgrade_data=None, companion_data=None):
+    def save_game_data(self, pocket_money, monster_hp, monster_max_hp, monster_name, monster_color, progression_index, stage, inventory_items=None, shop_items_state=None, pet_data=None, upgrade_level=0, guide_data=None, boost_data=None, michelin_stars=0, ability_data=None, player_upgrade_data=None, companion_data=None, boss_timer_active=False, boss_timer_start=0, boss_timer_duration=30):
         shop_state = []
         if shop_items_state:
             for item in shop_items_state:
@@ -36,7 +36,10 @@ class AFKSystem:
                 "name": monster_name,
                 "hp": monster_hp,
                 "max_hp": monster_max_hp,
-                "color": monster_color
+                "color": monster_color,
+                "boss_timer_active": boss_timer_active,
+                "boss_timer_start": boss_timer_start,
+                "boss_timer_duration": boss_timer_duration
             },
             "progression_index": progression_index,
             "stage": stage,
@@ -50,6 +53,14 @@ class AFKSystem:
             "player_upgrade_data": player_upgrade_data if player_upgrade_data else {},
             "companion_data": companion_data if companion_data else []
         }
+        
+        if ability_data:
+            save_data["ability_data"] = ability_data
+        if player_upgrade_data:
+            save_data["player_upgrade_data"] = player_upgrade_data
+        if companion_data:
+            save_data["companion_data"] = companion_data
+        
         try:
             with open(self.save_file, 'w') as f:
                 json.dump(save_data, f)
@@ -59,7 +70,7 @@ class AFKSystem:
     
     def load_and_calculate_afk_rewards(self):
         if not os.path.exists(self.save_file):
-            return 0, None, 0, 1, 1, [], [], [], 0, {}, {"visible": False}, 0, {}, {}, []
+            return 0, None, 0, 1, 1, [], [], [], 0, {}, {"visible": False}, 0, {}, {}, {}
         
         try:
             with open(self.save_file, 'r') as f:
@@ -87,6 +98,11 @@ class AFKSystem:
             player_upgrade_data = save_data.get("player_upgrade_data", {})
             companion_data = save_data.get("companion_data", [])
             
+            if monster_data and "boss_timer_active" not in monster_data:
+                monster_data["boss_timer_active"] = False
+                monster_data["boss_timer_start"] = 0
+                monster_data["boss_timer_duration"] = 30
+            
             return (
                 afk_earnings,
                 monster_data,
@@ -107,7 +123,7 @@ class AFKSystem:
             
         except Exception as e: 
             print(f"Loading failed: {e}")
-            return 0, None, 0, 1, 1, [], [], [], 0, {}, {"visible": False}, 0, {}, {}, []
+            return 0, None, 0, 1, 1, [], [], [], 0, {}, {"visible": False}, 0, {}, {}, {}
     
     def update_save_time(self):
         self.last_save_time = time.time()

@@ -624,25 +624,35 @@ class PanelManager:
         elif self.active_panel == "Guide" and self.kitchen_guide_system:
             self.kitchen_guide_system.handle_event(event)
         elif self.active_panel == "Prestige":
-            stars_to_gain = Currency_System.calculate_prestige_rewards(self.current_stage)
-            
+            # Use the new prestige system
+            current_stars = Currency_System.michelin_stars
+            current_stage = self.current_stage
+    
+            # Check if can prestige
+            can_do, next_requirement = Currency_System.can_prestige(current_stage, current_stars)
+    
             if event.type == pg.MOUSEBUTTONDOWN and event.button == 1:
-                if hasattr(self, 'prestige_btn_rect') and self.prestige_btn_rect.collidepoint(event.pos):
-                    if GLOBAL_CLICK: 
-                        GLOBAL_CLICK.play()
-                    if stars_to_gain > 0:
-                        if not getattr(self, 'confirm_prestige', False):
-                            self.confirm_prestige = True  
-                            print("[PRESTIGE] Click again to confirm prestige!")
-                        else:
-                            if Currency_System.trigger_prestige(self.monster_manager):
-                                print("Prestige Successful!")
-                                if hasattr(self, 'prestige_sound') and self.prestige_sound:
-                                    self.prestige_sound.play()
-                                self.active_panel = None
-                                self.confirm_prestige = False
-                else:
-                    self.confirm_prestige = False
+               if hasattr(self, 'prestige_btn_rect') and self.prestige_btn_rect.collidepoint(event.pos):
+                  if GLOBAL_CLICK: 
+                     GLOBAL_CLICK.play()
+                  if can_do:
+                      if not getattr(self, 'confirm_prestige', False):
+                         self.confirm_prestige = True  
+                         print("[PRESTIGE] Click again to confirm prestige!")
+                      else:
+                         if Currency_System.trigger_prestige(self.monster_manager):
+                             print("Prestige Successful!")
+                             if hasattr(self, 'prestige_sound') and self.prestige_sound:
+                                self.prestige_sound.play()
+                             self.active_panel = None
+                             self.confirm_prestige = False
+                  else:
+                    if next_requirement is None:
+                       print("[PRESTIGE] Max prestige already reached!")
+                    else:
+                       print(f"[PRESTIGE] Need Stage {next_requirement} to prestige! (Current: Stage {current_stage})")
+               else:
+                  self.confirm_prestige = False
             return
         elif self.active_panel == "Settings" and self.settings_system:
             self.settings_system.handle_event(event, GLOBAL_CLICK)
@@ -898,63 +908,88 @@ class PanelManager:
                 
 
     def _draw_prestige_panel(self, screen):
-        stars_to_gain = Currency_System.calculate_prestige_rewards(self.current_stage)
-        new_start = Currency_System.get_advanced_start(self.current_stage)
-        
+        # Use the new prestige system
         current_stars = Currency_System.michelin_stars
-        current_mult = Currency_System.get_prestige_multiplier()
+        current_stage = self.current_stage
     
+        # Check if can prestige using the new system
+        can_do, next_requirement = Currency_System.can_prestige(current_stage, current_stars)
+    
+        # Stars to gain is always 1 if can prestige
+        stars_to_gain = 1 if can_do else 0
+    
+        new_start = 1  # Always reset to Stage 1 on prestige
+    
+        current_mult = Currency_System.get_prestige_multiplier()
+  
         try:
-            badge_img = pg.image.load("Icon/Prestige_icon.png").convert_alpha()
-            badge_img = pg.transform.scale(badge_img, (350, 450))
-            badge_rect = badge_img.get_rect(center=(self.panel_rect.centerx, self.panel_rect.centery + 30))
-            screen.blit(badge_img, badge_rect)
+           badge_img = pg.image.load("Icon/Prestige_icon.png").convert_alpha()
+           badge_img = pg.transform.scale(badge_img, (350, 450))
+           badge_rect = badge_img.get_rect(center=(self.panel_rect.centerx, self.panel_rect.centery + 30))
+           screen.blit(badge_img, badge_rect)
         except Exception as e:
-            print(f"Could not load badge: {e}")
-            
+           print(f"Could not load badge: {e}")
+        
         font_title = pg.font.SysFont("courier", 36, bold=True)
         font_med = pg.font.SysFont("courier", 16, bold=True)
         font_small = pg.font.SysFont("courier", 16, bold=True)
-        
+    
         y_offset = self.panel_rect.y + 30
-        
+    
         title_text = font_title.render("- PRESTIGE -", False, (255, 255, 0))
         screen.blit(title_text, title_text.get_rect(center=(self.panel_rect.centerx, y_offset)))
 
         y_offset += 30
         warn_text = font_small.render("WARNING: MONEY RESETS. GEAR KEPT.", False, (255, 50, 50))
         screen.blit(warn_text, warn_text.get_rect(center=(self.panel_rect.centerx, y_offset)))
-        
+    
         y_offset += 22
         if current_stars > 0:
             buff_text = font_small.render(f"CURRENT BUFF: {current_stars} STARS (x{current_mult:.1f} DMG)", False, (255, 215, 0))
             screen.blit(buff_text, buff_text.get_rect(center=(self.panel_rect.centerx, y_offset)))
-        
+    
         y_offset += 22
-        inner_screen_rect = pg.Rect(self.panel_rect.x + 30, y_offset, self.panel_rect.width - 60, 90)
+    
+        # Show next requirement info
+        if next_requirement is not None:
+            req_text = font_small.render(f"NEXT PRESTIGE: STAGE {next_requirement}", False, (255, 255, 255))
+            screen.blit(req_text, req_text.get_rect(center=(self.panel_rect.centerx, y_offset)))
+            y_offset += 22
+    
+        inner_screen_rect = pg.Rect(self.panel_rect.x + 30, y_offset, self.panel_rect.width - 60, 70)
         pg.draw.rect(screen, (10, 10, 20), inner_screen_rect) 
         pg.draw.rect(screen, (100, 255, 100), inner_screen_rect, 2) 
-        
-        gain_text = font_med.render(f"STARS TO GAIN: +{stars_to_gain}", False, (255, 255, 255))
-        screen.blit(gain_text, gain_text.get_rect(center=(self.panel_rect.centerx, y_offset + 30)))
-        
-        start_text = font_med.render(f"NEXT START: LVL {new_start}", False, (100, 255, 255))
-        screen.blit(start_text, start_text.get_rect(center=(self.panel_rect.centerx, y_offset + 55)))
-        
+    
+        if can_do:
+            gain_text = font_med.render(f"STARS TO GAIN: +1", False, (255, 255, 255))
+            screen.blit(gain_text, gain_text.get_rect(center=(self.panel_rect.centerx, y_offset + 25)))
+        else:
+            if next_requirement is None:
+                gain_text = font_med.render("MAX PRESTIGE REACHED!", False, (255, 200, 0))
+            else:
+                gain_text = font_med.render(f"REACH STAGE {next_requirement} TO PRESTIGE", False, (255, 200, 0))
+            screen.blit(gain_text, gain_text.get_rect(center=(self.panel_rect.centerx, y_offset + 25)))
+    
+        start_text = font_med.render(f"RESET TO: STAGE 1", False, (100, 255, 255))
+        screen.blit(start_text, start_text.get_rect(center=(self.panel_rect.centerx, y_offset + 50)))
+    
         self.prestige_btn_rect = pg.Rect(self.panel_rect.centerx - 100, self.panel_rect.bottom - 75, 200, 50)
-        
-        if stars_to_gain > 0:
+    
+        if can_do:
             btn_color = (200, 150, 0) if self.prestige_btn_rect.collidepoint(pg.mouse.get_pos()) else (150, 100, 0)
             btn_text = "CONFIRM PRESTIGE"
             if getattr(self, 'confirm_prestige', False):
                 btn_text = "ARE YOU SURE?"
         else:
             btn_color = (100, 100, 100)
-            btn_text = "REACH STAGE 10"
-            
+            if next_requirement is None:
+                btn_text = "MAX PRESTIGE"
+            else:
+                btn_text = f"NEED STAGE {next_requirement}"
+        
         pg.draw.rect(screen, btn_color, self.prestige_btn_rect)
         pg.draw.rect(screen, (255, 255, 255), self.prestige_btn_rect, 2)
-        
+    
         lbl = font_med.render(btn_text, True, (255, 255, 255))
         lbl_rect = lbl.get_rect(center=self.prestige_btn_rect.center)
         screen.blit(lbl, lbl_rect)
