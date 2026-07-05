@@ -313,15 +313,22 @@ class ManaSystem:
             return True
         return False
 
-    def draw(self, surface, left_boundary_x, ability_y, ability_radius, width=120, height=16):
-        x = left_boundary_x + 5
-        y = ability_y - ability_radius - height - 10
+    def draw(self, surface, ability_x, ability_y, ability_radius, width=120, height=16):
+        x = ability_x - width // 2
+        y = ability_y - ability_radius - height - 15  # 15px gap between bar and ability
+
+        if x < 5:
+           x = 5
+        if y < 5:
+           y = 5
 
         # Background
         pg.draw.rect(surface, (40, 40, 40), (x, y, width, height))
+
         # Filled portion (cyan)
         mana_ratio = self.current_mana / self.max_mana
         pg.draw.rect(surface, (0, 255, 255), (x, y, int(width * mana_ratio), height))
+
         # Border
         pg.draw.rect(surface, (200, 200, 200), (x, y, width, height), 2)
 
