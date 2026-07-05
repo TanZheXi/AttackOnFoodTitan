@@ -54,6 +54,9 @@ class AFKSystem:
             "upgrade_level": upgrade_level,
             "guide_data": guide_data if guide_data else {},
             "boost_data": boost_data if boost_data else {"visible": False},
+            "ability_data": ability_data if ability_data else {},
+            "player_upgrade_data": player_upgrade_data if player_upgrade_data else {},
+            "companion_data": companion_data if companion_data else [],
             "crit_chance": crit_chance_value,
             "crit_multiplier": crit_multiplier_value,
             "base_damage": getattr(Equipment_System, "base_damage", 1)
