@@ -88,7 +88,7 @@
         "level": 3
     },
     "Player_Data": {
-        "scraps": 50000,
+        "scraps": 100000,
         "equipped": {
             "weapon": null,
             "hat": null,

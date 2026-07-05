@@ -882,6 +882,21 @@ class PanelManager:
                self.settings_system.draw(screen)
                 
 
+            elif self.active_panel == "Settings":
+               if self.settings_system is None:
+                   set_x = self.panel_rect.x + 10
+                   set_y = self.panel_rect.y + 50
+                   set_width = self.panel_rect.width - 20
+                   set_height = self.panel_rect.height - 80
+                   self.settings_system = SettingsSystem(set_x, set_y, set_width, set_height)
+                   if hasattr(self, 'sync_sfx_callback'):
+                        self.settings_system.update_external_sfx = self.sync_sfx_callback
+                   self.settings_system.apply_volumes()
+                
+            
+               self.settings_system.draw(screen)
+                
+
     def _draw_prestige_panel(self, screen):
         stars_to_gain = Currency_System.calculate_prestige_rewards(self.current_stage)
         new_start = Currency_System.get_advanced_start(self.current_stage)
