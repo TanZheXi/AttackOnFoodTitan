@@ -13,7 +13,7 @@ class AFKSystem:
         self.afk_income_rate = 1 / 3600
         self.max_afk_earnings = 100
         
-    def save_game_data(self, pocket_money, monster_hp, monster_max_hp, monster_name, monster_color, progression_index, stage, inventory_items=None, shop_items_state=None, pet_data=None, upgrade_level=0, guide_data=None, boost_data=None, michelin_stars=0):
+    def save_game_data(self, pocket_money, monster_hp, monster_max_hp, monster_name, monster_color, progression_index, stage, inventory_items=None, shop_items_state=None, pet_data=None, upgrade_level=0, guide_data=None, boost_data=None, michelin_stars=0, ability_data=None, player_upgrade_data=None, companion_data=None):
         shop_state = []
         if shop_items_state:
             for item in shop_items_state:
@@ -45,7 +45,10 @@ class AFKSystem:
             "pet_data": pet_data if pet_data else [],
             "upgrade_level": upgrade_level,
             "guide_data": guide_data if guide_data else {},
-            "boost_data": boost_data if boost_data else {"visible": False}
+            "boost_data": boost_data if boost_data else {"visible": False},
+            "ability_data": ability_data if ability_data else {},
+            "player_upgrade_data": player_upgrade_data if player_upgrade_data else {},
+            "companion_data": companion_data if companion_data else []
         }
         try:
             with open(self.save_file, 'w') as f:
@@ -56,7 +59,7 @@ class AFKSystem:
     
     def load_and_calculate_afk_rewards(self):
         if not os.path.exists(self.save_file):
-            return 0, None, 0, 1, 1, [], [], [], 0, {}, {"visible": False}, 0
+            return 0, None, 0, 1, 1, [], [], [], 0, {}, {"visible": False}, 0, {}, {}, []
         
         try:
             with open(self.save_file, 'r') as f:
@@ -80,6 +83,9 @@ class AFKSystem:
             guide_data = save_data.get("guide_data", {})
             boost_data = save_data.get("boost_data", {"visible": False})
             saved_michelin_stars = save_data.get("michelin_stars", 0)
+            ability_data = save_data.get("ability_data", {})
+            player_upgrade_data = save_data.get("player_upgrade_data", {})
+            companion_data = save_data.get("companion_data", [])
             
             return (
                 afk_earnings,
@@ -93,12 +99,15 @@ class AFKSystem:
                 upgrade_level,
                 guide_data,
                 boost_data,
-                saved_michelin_stars
+                saved_michelin_stars,
+                ability_data,
+                player_upgrade_data,
+                companion_data
             )
             
         except Exception as e: 
             print(f"Loading failed: {e}")
-            return 0, None, 0, 1, 1, [], [], [], 0, {}, {"visible": False}, 0
+            return 0, None, 0, 1, 1, [], [], [], 0, {}, {"visible": False}, 0, {}, {}, []
     
     def update_save_time(self):
         self.last_save_time = time.time()

@@ -10,7 +10,7 @@ _prestige_callbacks = []
 def register_prestige_callback(callback):
     _prestige_callbacks.append(callback)
 
-pocket_money = 0
+pocket_money = 100000000
 current_stage = 1
 
 ui_font = pg.font.SysFont(None, 48)

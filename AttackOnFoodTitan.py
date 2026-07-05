@@ -9,7 +9,11 @@ import AFK_System
 import Currency_System
 import Equipment_System
 from KitchenGuide_System import KitchenGuideSystem
-from Abilities import SpicySurge, CrispyPrecision
+from Abilities import SpicySurge, CrispyPrecision,ManaSystem
+from Player_Upgrade_System import PlayerUpgradeSystem
+
+
+
 
 # ========== Spinner Loading Animation ==========
 def show_loading_screen(screen, message, progress=0):
@@ -468,7 +472,7 @@ def get_current_background(stage):
 show_loading_screen(window, "Loading save data...", 0.7)
 
 clock = pg.time.Clock()
-afk_earnings, saved_monster_data, saved_money, saved_progression_index, saved_stage, saved_inventory, saved_shop_state, saved_pet_data, saved_upgrade_level, saved_guide_data, saved_boost_data, saved_michelin_stars = AFK_System.afk_system.load_and_calculate_afk_rewards()
+afk_earnings, saved_monster_data, saved_money, saved_progression_index, saved_stage, saved_inventory, saved_shop_state, saved_pet_data, saved_upgrade_level, saved_guide_data, saved_boost_data, saved_michelin_stars, saved_ability_data, saved_player_upgrade_data, saved_companion_data = AFK_System.afk_system.load_and_calculate_afk_rewards()
 
 Currency_System.michelin_stars = saved_michelin_stars
 Equipment_System.load_equipment()
@@ -524,6 +528,9 @@ auto_save_interval = 5
 PET_ATTACK_INTERVAL = 1.0
 last_pet_attack_time = time.time()
 
+COMPANION_ATTACK_INTERVAL = 1.0  # one attack per second
+last_companion_attack_time = time.time()
+
 Button_System.panel_manager.pending_inventory = saved_inventory if saved_inventory else []
 Button_System.panel_manager.pending_shop_state = saved_shop_state if saved_shop_state else []
 Button_System.panel_manager.pending_pet_data = saved_pet_data if saved_pet_data else []
@@ -538,9 +545,99 @@ boost_indicator = BoostIndicator(x=LEFT_AREA_X + 10, y=WINDOW_HEIGHT - 100, widt
 if saved_boost_data:
     boost_indicator.restore_save_data(saved_boost_data)
 
-# Moves them to the bottom-left corner of the middle area
-damage_boost = SpicySurge(x=LEFT_WIDTH + 45, y=WINDOW_HEIGHT - 60, radius=35)
-crispy_precision = CrispyPrecision(x=damage_boost.x + 90, y=damage_boost.y, radius=35)
+# ✅ Place abilities near the left panel, bottom aligned
+damage_boost = SpicySurge(
+    x=LEFT_WIDTH + 60,        # safely inside middle area, not touching left panel
+    y=WINDOW_HEIGHT - 120,    # keep same vertical position
+    radius=35
+)
+
+crispy_precision = CrispyPrecision(
+    x=damage_boost.x + 100,   # offset to the right of Spicy Surge
+    y=damage_boost.y,
+    radius=35
+)
+
+mana_system = ManaSystem()
+
+# =========================
+# Initialize upgrade system
+# =========================
+player_upgrade_system = PlayerUpgradeSystem(
+    x=RIGHT_AREA_X + 20,
+    y=100,
+    width=400,
+    height=400
+)
+
+# ========== Restore Player Upgrade Data ==========
+if saved_player_upgrade_data:
+    player_upgrade_system.level = saved_player_upgrade_data.get("level", 0)
+    player_upgrade_system.current_cost = saved_player_upgrade_data.get("current_cost", player_upgrade_system.base_cost)
+    player_upgrade_system.spicy_level = saved_player_upgrade_data.get("spicy_level", 0)
+    player_upgrade_system.spicy_cost = saved_player_upgrade_data.get("spicy_cost", 50000)
+    player_upgrade_system.spicy_damage_boost = saved_player_upgrade_data.get("spicy_damage_boost", 0.0)
+    player_upgrade_system.spicy_unlocked = saved_player_upgrade_data.get("spicy_unlocked", False)
+    player_upgrade_system.crispy_level = saved_player_upgrade_data.get("crispy_level", 0)
+    player_upgrade_system.crispy_cost = saved_player_upgrade_data.get("crispy_cost", 250000)
+    player_upgrade_system.crispy_crit_damage = saved_player_upgrade_data.get("crispy_crit_damage", 0.0)
+    player_upgrade_system.crispy_crit_chance = saved_player_upgrade_data.get("crispy_crit_chance", 0.0)
+    player_upgrade_system.crispy_unlocked = saved_player_upgrade_data.get("crispy_unlocked", False)
+    player_upgrade_system.crit_dmg_level = saved_player_upgrade_data.get("crit_dmg_level", 0)
+    player_upgrade_system.crit_dmg_cost = saved_player_upgrade_data.get("crit_dmg_cost", 100)
+    player_upgrade_system.crit_dmg_bonus = saved_player_upgrade_data.get("crit_dmg_bonus", 0.0)
+    player_upgrade_system.crit_chance_level = saved_player_upgrade_data.get("crit_chance_level", 0)
+    player_upgrade_system.crit_chance_cost = saved_player_upgrade_data.get("crit_chance_cost", 250)
+    player_upgrade_system.crit_chance_bonus = saved_player_upgrade_data.get("crit_chance_bonus", 0.0)
+    player_upgrade_system.mana_cap_level = saved_player_upgrade_data.get("mana_cap_level", 0)
+    player_upgrade_system.mana_cap_cost = saved_player_upgrade_data.get("mana_cap_cost", 500)
+    player_upgrade_system.mana_cap_bonus = saved_player_upgrade_data.get("mana_cap_bonus", 0)
+    player_upgrade_system.mana_regen_level = saved_player_upgrade_data.get("mana_regen_level", 0)
+    player_upgrade_system.mana_regen_cost = saved_player_upgrade_data.get("mana_regen_cost", 750)
+    player_upgrade_system.mana_regen_bonus = saved_player_upgrade_data.get("mana_regen_bonus", 0.0)
+
+# ========== Restore Companion Data ==========
+if saved_companion_data:
+    for i, comp_data in enumerate(saved_companion_data):
+        if i < len(player_upgrade_system.companions):
+            comp = player_upgrade_system.companions[i]
+            comp.level = comp_data.get("level", 0)
+            comp.current_cost = comp_data.get("current_cost", comp.base_cost)
+
+# ========== Restore Ability Data ==========
+if saved_ability_data:
+    if "SpicySurge" in saved_ability_data and player_upgrade_system.spicy_unlocked:
+        spicy_data = saved_ability_data["SpicySurge"]
+        damage_boost.active = spicy_data.get("active", False)
+        damage_boost.cooldown = spicy_data.get("cooldown", False)
+        damage_boost.start_time = spicy_data.get("start_time", 0)
+        damage_boost.cooldown_start = spicy_data.get("cooldown_start", 0)
+        if damage_boost.active:
+            elapsed = time.time() - damage_boost.start_time
+            if elapsed >= damage_boost.duration:
+                damage_boost.active = False
+                damage_boost.cooldown = True
+                damage_boost.cooldown_start = time.time()
+    
+    if "CrispyPrecision" in saved_ability_data and player_upgrade_system.crispy_unlocked:
+        crispy_data = saved_ability_data["CrispyPrecision"]
+        crispy_precision.active = crispy_data.get("active", False)
+        crispy_precision.cooldown = crispy_data.get("cooldown", False)
+        crispy_precision.start_time = crispy_data.get("start_time", 0)
+        crispy_precision.cooldown_start = crispy_data.get("cooldown_start", 0)
+        if crispy_precision.active:
+            elapsed = time.time() - crispy_precision.start_time
+            if elapsed >= crispy_precision.duration:
+                crispy_precision.active = False
+                crispy_precision.cooldown = True
+                crispy_precision.cooldown_start = time.time()
+
+# ✅ Link into PanelManager so auto‑attack and events can use it
+Button_System.panel_manager.player_upgrade_system = player_upgrade_system
+
+# ✅ Link abilities before events fire
+player_upgrade_system.spicy_ability = damage_boost
+player_upgrade_system.crispy_ability = crispy_precision
 
 def on_prestige_reset():
     # Only reset the shop so players can re-buy things if needed
@@ -591,14 +688,20 @@ show_loading_screen(window, "Starting game...", 1.0)
 # ---  Developer Mode Flag ---
 dev_mode = False
 
-# ========== Main Loop ==========
+# ========== Main Loop ========== #
 while IsRunning:
     dt_ms = clock.tick(60)
     dt_sec = dt_ms / 1000.0
     
+    #debug_get_mouse_pos() 
+    
     boost_indicator.update()
-    damage_boost.update()
-    crispy_precision.update()
+
+    # Update abilities only if unlocked
+    if player_upgrade_system.spicy_unlocked:
+       damage_boost.update()
+    if player_upgrade_system.crispy_unlocked:
+       crispy_precision.update() 
 
     for event in pg.event.get():
         if event.type == pg.USEREVENT + 1:
@@ -609,6 +712,69 @@ while IsRunning:
             upgrade_level = 0
             if Button_System.panel_manager.player_upgrade_system:
                 upgrade_level = Button_System.panel_manager.player_upgrade_system.level
+            
+            # Save player upgrade data
+            player_upgrade_save_data = {}
+            if Button_System.panel_manager.player_upgrade_system:
+                pug = Button_System.panel_manager.player_upgrade_system
+                player_upgrade_save_data = {
+                    "level": pug.level,
+                    "current_cost": pug.current_cost,
+                    "spicy_level": pug.spicy_level,
+                    "spicy_cost": pug.spicy_cost,
+                    "spicy_damage_boost": pug.spicy_damage_boost,
+                    "spicy_unlocked": pug.spicy_unlocked,
+                    "crispy_level": pug.crispy_level,
+                    "crispy_cost": pug.crispy_cost,
+                    "crispy_crit_damage": pug.crispy_crit_damage,
+                    "crispy_crit_chance": pug.crispy_crit_chance,
+                    "crispy_unlocked": pug.crispy_unlocked,
+                    "crit_dmg_level": pug.crit_dmg_level,
+                    "crit_dmg_cost": pug.crit_dmg_cost,
+                    "crit_dmg_bonus": pug.crit_dmg_bonus,
+                    "crit_chance_level": pug.crit_chance_level,
+                    "crit_chance_cost": pug.crit_chance_cost,
+                    "crit_chance_bonus": pug.crit_chance_bonus,
+                    "mana_cap_level": pug.mana_cap_level,
+                    "mana_cap_cost": pug.mana_cap_cost,
+                    "mana_cap_bonus": pug.mana_cap_bonus,
+                    "mana_regen_level": pug.mana_regen_level,
+                    "mana_regen_cost": pug.mana_regen_cost,
+                    "mana_regen_bonus": pug.mana_regen_bonus
+                }
+            
+            # Save companion data
+            companion_save_data = []
+            if Button_System.panel_manager.player_upgrade_system:
+                for comp in Button_System.panel_manager.player_upgrade_system.companions:
+                    companion_save_data.append({
+                        "name": comp.name,
+                        "level": comp.level,
+                        "current_cost": comp.current_cost,
+                        "base_cost": comp.base_cost,
+                        "base_damage": comp.base_damage
+                    })
+            
+            ability_save_data = {}
+            if player_upgrade_system.spicy_unlocked:
+                ability_save_data["SpicySurge"] = {
+                    "active": damage_boost.active,
+                    "cooldown": damage_boost.cooldown,
+                    "start_time": damage_boost.start_time if damage_boost.active else 0,
+                    "cooldown_start": damage_boost.cooldown_start if damage_boost.cooldown else 0,
+                    "duration": damage_boost.duration,
+                    "cooldown_time": damage_boost.cooldown_time
+                }
+            if player_upgrade_system.crispy_unlocked:
+                ability_save_data["CrispyPrecision"] = {
+                    "active": crispy_precision.active,
+                    "cooldown": crispy_precision.cooldown,
+                    "start_time": crispy_precision.start_time if crispy_precision.active else 0,
+                    "cooldown_start": crispy_precision.cooldown_start if crispy_precision.cooldown else 0,
+                    "duration": crispy_precision.duration,
+                    "cooldown_time": crispy_precision.cooldown_time
+                }
+            
             boost_data = boost_indicator.get_save_data()
             
             AFK_System.afk_system.save_game_data(
@@ -625,7 +791,10 @@ while IsRunning:
                 upgrade_level=upgrade_level,
                 guide_data=guide_data,
                 boost_data=boost_data,
-                michelin_stars=Currency_System.michelin_stars
+                michelin_stars=Currency_System.michelin_stars,
+                ability_data=ability_save_data,
+                player_upgrade_data=player_upgrade_save_data,
+                companion_data=companion_save_data
             )
             IsRunning = False
             break
@@ -664,7 +833,7 @@ while IsRunning:
 
                 extra_chance, extra_multi = crispy_precision.get_crit_bonus()
                 
-                # Match the Stats Panel calculation exactly
+                # Match the Stats Panel calculation
                 raw_base = getattr(Equipment_System, "base_damage", Click_Damage_Feature.damage_per_click)
                 eq_multi = float(Equipment_System.total_damage_multiplier)
                 
@@ -689,8 +858,10 @@ while IsRunning:
                 if current_monster.is_defeated() and not hasattr(current_monster, "last_hit_by"):
                     current_monster.last_hit_by = "player"
 
-        damage_boost.handle_event(event)
-        crispy_precision.handle_event(event)
+        if player_upgrade_system.spicy_unlocked:
+           damage_boost.handle_event(event)
+        if player_upgrade_system.crispy_unlocked:
+           crispy_precision.handle_event(event)
 
         Button_System.panel_manager.monster_manager = monster_manager
         Button_System.panel_manager.handle_event(event)
@@ -732,7 +903,37 @@ while IsRunning:
                     
         last_pet_attack_time = current_time
 
-        # ========== Monster Death & Respawn Logic ==========
+    # ========== Companion auto attack ==========
+    current_time = time.time()
+    if current_time - last_companion_attack_time >= COMPANION_ATTACK_INTERVAL:
+        if Button_System.panel_manager.player_upgrade_system:
+            for comp in Button_System.panel_manager.player_upgrade_system.companions:
+                if comp.level > 0 and current_monster.hp > 0:
+                   dmg = comp.get_damage()
+                   current_monster.take_damage(dmg)
+
+                   popup_x = current_monster.rect.x + random.randint(20, current_monster.rect.width - 20)
+                   popup_y = current_monster.rect.y + random.randint(20, current_monster.rect.height - 20)
+                   damage_texts.append(DamageText(str(dmg), (popup_x, popup_y), False))
+
+                   if current_monster.is_defeated() and not hasattr(current_monster, "last_hit_by"):
+                      current_monster.last_hit_by = comp.name
+
+        last_companion_attack_time = current_time
+
+    # ========== Boss Timer Check ==========
+    if current_monster.boss_timer_active and not current_monster.is_defeated():
+       elapsed = time.time() - current_monster.boss_timer_start
+       if elapsed >= current_monster.boss_timer_duration:
+           print("[BOSS TIMER] Failed to defeat boss in time!")
+           # Reset to monster 5 of current stage
+           monster_manager.progression_index = (monster_manager.stage - 1) * 10 + 4
+           monster_manager.current_monster = monster_manager.spawn_monster()
+           current_monster = monster_manager.current_monster
+           current_monster.rect.x = MIDDLE_CENTER_X - MONSTER_SIZE // 2
+           current_monster.rect.y = 275
+
+    # ========== Monster Death & Respawn Logic ==========
     if current_monster.state == "dead":
         # 1. Give rewards ONLY ONCE
         if not hasattr(current_monster, "rewards_given"):
@@ -816,6 +1017,69 @@ while IsRunning:
         upgrade_level = 0
         if Button_System.panel_manager.player_upgrade_system:
             upgrade_level = Button_System.panel_manager.player_upgrade_system.level
+        
+        # Save player upgrade data
+        player_upgrade_save_data = {}
+        if Button_System.panel_manager.player_upgrade_system:
+            pug = Button_System.panel_manager.player_upgrade_system
+            player_upgrade_save_data = {
+                "level": pug.level,
+                "current_cost": pug.current_cost,
+                "spicy_level": pug.spicy_level,
+                "spicy_cost": pug.spicy_cost,
+                "spicy_damage_boost": pug.spicy_damage_boost,
+                "spicy_unlocked": pug.spicy_unlocked,
+                "crispy_level": pug.crispy_level,
+                "crispy_cost": pug.crispy_cost,
+                "crispy_crit_damage": pug.crispy_crit_damage,
+                "crispy_crit_chance": pug.crispy_crit_chance,
+                "crispy_unlocked": pug.crispy_unlocked,
+                "crit_dmg_level": pug.crit_dmg_level,
+                "crit_dmg_cost": pug.crit_dmg_cost,
+                "crit_dmg_bonus": pug.crit_dmg_bonus,
+                "crit_chance_level": pug.crit_chance_level,
+                "crit_chance_cost": pug.crit_chance_cost,
+                "crit_chance_bonus": pug.crit_chance_bonus,
+                "mana_cap_level": pug.mana_cap_level,
+                "mana_cap_cost": pug.mana_cap_cost,
+                "mana_cap_bonus": pug.mana_cap_bonus,
+                "mana_regen_level": pug.mana_regen_level,
+                "mana_regen_cost": pug.mana_regen_cost,
+                "mana_regen_bonus": pug.mana_regen_bonus
+            }
+        
+        # Save companion data
+        companion_save_data = []
+        if Button_System.panel_manager.player_upgrade_system:
+            for comp in Button_System.panel_manager.player_upgrade_system.companions:
+                companion_save_data.append({
+                    "name": comp.name,
+                    "level": comp.level,
+                    "current_cost": comp.current_cost,
+                    "base_cost": comp.base_cost,
+                    "base_damage": comp.base_damage
+                })
+        
+        ability_save_data = {}
+        if player_upgrade_system.spicy_unlocked:
+            ability_save_data["SpicySurge"] = {
+                "active": damage_boost.active,
+                "cooldown": damage_boost.cooldown,
+                "start_time": damage_boost.start_time if damage_boost.active else 0,
+                "cooldown_start": damage_boost.cooldown_start if damage_boost.cooldown else 0,
+                "duration": damage_boost.duration,
+                "cooldown_time": damage_boost.cooldown_time
+            }
+        if player_upgrade_system.crispy_unlocked:
+            ability_save_data["CrispyPrecision"] = {
+                "active": crispy_precision.active,
+                "cooldown": crispy_precision.cooldown,
+                "start_time": crispy_precision.start_time if crispy_precision.active else 0,
+                "cooldown_start": crispy_precision.cooldown_start if crispy_precision.cooldown else 0,
+                "duration": crispy_precision.duration,
+                "cooldown_time": crispy_precision.cooldown_time
+            }
+        
         boost_data = boost_indicator.get_save_data()
         AFK_System.afk_system.save_game_data(
             pocket_money=Currency_System.pocket_money,
@@ -831,7 +1095,10 @@ while IsRunning:
             upgrade_level=upgrade_level,
             guide_data=guide_data,
             boost_data=boost_data,
-            michelin_stars=Currency_System.michelin_stars
+            michelin_stars=Currency_System.michelin_stars,
+            ability_data=ability_save_data,
+            player_upgrade_data=player_upgrade_save_data,
+            companion_data=companion_save_data
         )
         AFK_System.afk_system.update_save_time()
         Equipment_System.save_equipment()
@@ -1029,6 +1296,10 @@ while IsRunning:
                 name_text = font_pet.render(pet.name[:6]+"..", True, (0, 0, 0))
                 name_rect = name_text.get_rect(center=pet_rect.center)
                 window.blit(name_text, name_rect)
+                
+    # Always draw companions around the monster
+    if Button_System.panel_manager.player_upgrade_system:
+       Button_System.panel_manager.player_upgrade_system.draw_companions(window)
 
     Currency_System.draw_ui(window)
 
@@ -1040,8 +1311,55 @@ while IsRunning:
         button.draw(window)
 
     Button_System.panel_manager.draw(window)
-    damage_boost.draw(window)
-    crispy_precision.draw(window)
+    
+    # Draw abilities only if unlocked
+    if player_upgrade_system.spicy_unlocked:
+       damage_boost.draw(window, mana_system)
+    if player_upgrade_system.crispy_unlocked:
+       crispy_precision.draw(window, mana_system)
+
+    # ========== DRAW MANA BAR ABOVE ABILITY BUTTONS ==========
+    # Update mana system
+    mana_system.update()
+    
+    # Fixed positions from where abilities are created
+    SPICY_X = LEFT_WIDTH + 60      # damage_boost.x
+    CRISPY_X = SPICY_X + 100       # crispy_precision.x (damage_boost.x + 100)
+    ABILITY_Y = WINDOW_HEIGHT - 120
+    ABILITY_RADIUS = 35
+    
+    mana_bar_height = 16
+    
+    # Center the mana bar between both ability positions
+    left_x = SPICY_X - ABILITY_RADIUS - 10
+    right_x = CRISPY_X + ABILITY_RADIUS + 10
+    mana_bar_width = right_x - left_x
+    mana_bar_x = left_x
+    mana_bar_y = ABILITY_Y - ABILITY_RADIUS - mana_bar_height - 20
+    
+    mana_rect = pg.Rect(mana_bar_x, mana_bar_y, mana_bar_width, mana_bar_height)
+
+    # Background
+    pg.draw.rect(window, (40, 40, 40), mana_rect)
+
+    # Filled portion
+    mana_ratio = mana_system.current_mana / mana_system.max_mana
+    fill_rect = pg.Rect(mana_rect.x, mana_rect.y, int(mana_rect.width * mana_ratio), mana_rect.height)
+    pg.draw.rect(window, (0, 255, 255), fill_rect)
+    
+    # Border
+    pg.draw.rect(window, (200, 200, 200), mana_rect, 2)
+
+    # Text
+    font = pg.font.SysFont(None, 20)
+    text = font.render(f"{int(mana_system.current_mana)}/{mana_system.max_mana}", True, (0, 0, 0))
+    text_rect = text.get_rect(center=mana_rect.center)
+    window.blit(text, text_rect)
+
+    # Label
+    label = font.render("MANA", True, (200, 200, 200))
+    label_rect = label.get_rect(center=(mana_rect.centerx, mana_rect.y - 15))
+    window.blit(label, label_rect)
 
     pg.display.update()
 

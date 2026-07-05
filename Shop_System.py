@@ -68,7 +68,6 @@ class ShopSystem:
             ShopItem("Golden Spatula", 500, "Rare", "A legendary cooking tool. Flip anything!", (255, 215, 0), "weapon"),
             ShopItem("Chef's Wok", 2000, "Epic", "Master chef's wok. Perfect for stir-frying.", (200, 150, 50), "weapon"),
             ShopItem("Mythic Pan", 10000, "Mythic", "A pan of legendary power. Sizzles with energy.", (255, 100, 100), "weapon"),
-            ShopItem("OP WEAPON", 999999, "Mythic", "Overpowered weapon! Use with care.", (255, 50, 50), "weapon"),
             # Equipment Shop (1)
             ShopItem("Master Chef Hat", 1500, "Rare", "Increases cooking skill. Look professional!", (200, 180, 100), "equipment"),
             ShopItem("Titanium Apron", 4000, "Epic", "Heavy-duty protection. Stain resistant.", (150, 150, 200), "equipment"),
