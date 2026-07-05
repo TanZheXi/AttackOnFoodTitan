@@ -3,6 +3,7 @@ import json
 import os
 import time
 import Click_Damage_Feature
+import Equipment_System
 
 pg.init()
 pg.font.init()  
@@ -55,6 +56,7 @@ class AFKSystem:
             "boost_data": boost_data if boost_data else {"visible": False},
             "crit_chance": crit_chance_value,
             "crit_multiplier": crit_multiplier_value,
+            "base_damage": getattr(Equipment_System, "base_damage", 1)
         }
         
         if ability_data:
@@ -100,10 +102,17 @@ class AFKSystem:
             ability_data = save_data.get("ability_data", {})
             player_upgrade_data = save_data.get("player_upgrade_data", {})
             companion_data = save_data.get("companion_data", [])
+            
+            
 
             # Restore crit values from save data
             Click_Damage_Feature.set_crit_chance(save_data.get("crit_chance", 0.05))
             Click_Damage_Feature.set_crit_multiplier(save_data.get("crit_multiplier", 2.0))
+
+            # ✅ Restore base damage
+            saved_base_damage = save_data.get("base_damage", 1)
+            Equipment_System.base_damage = save_data.get("base_damage", 1)
+            print(f"[LOAD] Restored Base Damage: {Equipment_System.base_damage}")
             
             if monster_data and "boss_timer_active" not in monster_data:
                 monster_data["boss_timer_active"] = False
