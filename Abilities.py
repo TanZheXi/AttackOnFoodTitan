@@ -248,7 +248,7 @@ class CrispyPrecision(AbilityBase):
         if self.active:
             return (self.base_crit_chance + self.upgrade_bonus_chance,
                     self.base_crit_damage + self.upgrade_bonus_damage)
-        return (0.0, 1.0)
+        return (0.0, 0.0)
 
     # FIX 4: Combined the two duplicate draw methods into one unified method
     def draw(self, surface, mana_system=None):

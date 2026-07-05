@@ -391,8 +391,10 @@ class PlayerUpgradeSystem:
                          self.mana_cap_level += 1
                          self.mana_cap_bonus += 1  # +1 per upgrade
                          self.mana_cap_cost = int(self.mana_cap_cost * self.mana_cap_ratio)
-                         if self.spicy_ability and hasattr(self.spicy_ability, "mana_system"):
-                            self.spicy_ability.mana_system.max_mana += 1
+                         
+                         # FIX: Now properly checks for the linked mana_system
+                         if hasattr(self, "mana_system"):
+                            self.mana_system.max_mana += 1
                             print(f"[MANA CAP] Lv {self.mana_cap_level} → +{self.mana_cap_bonus} Max Mana, Next Cost: {self.mana_cap_cost}")
 
                 # Mana Regen upgrade
@@ -403,8 +405,10 @@ class PlayerUpgradeSystem:
                          self.mana_regen_level += 1
                          self.mana_regen_bonus += 0.1  # +0.1/s per upgrade
                          self.mana_regen_cost = int(self.mana_regen_cost * self.mana_regen_ratio)
-                         if self.spicy_ability and hasattr(self.spicy_ability, "mana_system"):
-                            self.spicy_ability.mana_system.regen_rate += 0.1
+                         
+                         # FIX: Now properly checks for the linked mana_system
+                         if hasattr(self, "mana_system"):
+                            self.mana_system.regen_rate += 0.1
                             print(f"[MANA REGEN] Lv {self.mana_regen_level} → +{self.mana_regen_bonus:.1f}/s Regen, Next Cost: {self.mana_regen_cost}")
   
         elif self.current_category == 1:  # Companion upgrade
@@ -546,22 +550,22 @@ class PlayerUpgradeSystem:
  
         # Critical Damage upgrade box
         self.crit_dmg_rect = pg.Rect(self.rect.x + 20, y_offset, self.rect.width - 40, box_height)
-        self._draw_upgrade_box(screen, self.crit_dmg_rect, mouse_pos, 50, self.crit_dmg_level, self.crit_dmg_max, self.crit_dmg_cost, "Critical Damage")
+        self._draw_upgrade_box(screen, self.crit_dmg_rect, mouse_pos, 50, self.crit_dmg_level, self.crit_dmg_max, self.crit_dmg_cost, "Crit Damage (+1%/Lv)")
         y_offset += box_height + spacing
 
         # Critical Chance upgrade box
         self.crit_chance_rect = pg.Rect(self.rect.x + 20, y_offset, self.rect.width - 40, box_height)
-        self._draw_upgrade_box(screen, self.crit_chance_rect, mouse_pos, 75, self.crit_chance_level, self.crit_chance_max, self.crit_chance_cost, "Critical Chance")
+        self._draw_upgrade_box(screen, self.crit_chance_rect, mouse_pos, 75, self.crit_chance_level, self.crit_chance_max, self.crit_chance_cost, "Crit Chance (+0.1%/Lv)")
         y_offset += box_height + spacing
 
         # Mana Capacity upgrade box
         self.mana_cap_rect = pg.Rect(self.rect.x + 20, y_offset, self.rect.width - 40, box_height)
-        self._draw_upgrade_box(screen, self.mana_cap_rect, mouse_pos, 100, self.mana_cap_level, self.mana_cap_max, self.mana_cap_cost, "Mana Capacity")
+        self._draw_upgrade_box(screen, self.mana_cap_rect, mouse_pos, 100, self.mana_cap_level, self.mana_cap_max, self.mana_cap_cost, "Mana Capacity (+1/Lv)")
         y_offset += box_height + spacing
 
         # Mana Regen upgrade box
         self.mana_regen_rect = pg.Rect(self.rect.x + 20, y_offset, self.rect.width - 40, box_height)
-        self._draw_upgrade_box(screen, self.mana_regen_rect, mouse_pos, 150, self.mana_regen_level, self.mana_regen_max, self.mana_regen_cost, "Mana Regen")
+        self._draw_upgrade_box(screen, self.mana_regen_rect, mouse_pos, 150, self.mana_regen_level, self.mana_regen_max, self.mana_regen_cost, "Mana Regen (+0.1s/Lv)")
         y_offset += box_height + spacing
 
         # Spicy Surge upgrade box
