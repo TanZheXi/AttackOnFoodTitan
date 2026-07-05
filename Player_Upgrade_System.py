@@ -1,4 +1,5 @@
 import pygame as pg
+import os
 import Currency_System
 import Equipment_System
 from Audio_System import GLOBAL_CLICK
@@ -59,6 +60,17 @@ class Companion:
         self.circle_pos = circle_pos
         self.radius = 15
 
+        # --- NEW: LOAD COMPANION IMAGE ---
+        self.image = None
+        try:
+            icon_path = os.path.join(os.path.dirname(__file__), "Icon", f"{self.name}.png")
+            if os.path.exists(icon_path):
+                raw_image = pg.image.load(icon_path).convert_alpha()
+                # Scaling to 40x40 to ensure it fits nicely around the monster
+                self.image = pg.transform.scale(raw_image, (40, 40))
+        except Exception as e:
+            print(f"[COMPANION] Failed to load image for {self.name}: {e}")
+
     def get_upgrade_cost(self):
         return int(self.current_cost)
 
@@ -93,10 +105,16 @@ class Companion:
 
     def draw_circle(self, screen):
         if self.level > 0:
-            pg.draw.circle(screen, (200, 200, 50), self.circle_pos, self.radius)
-            font = pg.font.SysFont(None, 16)
-            txt = font.render(self.name[0], True, (0, 0, 0))
-            screen.blit(txt, txt.get_rect(center=self.circle_pos))
+            if self.image:
+                # Draw the loaded image perfectly centered on the circle_pos coordinates
+                img_rect = self.image.get_rect(center=self.circle_pos)
+                screen.blit(self.image, img_rect)
+            else:
+                # Fallback: Draw the yellow circle if the image is missing
+                pg.draw.circle(screen, (200, 200, 50), self.circle_pos, self.radius)
+                font = pg.font.SysFont(None, 16)
+                txt = font.render(self.name[0], True, (0, 0, 0))
+                screen.blit(txt, txt.get_rect(center=self.circle_pos))
 
 # =========================
 # Player Upgrade System
