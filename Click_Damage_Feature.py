@@ -108,7 +108,6 @@ class Monster:
                             frames.append(pg.transform.scale(frame, (200, 200)))
                             
         except Exception as e:
-            # Silently pass if the file doesn't exist (like Hurt2/Hurt3)
             pass 
             
         return frames
@@ -120,7 +119,6 @@ class Monster:
         self.hp = max(self.hp - float(dmg), 0.0)
         self.hurt_time = time.time()
         
-        # Pick a random hurt animation on click
         if self.hurt_variations:
             self.current_hurt_frames = random.choice(self.hurt_variations)
         
@@ -143,7 +141,6 @@ class Monster:
         if self.state == "hurt" and not is_hurt_flash:
             self.state = "idle"
             
-        # --- CHOOSE ACTIVE ANIMATION LIST ---
         active_frames = self.idle_frames
         if self.state == "dead":
             if self.dead_frames:
@@ -153,15 +150,13 @@ class Monster:
         elif self.state == "hurt" and self.current_hurt_frames:
             active_frames = self.current_hurt_frames
             
-        # --- ANIMATION FRAME LOGIC ---
         if self.state == "dead":
-            self.current_frame = 0 # Freeze completely on frame 0, no extra animations
+            self.current_frame = 0 
         elif self.state == "hurt" and self.current_hurt_frames:
             time_since_hit = now - self.hurt_time
             self.current_frame = int(time_since_hit / hurt_anim_speed)
             self.current_frame = min(self.current_frame, len(active_frames) - 1)
         else:
-            # RESTORED IDLE ANIMATION
             if active_frames:
                 if now - self.anim_timer > self.anim_speed:
                     self.current_frame = (self.current_frame + 1) % len(active_frames)
@@ -169,11 +164,9 @@ class Monster:
             else:
                 self.current_frame = 0
 
-        # --- POSITION TRANSFORMATIONS ---
         float_offset = math.sin((now - self.creation_time) * self.hover_speed) * self.hover_height
         draw_y = self.rect.y + float_offset
         
-        # --- ALPHA VANISH TRANSPARENCY ---
         if active_frames:
             safe_frame = min(self.current_frame, len(active_frames) - 1)
             
@@ -187,7 +180,6 @@ class Monster:
         else:
             current_img = None
 
-        # --- DRAW MONSTER ---
         if current_img:
             img_rect = current_img.get_rect(center=(self.rect.centerx, draw_y + 100))
             surface.blit(current_img, img_rect.topleft)
@@ -197,22 +189,53 @@ class Monster:
             pg.draw.rect(surface, display_color, draw_rect, border_radius=15)
 
         # --- DRAW HEALTH BARS ---
-        bar_y = self.rect.y - 25
         if self.state != "dead":
-            pg.draw.rect(surface, (100, 100, 100), (self.rect.x, bar_y, self.rect.width, 10))
-            hp_bar_width = int((self.hp / self.max_hp) * self.rect.width)
-            pg.draw.rect(surface, (255, 0, 0), (self.rect.x, bar_y, hp_bar_width, 10))
+            # 1. DEFINE YOUR LONGER WIDTH HERE
+            bar_width = 300  
+            bar_x = self.rect.centerx - (bar_width // 2) 
+            bar_y = self.rect.y - 35
+            bar_height = 28
             
-            font = pg.font.SysFont(None, 30)
+            # Draw the gray background bar
+            pg.draw.rect(surface, (60, 60, 60), (bar_x, bar_y, bar_width, bar_height))
+            
+            # Draw the red health fill
+            hp_bar_width = int((self.hp / self.max_hp) * bar_width)
+            pg.draw.rect(surface, (200, 30, 30), (bar_x, bar_y, hp_bar_width, bar_height))
+            
+            # Draw a crisp black border around the whole bar
+            pg.draw.rect(surface, (0, 0, 0), (bar_x, bar_y, bar_width, bar_height), 2)
+            
+            font = pg.font.SysFont(None, 24)
+            text_center_y = bar_y + (bar_height // 2)
+            
+            # --- LEFT SIDE: MONSTER NAME ---
+            name_str = self.name
+            name_shadow = font.render(name_str, True, (0, 0, 0))
+            # midleft anchors the text to the left side with a 10px padding
+            name_shadow_rect = name_shadow.get_rect(midleft=(bar_x + 10 + 1, text_center_y + 1))
+            surface.blit(name_shadow, name_shadow_rect)
+            
+            name_text = font.render(name_str, True, (255, 255, 255))
+            name_rect = name_text.get_rect(midleft=(bar_x + 10, text_center_y))
+            surface.blit(name_text, name_rect)
+            
+            # --- RIGHT SIDE: HP AMOUNT ---
+            hp_str = f"{format_number_short(self.hp)} HP"
+            hp_shadow = font.render(hp_str, True, (0, 0, 0))
+            # midright anchors the text to the right side with a 10px padding
+            hp_shadow_rect = hp_shadow.get_rect(midright=(bar_x + bar_width - 10 + 1, text_center_y + 1))
+            surface.blit(hp_shadow, hp_shadow_rect)
+            
+            hp_text = font.render(hp_str, True, (255, 255, 255))
+            hp_rect = hp_text.get_rect(midright=(bar_x + bar_width - 10, text_center_y))
+            surface.blit(hp_text, hp_rect)
 
             # Scientific Notation
             text = font.render(
                 f"{self.name} HP: {format_number_short(self.hp)}/{format_number_short(self.max_hp)}",
                 True, (0, 0, 0)
                 )
-
-            text_rect = text.get_rect(center=(self.rect.centerx, bar_y - 15))
-            surface.blit(text, text_rect)
 
         # --- BOSS TIMER DISPLAY ---
         if self.boss_timer_active:
@@ -240,6 +263,7 @@ def calculate_monster_hp(stage, is_boss=False):
         multiplier = cycle[(stage - 1) % 5]
         return int(base_hp * multiplier)
     return int(base_hp)
+
 class MonsterManager:
     def __init__(self):
         self.food_monsters = [
@@ -299,7 +323,7 @@ class MonsterManager:
 class DamageText:
     def __init__(self, damage, pos, is_critical=False, suffix=""):
         self.damage = float(damage)   
-        self.display_text = f"+${self.damage}{suffix}" 
+        self.display_text = f"+${format_number_short(self.damage)}{suffix}" 
         self.x, self.y = float(pos[0]), float(pos[1])
         self.vy = -60.0
         self.alpha = 255
@@ -354,12 +378,9 @@ def calculate_damage(base_damage=None, extra_chance=0.0, extra_multi=1.0):
     else:
         damage = float(base_damage)
     
-    damage *= float(Equipment_System.total_damage_multiplier)
-    
-    upgrade_level = getattr(Player_Upgrade_System, "level", 0)
-    damage += upgrade_level
-    if upgrade_level > 0 and upgrade_level % 50 == 0:
-        damage *= 1.2
+    # REMOVED: Equipment_System.total_damage_multiplier 
+    # REMOVED: Player_Upgrade_System.level 
+    # (These are now fully handled in the main script to perfectly match the UI)
     
     total_crit_chance = crit_chance + float(extra_chance)
     total_crit_multi = crit_multiplier * float(extra_multi)
@@ -368,4 +389,5 @@ def calculate_damage(base_damage=None, extra_chance=0.0, extra_multi=1.0):
     if is_critical:
         damage *= total_crit_multi
     
-    return int(damage), is_critical
+    # Return as a float to prevent double-rounding errors (fixes the 29 crit bug)
+    return damage, is_critical

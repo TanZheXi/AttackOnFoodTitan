@@ -107,7 +107,7 @@ def equip_equipment(item_name):
         save_equipment()  # save immediately after equipping
         print(f"[EQUIP] Saved to JSON - equipped weapon: {equipped_slots['weapon']}")
 
-        # ========== Announce Kitchen Guide Equipment Update ==========
+        # ==== Announce Kitchen Guide Equipment Update ====
         if _equip_callback:
             _equip_callback()
         # =================================================
@@ -212,7 +212,9 @@ def save_equipment():
         "equipped": equipped_slots.copy()  # use copy to ensure we save the current state of equipped slots
     }
 
-    with open('Equipment.json', 'w') as file:
+    # Create an absolute, foolproof path to the same folder this script is in
+    save_path = os.path.join(os.path.dirname(__file__), 'Equipment.json')
+    with open(save_path, 'w') as file:
         json.dump(equipment_database, file, indent=4) # indent=4 makes it readable!
 
     print("Equipment System Auto-Saved!")
@@ -225,8 +227,16 @@ def load_equipment():
     # ========== Detect afk_save.json exists or not ==========
     afk_save_exists = os.path.exists("afk_save.json")
 
-    with open('Equipment.json', 'r') as file:
-        equipment_database = json.load(file)
+    # Use the same absolute path for loading so it doesn't fail on startup!
+    load_path = os.path.join(os.path.dirname(__file__), 'Equipment.json')
+    
+    # Only try to open the file if the absolute path exists
+    if os.path.exists(load_path):
+        with open(load_path, 'r') as file:
+            equipment_database = json.load(file)
+    else:
+        # If no file exists, default to an empty dictionary so it doesn't crash
+        equipment_database = {}
     
     if not afk_save_exists:
         print("[EQUIPMENT] New game detected! Resetting all equipment ownership.")
@@ -244,7 +254,8 @@ def load_equipment():
             }
         }
 
-        with open('Equipment.json', 'w') as file:
+        # Save using the absolute path here too!
+        with open(load_path, 'w') as file:
             json.dump(equipment_database, file, indent=4)
     
     if "Player_Data" in equipment_database:
@@ -271,7 +282,7 @@ def load_equipment():
     else:
         print("No saved equipment data found. Starting fresh!")
         return True
-
+    
 def upgrade_weapon_by_name(weapon_name):
     """Upgrades whatever weapon name is passed to it from the Forge!"""
     global crafting_scraps

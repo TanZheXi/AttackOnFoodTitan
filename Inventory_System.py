@@ -1,12 +1,7 @@
 import pygame as pg
 import Equipment_System
 import os
-
-try:
-    GLOBAL_CLICK = pg.mixer.Sound("Sfx/click.wav")
-    GLOBAL_CLICK.set_volume(0.5)
-except Exception as e:
-    GLOBAL_CLICK = None
+from Audio_System import GLOBAL_CLICK
 
 pg.init()
 pg.font.init()
@@ -53,9 +48,12 @@ class InventorySystem:
             2: "scraps"
         }
         
+        # Add a cache so icons only load once!
+        self.icon_cache = {}
+        
         self.scroll_offset = 0
-        self.item_width = 190
-        self.item_height = 80
+        self.item_width = 390  # Stretches across the whole panel
+        self.item_height = 55  # Slim height for a list view
         self.equip_buttons = {}
         
         self.desc_panel_rect = None
@@ -87,10 +85,24 @@ class InventorySystem:
             icon_path = os.path.join(icon_folder, f"{icon_name}.png")
             try:
                 if os.path.exists(icon_path):
-                    icon_img = pg.image.load(icon_path).convert_alpha()
-                    # Scale as button size
-                    icon_img = pg.transform.scale(icon_img, (btn_width - 10, btn_height - 6))
-                    btn.icon_image = icon_img
+                    original = pg.image.load(icon_path).convert_alpha()
+                    
+                    # --- MAGIC CROP: Snips away the empty transparent space! ---
+                    bounding_rect = original.get_bounding_rect()
+                    if bounding_rect.width > 0 and bounding_rect.height > 0:
+                        original = original.subsurface(bounding_rect)
+                    
+                    target_w = btn_width - 10
+                    target_h = btn_height - 6
+                    original_w = original.get_width()
+                    original_h = original.get_height()
+                    
+                    # Scale properly so it fits without getting squashed
+                    scale = min(target_w / original_w, target_h / original_h)
+                    new_w = int(original_w * scale)
+                    new_h = int(original_h * scale)
+                    
+                    btn.icon_image = pg.transform.scale(original, (new_w, new_h))
             except Exception as e:
                 pass
             
@@ -127,6 +139,32 @@ class InventorySystem:
             return "pet"
         else:
             return "equipment"
+        
+    def _get_item_icon(self, item_name):
+        if item_name in self.icon_cache:
+            return self.icon_cache[item_name]
+            
+        icon_path = os.path.join(os.path.dirname(__file__), "Icon", f"{item_name}.png")
+        if os.path.exists(icon_path):
+            try:
+                img = pg.image.load(icon_path).convert_alpha()
+                
+                bounding_rect = img.get_bounding_rect()
+                if bounding_rect.width > 0 and bounding_rect.height > 0:
+                    img = img.subsurface(bounding_rect)
+                    
+                target_size = 40 # Size of the icon on the card
+                scale = min(target_size / img.get_width(), target_size / img.get_height())
+                new_w, new_h = int(img.get_width() * scale), int(img.get_height() * scale)
+                img = pg.transform.scale(img, (new_w, new_h))
+                
+                self.icon_cache[item_name] = img
+                return img
+            except Exception as e:
+                pass
+                
+        self.icon_cache[item_name] = None
+        return None
 
     def get_filtered_items(self):
         category = self.category_map.get(self.current_category, "weapon")
@@ -174,6 +212,8 @@ class InventorySystem:
                     else:
                         continue
                     
+                    if GLOBAL_CLICK:
+                        GLOBAL_CLICK.play()
                     if key.startswith("unequip_"):
                         if item_name in Equipment_System.equipment_database:
                             slot = Equipment_System.equipment_database[item_name]["slot"]
@@ -208,16 +248,18 @@ class InventorySystem:
             mouse_pos = event.pos
             
             # Card positions
-            cards_per_row = 2
+            cards_per_row = 1  # Exactly 1 bar per row
             card_width = self.item_width
             card_height = self.item_height
-            card_spacing_x = 12
-            card_spacing_y = 10
-            start_x = self.rect.x + 18
+            card_spacing_x = 0
+            card_spacing_y = 6 
+            
+            start_x = self.rect.x + 8 
             start_y = self.rect.y + 65
             
             items = self.get_filtered_items()
-            visible_items = items[self.scroll_offset:self.scroll_offset + 6]
+            # Can fit about 8 bars on the screen at once
+            visible_items = items[self.scroll_offset:self.scroll_offset + 8]
             
             for idx, (item_name, cat) in enumerate(visible_items):
                 row = idx // cards_per_row
@@ -234,7 +276,7 @@ class InventorySystem:
 
         for item_name, item_data in Equipment_System.equipment_database.items():
             if item_name != "Player_Data" and item_data.get("owned", False):
-                # If we own it, but it's missing from the UI list, add it back!
+                # If we own it, but it's missing from the UI list, add it back
                 if not any(name == item_name for name, cat in self.all_items):
                     self.add_item(item_name)
         
@@ -252,10 +294,11 @@ class InventorySystem:
         # Card dimensions
         card_width = self.item_width
         card_height = self.item_height
-        cards_per_row = 2
-        card_spacing_x = 12
-        card_spacing_y = 10
-        start_x = self.rect.x + 18
+        cards_per_row = 1
+        card_spacing_x = 0
+        card_spacing_y = 6
+        
+        start_x = self.rect.x + 8 
         start_y = self.rect.y + 65
 
         if not items:
@@ -266,7 +309,7 @@ class InventorySystem:
             empty_rect = empty_text.get_rect(center=(left_area_center_x, left_area_center_y))
             screen.blit(empty_text, empty_rect)
         else:
-            visible_items = items[self.scroll_offset:self.scroll_offset + 6]
+            visible_items = items[self.scroll_offset:self.scroll_offset + 8]
 
             for idx, (item_name, cat) in enumerate(visible_items):
                 actual_index = self.scroll_offset + idx
@@ -299,29 +342,38 @@ class InventorySystem:
                 else:
                     pg.draw.rect(screen, (90, 90, 110), item_rect, 1)
                 
-                # Item name (top-left)
-                name_text = self.font_medium.render(item_name, True, (255, 255, 200))
-                screen.blit(name_text, (item_rect.x + 8, item_rect.y + 8))
+                # --- 1. ICON (Far Left) ---
+                icon = self._get_item_icon(item_name)
+                if icon:
+                    icon_rect = icon.get_rect(center=(item_rect.x + 30, item_rect.centery))
+                    screen.blit(icon, icon_rect)
                 
-                # Status text (bottom-left)
+                # --- 2. ITEM NAME (Middle Left, Upper) ---
+                name_display = item_name[:20] + ".." if len(item_name) > 20 else item_name
+                name_text = self.font_medium.render(name_display, True, (255, 255, 200))
+                screen.blit(name_text, (item_rect.x + 65, item_rect.centery - 14))
+                
+                # --- 3. STATUS (Middle Left, Lower) ---
                 if is_equippable:
                     if is_equipped:
                         status_text = self.font_small.render("Equipped", True, (100, 255, 100))
                     else:
                         status_text = self.font_small.render("Not Equipped", True, (200, 200, 200))
-                    screen.blit(status_text, (item_rect.x + 8, item_rect.y + 58))
+                    screen.blit(status_text, (item_rect.x + 65, item_rect.centery + 4))
                 else:
                     cat_text = self.font_small.render(f"[{cat.upper()}]", True, (150, 150, 150))
-                    screen.blit(cat_text, (item_rect.x + 8, item_rect.y + 58))
+                    screen.blit(cat_text, (item_rect.x + 65, item_rect.centery + 4))
                 
-                # Equip/Unequip button (bottom-right)
+                # --- 4. BUTTON (Far Right) ---
                 if is_equippable:
-                    btn_rect = pg.Rect(item_rect.right - 55, item_rect.bottom - 25, 50, 20)
+                    btn_width = 70
+                    btn_height = 26
+                    btn_rect = pg.Rect(item_rect.right - btn_width - 15, item_rect.centery - btn_height // 2, btn_width, btn_height)
                     mouse_pos = pg.mouse.get_pos()
                     
                     if is_equipped:
                         btn_color = (130, 70, 70) if btn_rect.collidepoint(mouse_pos) else (100, 50, 50)
-                        btn_text = "UNEQUIP"
+                        btn_text = "UNEQUIP" 
                         self.equip_buttons[f"unequip_{item_name}"] = btn_rect
                     else:
                         btn_color = (70, 100, 130) if btn_rect.collidepoint(mouse_pos) else (50, 70, 100)
@@ -335,12 +387,12 @@ class InventorySystem:
                     screen.blit(btn_render, btn_render_rect)
 
             # Scrollbar
-            if len(items) > 6:
+            if len(items) > 8: 
                 scroll_bg = pg.Rect(self.rect.x + self.rect.width - 20, self.rect.y + 45, 10, 100)
                 pg.draw.rect(screen, (40, 40, 50), scroll_bg)
                 pg.draw.rect(screen, (100, 100, 120), scroll_bg, 1)
                 
-                scroll_ratio = self.scroll_offset / (len(items) - 6) if len(items) > 6 else 0
+                scroll_ratio = self.scroll_offset / (len(items) - 8) if len(items) > 8 else 0
                 scroll_bar_height = max(20, scroll_bg.height * 0.3)
                 scroll_bar_y = scroll_bg.y + int(scroll_ratio * (scroll_bg.height - scroll_bar_height))
                 scroll_bar = pg.Rect(scroll_bg.x, scroll_bar_y, scroll_bg.width, scroll_bar_height)
@@ -367,24 +419,34 @@ class InventorySystem:
             y += 30
             
             if self.selected_item and self.hovered_index != -1:
-                name_text = self.font_medium.render(self.selected_item, True, (255, 255, 200))
+                # 1. Item Name
+                name_text = self.font_large.render(self.selected_item, True, (255, 255, 200))
                 screen.blit(name_text, (desc_x + 12, y))
-                y += 25
+                y += 28
                 
+                # 2. Get Live Stats from Equipment Database
+                item_data = Equipment_System.equipment_database.get(self.selected_item, {})
+                level = item_data.get("level", 1)
+                multiplier = item_data.get("multiplier", 1.0)
+                rarity = item_data.get("rarity", "Common")
+                
+                # Render Stats Line
+                stats_str = f"Level: {level}  |  Rarity: {rarity}  |  Damage Multiplier: x{multiplier:.2f}"
+                stats_text = self.font_small.render(stats_str, True, (100, 255, 100))
+                screen.blit(stats_text, (desc_x + 12, y))
+                y += 22
+                
+                # Draw a clean divider line
+                pg.draw.line(screen, (100, 100, 120), (desc_x + 12, y), (desc_x + desc_w - 12, y), 1)
+                y += 10
+                
+                # 3. Description
                 description = self._get_item_description(self.selected_item)
                 desc_lines = self._wrap_text(description, self.font_small, desc_w - 24)
                 for line in desc_lines:
                     desc_text = self.font_small.render(line, True, (180, 180, 200))
                     screen.blit(desc_text, (desc_x + 12, y))
                     y += 18
-            else:
-                hint_text1 = self.font_small.render("Hover over an item", True, (150, 150, 170))
-                hint_rect1 = hint_text1.get_rect(center=(desc_x + desc_w // 2, y + 15))
-                screen.blit(hint_text1, hint_rect1)
-                
-                hint_text2 = self.font_small.render("to see details", True, (150, 150, 170))
-                hint_rect2 = hint_text2.get_rect(center=(desc_x + desc_w // 2, y + 35))
-                screen.blit(hint_text2, hint_rect2)
 
     def _get_item_description(self, item_name):
         descriptions = {

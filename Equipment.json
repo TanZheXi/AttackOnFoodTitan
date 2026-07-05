@@ -15,7 +15,7 @@
         "scrap_value": 10,
         "rarity": "Common",
         "slot": "weapon",
-        "level": 16
+        "level": 21
     },
     "Golden Spatula": {
         "owned": false,
@@ -42,7 +42,7 @@
         "scrap_value": 1000,
         "rarity": "Mythic",
         "slot": "weapon",
-        "level": 4
+        "level": 16
     },
     "Beginner Wok": {
         "owned": false,

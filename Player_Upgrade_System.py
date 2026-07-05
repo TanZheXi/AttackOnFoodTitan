@@ -1,6 +1,7 @@
 import pygame as pg
 import Currency_System
 import Equipment_System
+from Audio_System import GLOBAL_CLICK
 import math
 
 try:
@@ -243,7 +244,7 @@ class PlayerUpgradeSystem:
         return self.companions[index].get_damage()
  
         # ========== Kitchen Guide callback ==========
-        self.upgrade_callback = None  # 外部设置的回调函数
+        self.upgrade_callback = None  # Set external callback function
         # ===========================================
 
     def _init_category_buttons(self):
@@ -410,7 +411,7 @@ class PlayerUpgradeSystem:
 
             print(f"[UPGRADE] Base Damage Lv {self.level} → {Equipment_System.base_damage}, Next Cost: {self.get_upgrade_cost()}")
 
-            # ==========  Kitchen Guide  ==========
+            # ===== Announce Kitchen Guide Upgrade Update =====
             if self.upgrade_callback:
                 self.upgrade_callback()
             # =================================================
