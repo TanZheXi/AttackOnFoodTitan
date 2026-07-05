@@ -335,5 +335,5 @@ class ManaSystem:
         # Text display: current/max
         font = pg.font.SysFont(None, 20)
         text_surface = font.render(f"{int(self.current_mana)}/{self.max_mana}", True, (0, 0, 0))
-        text_rect = text_surface.get_rect(midleft=(x + width + 10, y + height // 2))
+        text_rect = text_surface.get_rect(center=(x + width // 2, y + height // 2 + 1))
         surface.blit(text_surface, text_rect)
