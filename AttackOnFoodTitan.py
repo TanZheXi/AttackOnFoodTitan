@@ -501,6 +501,16 @@ if saved_monster_data:
     else:
         current_monster.hp = saved_monster_data["hp"]
     # -------------------------------------------------------------
+
+    # Restore boss timer data
+    is_boss = (saved_progression_index % 10 == 9)
+    if is_boss:
+        current_monster.boss_timer_active = True
+        current_monster.boss_timer_start = saved_monster_data.get("boss_timer_start", time.time())
+    else:
+        current_monster.boss_timer_active = False
+    
+    current_monster.boss_timer_duration = 30
         
     current_monster.rect.x = MIDDLE_CENTER_X - MONSTER_SIZE // 2
     current_monster.rect.y = 275
@@ -780,6 +790,11 @@ while IsRunning:
                 }
             
             boost_data = boost_indicator.get_save_data()
+
+            # Get boss timer data before saving
+            is_boss = (monster_manager.progression_index % 10 == 9)
+            boss_timer_active = current_monster.boss_timer_active if is_boss else False
+            boss_timer_start = current_monster.boss_timer_start if is_boss else 0
             
             AFK_System.afk_system.save_game_data(
                 pocket_money=Currency_System.pocket_money,
@@ -798,7 +813,9 @@ while IsRunning:
                 michelin_stars=Currency_System.michelin_stars,
                 ability_data=ability_save_data,
                 player_upgrade_data=player_upgrade_save_data,
-                companion_data=companion_save_data
+                companion_data=companion_save_data,
+                boss_timer_active=boss_timer_active,     
+                boss_timer_start=boss_timer_start
             )
             IsRunning = False
             break
@@ -811,21 +828,32 @@ while IsRunning:
 
             # ===== PRESTIGE KEYBIND (Always available, not just in dev mode) =====
             if event.key == pg.K_p:
-               # Check if prestige is ready
-               current_stars = Currency_System.michelin_stars
-               next_requirement = Currency_System.get_next_prestige_requirement(current_stars)
+            # Check if prestige is ready
+              current_stars = Currency_System.michelin_stars
+              next_requirement = Currency_System.get_next_prestige_requirement(current_stars)
 
-               if next_requirement is None:
-                    print("[PRESTIGE] Max prestige already reached!")
-               elif monster_manager.stage >= next_requirement:
-                    if Currency_System.trigger_prestige(monster_manager):
-                       # Reset animations and texts
-                       damage_texts.clear()
-                       attack_animations.clear()
-                       # Reset any open panels
-                       Button_System.panel_manager.active_panel = None
-               else:
-                    print(f"[PRESTIGE] Need Stage {next_requirement} to prestige! (Current: Stage {monster_manager.stage})")
+              if next_requirement is None:
+                 print("[PRESTIGE] Max prestige already reached!")
+              elif monster_manager.stage >= next_requirement:
+                 success, new_monster = Currency_System.trigger_prestige(monster_manager)
+                 if success:
+                    # ✅ Update the current_monster reference
+                    current_monster = new_monster
+
+                    # Set the monster's position
+                    current_monster.rect.x = MIDDLE_CENTER_X - MONSTER_SIZE // 2
+                    current_monster.rect.y = 275
+
+                    # ✅ Force HP to max
+                    current_monster.hp = current_monster.max_hp
+            
+                    # Reset animations and texts
+                    damage_texts.clear()
+                    attack_animations.clear()
+                    # Reset any open panels
+                    Button_System.panel_manager.active_panel = None
+            else:
+                print(f"[PRESTIGE] Need Stage {next_requirement} to prestige! (Current: Stage {monster_manager.stage})")
     
                 
             # Only allow these keybinds if Developer Mode is ON
@@ -849,36 +877,39 @@ while IsRunning:
 
         elif event.type == pg.MOUSEBUTTONDOWN and event.button == 1:
             # ===== CHECK PRESTIGE BUTTON CLICK =====
-            # Get the current rect from the dictionary
-            current_prestige_rect = prestige_button["rect"]
-            
-            print(f"[DEBUG] Mouse click at {event.pos}")
-            print(f"[DEBUG] Prestige button rect: {current_prestige_rect}")
-            
-            if current_prestige_rect and current_prestige_rect.collidepoint(event.pos):
-                print(f"[DEBUG] ✓ Clicked on prestige button!")
-                print(f"[DEBUG] Current Stage: {monster_manager.stage}")
-                print(f"[DEBUG] Current Stars: {Currency_System.michelin_stars}")
+            if prestige_button_rect and prestige_button_rect.collidepoint(event.pos):
+               print(f"[DEBUG] Prestige button clicked!")
+               print(f"[DEBUG] Current Stage: {monster_manager.stage}")
+               print(f"[DEBUG] Current Stars: {Currency_System.michelin_stars}")
+        
+               # Check if prestige is ready
+               current_stars = Currency_System.michelin_stars
+               next_requirement = Currency_System.get_next_prestige_requirement(current_stars)
+        
+               if next_requirement is None:
+                  print("[PRESTIGE] Max prestige already reached!")
+               elif monster_manager.stage >= next_requirement:
+                  print(f"[DEBUG] ✓ Prestige condition met! Stage {monster_manager.stage} >= {next_requirement}")
+                  success, updated_monster = Currency_System.trigger_prestige(monster_manager)
+                  if success:
+                      # ✅ Update the current_monster reference
+                      current_monster = updated_monster
                 
-                # Check if prestige is ready
-                current_stars = Currency_System.michelin_stars
-                next_requirement = Currency_System.get_next_prestige_requirement(current_stars)
+                      # ✅ Set the monster's position
+                      current_monster.rect.x = MIDDLE_CENTER_X - MONSTER_SIZE // 2
+                      current_monster.rect.y = 275
                 
-                if next_requirement is None:
-                    print("[PRESTIGE] Max prestige already reached!")
-                elif monster_manager.stage >= next_requirement:
-                    print(f"[DEBUG] ✓ Prestige condition met! Stage {monster_manager.stage} >= {next_requirement}")
-                    if Currency_System.trigger_prestige(monster_manager):
-                        # Reset animations and texts
-                        damage_texts.clear()
-                        attack_animations.clear()
-                        # Reset any open panels
-                        Button_System.panel_manager.active_panel = None
-                        print("[DEBUG] ✓ Prestige successful!")
-                    else:
-                        print("[DEBUG] ✗ Prestige failed!")
-                else:
-                    print(f"[PRESTIGE] Need Stage {next_requirement} to prestige! (Current: Stage {monster_manager.stage})")
+                      # Reset animations and texts
+                      damage_texts.clear()
+                      attack_animations.clear()
+                      # Reset any open panels
+                      Button_System.panel_manager.active_panel = None
+                
+                      print(f"[DEBUG] ✓ Prestige successful! Monster HP: {current_monster.hp}/{current_monster.max_hp}")
+                  else:
+                      print("[DEBUG] ✗ Prestige failed!")
+               else:
+                  print(f"[PRESTIGE] Need Stage {next_requirement} to prestige! (Current: Stage {monster_manager.stage})") 
             else:
                 print(f"[DEBUG] ✗ Click not on prestige button")
 
@@ -914,9 +945,9 @@ while IsRunning:
                     current_monster.last_hit_by = "player"
 
         if player_upgrade_system.spicy_unlocked:
-           damage_boost.handle_event(event)
+           damage_boost.handle_event(event, mana_system)  
         if player_upgrade_system.crispy_unlocked:
-           crispy_precision.handle_event(event)
+           crispy_precision.handle_event(event, mana_system)  
 
         Button_System.panel_manager.monster_manager = monster_manager
         Button_System.panel_manager.handle_event(event)
@@ -1061,7 +1092,15 @@ while IsRunning:
         Button_System.panel_manager.kitchen_guide_system.guide_manager.update_progress("stage_reached", monster_manager.stage)
 
     if getattr(Button_System.panel_manager, 'wants_to_prestige', False):
-        if Currency_System.trigger_prestige(monster_manager):
+        success, new_monster = Currency_System.trigger_prestige(monster_manager)
+        if success:
+            # ✅ Update the current_monster reference
+            current_monster = new_monster
+            current_monster.rect.x = MIDDLE_CENTER_X - MONSTER_SIZE // 2
+            current_monster.rect.y = 275
+
+            # ✅ Force HP to max
+            current_monster.hp = current_monster.max_hp
             Button_System.panel_manager.active_panel = None
         Button_System.panel_manager.wants_to_prestige = False
 
@@ -1135,6 +1174,12 @@ while IsRunning:
             }
         
         boost_data = boost_indicator.get_save_data()
+
+        # Get boss timer data before saving
+        is_boss = (monster_manager.progression_index % 10 == 9)
+        boss_timer_active = current_monster.boss_timer_active if is_boss else False
+        boss_timer_start = current_monster.boss_timer_start if is_boss else 0
+
         AFK_System.afk_system.save_game_data(
             pocket_money=Currency_System.pocket_money,
             monster_hp=current_monster.hp,
@@ -1152,7 +1197,9 @@ while IsRunning:
             michelin_stars=Currency_System.michelin_stars,
             ability_data=ability_save_data,
             player_upgrade_data=player_upgrade_save_data,
-            companion_data=companion_save_data
+            companion_data=companion_save_data,
+            boss_timer_active=boss_timer_active,      
+            boss_timer_start=boss_timer_start
         )
         AFK_System.afk_system.update_save_time()
         Equipment_System.save_equipment()
