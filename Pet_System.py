@@ -218,11 +218,14 @@ class PetSystem:
                     break
 
     def reset_on_prestige(self):
-        for pet in self.all_pets:
-            pet.equipped = False
-        self.message = "All pets unequipped due to prestige!"
-        self.message_timer = 120
-        print(f"[PET] All pets unequipped on prestige.")
+       # Reset all pets on prestige
+       for pet in self.all_pets:
+           pet.equipped = False
+
+       # Keep ownership (so player doesn't lose pets)
+       self.message = "All pets unequipped due to prestige!"
+       self.message_timer = 120
+       print(f"[PET] All pets unequipped on prestige.")
 
     def restore_save_data(self, data):
         if not data:

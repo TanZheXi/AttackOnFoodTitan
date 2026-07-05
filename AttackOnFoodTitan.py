@@ -626,6 +626,9 @@ show_loading_screen(window, "Starting game...", 1.0)
 # ---  Developer Mode Flag ---
 dev_mode = False
 
+# Add this line to store the prestige button rect
+prestige_button = {"rect": None}
+
 # ========== Main Loop ========== #
 while IsRunning:
     dt_ms = clock.tick(60)
@@ -640,7 +643,8 @@ while IsRunning:
        damage_boost.update()
     if player_upgrade_system.crispy_unlocked:
        crispy_precision.update() 
-
+       
+    # --- Event Handling ---
     for event in pg.event.get():
         if event.type == pg.USEREVENT + 1:
             play_next_music()
@@ -676,6 +680,25 @@ while IsRunning:
             if event.key == pg.K_F12:
                 dev_mode = not dev_mode
                 print(f"[SYSTEM] Developer Mode is now {'ON' if dev_mode else 'OFF'}")
+
+            # ===== PRESTIGE KEYBIND (Always available, not just in dev mode) =====
+            if event.key == pg.K_p:
+               # Check if prestige is ready
+               current_stars = Currency_System.michelin_stars
+               next_requirement = Currency_System.get_next_prestige_requirement(current_stars)
+
+               if next_requirement is None:
+                    print("[PRESTIGE] Max prestige already reached!")
+               elif monster_manager.stage >= next_requirement:
+                    if Currency_System.trigger_prestige(monster_manager):
+                       # Reset animations and texts
+                       damage_texts.clear()
+                       attack_animations.clear()
+                       # Reset any open panels
+                       Button_System.panel_manager.active_panel = None
+               else:
+                    print(f"[PRESTIGE] Need Stage {next_requirement} to prestige! (Current: Stage {monster_manager.stage})")
+    
                 
             # Only allow these keybinds if Developer Mode is ON
             if dev_mode:
@@ -694,11 +717,43 @@ while IsRunning:
                 elif event.key == pg.K_n:
                     monster_manager.stage += 1
                     monster_manager.progression_index = (monster_manager.stage - 1) * 10
-                    monster_manager.current_monster = monster_manager.spawn_monster()
-                elif event.key == pg.K_p:
-                    Currency_System.trigger_prestige(monster_manager)
+                    monster_manager.current_monster = monster_manager.spawn_monster()  
 
         elif event.type == pg.MOUSEBUTTONDOWN and event.button == 1:
+            # ===== CHECK PRESTIGE BUTTON CLICK =====
+            # Get the current rect from the dictionary
+            current_prestige_rect = prestige_button["rect"]
+            
+            print(f"[DEBUG] Mouse click at {event.pos}")
+            print(f"[DEBUG] Prestige button rect: {current_prestige_rect}")
+            
+            if current_prestige_rect and current_prestige_rect.collidepoint(event.pos):
+                print(f"[DEBUG] ✓ Clicked on prestige button!")
+                print(f"[DEBUG] Current Stage: {monster_manager.stage}")
+                print(f"[DEBUG] Current Stars: {Currency_System.michelin_stars}")
+                
+                # Check if prestige is ready
+                current_stars = Currency_System.michelin_stars
+                next_requirement = Currency_System.get_next_prestige_requirement(current_stars)
+                
+                if next_requirement is None:
+                    print("[PRESTIGE] Max prestige already reached!")
+                elif monster_manager.stage >= next_requirement:
+                    print(f"[DEBUG] ✓ Prestige condition met! Stage {monster_manager.stage} >= {next_requirement}")
+                    if Currency_System.trigger_prestige(monster_manager):
+                        # Reset animations and texts
+                        damage_texts.clear()
+                        attack_animations.clear()
+                        # Reset any open panels
+                        Button_System.panel_manager.active_panel = None
+                        print("[DEBUG] ✓ Prestige successful!")
+                    else:
+                        print("[DEBUG] ✗ Prestige failed!")
+                else:
+                    print(f"[PRESTIGE] Need Stage {next_requirement} to prestige! (Current: Stage {monster_manager.stage})")
+            else:
+                print(f"[DEBUG] ✗ Click not on prestige button")
+
             if current_monster.rect.collidepoint(event.pos):
                 if attack_titan_sound:
                     attack_titan_sound.play()
@@ -1108,6 +1163,95 @@ while IsRunning:
        Button_System.panel_manager.player_upgrade_system.draw_companions(window)
 
     Currency_System.draw_ui(window)
+
+    # ========== DRAW PRESTIGE INDICATOR ==========
+    if player_upgrade_system:
+        current_stars = Currency_System.michelin_stars
+        current_stage = monster_manager.stage
+        
+        # Get prestige progress
+        progress, next_requirement = Currency_System.get_prestige_progress(current_stage, current_stars)
+
+        # DEBUG: Print the status
+        print(f"[DEBUG] Prestige check - Stage: {current_stage}, Stars: {current_stars}, Next Req: {next_requirement}, Progress: {progress}%")
+        
+        if next_requirement is not None:
+            # Draw prestige indicator in top-right corner
+            x = RIGHT_AREA_X + 10
+            y = 10
+            width = 160
+            height = 70
+            
+            # Store the rect for click detection
+            prestige_button_rect = pg.Rect(x, y, width, height)
+            
+            # Background - change color when ready to prestige
+            if progress >= 100:
+                bg_color = (0, 80, 0)  # Dark green when ready
+            else:
+                bg_color = (40, 40, 50)  # Normal dark
+            
+            pg.draw.rect(window, bg_color, prestige_button_rect)
+            pg.draw.rect(window, (255, 215, 0), prestige_button_rect, 2)
+            
+            # Title
+            font = pg.font.SysFont(None, 14)
+            title = font.render(f"★ PRESTIGE ★", True, (255, 215, 0))
+            window.blit(title, (x + 10, y + 3))
+            
+            # Progress bar
+            bar_x = x + 10
+            bar_y = y + 25
+            bar_width = width - 20
+            bar_height = 14
+            
+            pg.draw.rect(window, (60, 60, 60), (bar_x, bar_y, bar_width, bar_height))
+            
+            # Color based on progress
+            if progress >= 100:
+                bar_color = (0, 255, 0)  # Green - ready to prestige
+                bar_text = "CLICK TO PRESTIGE!"
+            elif progress >= 75:
+                bar_color = (255, 255, 0)  # Yellow - close
+                bar_text = f"Stage {current_stage}/{next_requirement}"
+            elif progress >= 50:
+                bar_color = (255, 165, 0)  # Orange - halfway
+                bar_text = f"Stage {current_stage}/{next_requirement}"
+            else:
+                bar_color = (255, 100, 100)  # Red - far away
+                bar_text = f"Stage {current_stage}/{next_requirement}"
+            
+            pg.draw.rect(window, bar_color, (bar_x, bar_y, int(bar_width * (progress / 100)), bar_height))
+            
+            # Text
+            small_font = pg.font.SysFont(None, 12)
+            text = small_font.render(bar_text, True, (0, 0, 0) if progress >= 100 else (255, 255, 255))
+            window.blit(text, (bar_x + 5, bar_y + 2))
+            
+            # Stars indicator
+            stars_text = small_font.render(f"★ x{current_stars}", True, (255, 215, 0))
+            window.blit(stars_text, (x + 10, y + 48))
+            
+            # Next prestige info
+            next_req = Currency_System.get_next_prestige_requirement(current_stars)
+            if next_req:
+                next_text = small_font.render(f"Next: Stage {next_req}", True, (200, 200, 200))
+                window.blit(next_text, (x + 70, y + 48))
+        else:
+            # Max prestige reached
+            x = RIGHT_AREA_X + 10
+            y = 10
+            width = 160
+            height = 40
+            
+            prestige_button_rect = pg.Rect(x, y, width, height)
+            
+            pg.draw.rect(window, (40, 40, 50), prestige_button_rect)
+            pg.draw.rect(window, (255, 215, 0), prestige_button_rect, 2)
+            
+            font = pg.font.SysFont(None, 16)
+            text = font.render("★ MAX PRESTIGE ★", True, (255, 215, 0))
+            window.blit(text, text.get_rect(center=(x + width//2, y + height//2)))
 
     for dt in damage_texts:
         dt.draw(window)

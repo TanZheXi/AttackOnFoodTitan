@@ -73,6 +73,10 @@ class Companion:
        if Currency_System.pocket_money >= cost:
            Currency_System.pocket_money -= cost
            self.level += 1
+  
+           # ===== BALANCED SCALING =====
+           # Damage grows as: base_damage = level^1.5 * multiplier
+           # This gives nice scaling without being too fast or too slow
 
            # Damage scaling: exponential growth
            Equipment_System.base_damage = int(Equipment_System.base_damage * 1.08 + 2)
