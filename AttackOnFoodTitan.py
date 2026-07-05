@@ -713,7 +713,7 @@ while IsRunning:
             if Button_System.panel_manager.player_upgrade_system:
                 upgrade_level = Button_System.panel_manager.player_upgrade_system.level
             
-            # 保存 player upgrade data
+            # Save player upgrade data
             player_upgrade_save_data = {}
             if Button_System.panel_manager.player_upgrade_system:
                 pug = Button_System.panel_manager.player_upgrade_system
@@ -743,7 +743,7 @@ while IsRunning:
                     "mana_regen_bonus": pug.mana_regen_bonus
                 }
             
-            # 保存 companion data
+            # Save companion data
             companion_save_data = []
             if Button_System.panel_manager.player_upgrade_system:
                 for comp in Button_System.panel_manager.player_upgrade_system.companions:
@@ -1018,7 +1018,7 @@ while IsRunning:
         if Button_System.panel_manager.player_upgrade_system:
             upgrade_level = Button_System.panel_manager.player_upgrade_system.level
         
-        # 保存 player upgrade data
+        # Save player upgrade data
         player_upgrade_save_data = {}
         if Button_System.panel_manager.player_upgrade_system:
             pug = Button_System.panel_manager.player_upgrade_system
@@ -1048,7 +1048,7 @@ while IsRunning:
                 "mana_regen_bonus": pug.mana_regen_bonus
             }
         
-        # 保存 companion data
+        # Save companion data
         companion_save_data = []
         if Button_System.panel_manager.player_upgrade_system:
             for comp in Button_System.panel_manager.player_upgrade_system.companions:
