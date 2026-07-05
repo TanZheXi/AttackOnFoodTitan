@@ -663,8 +663,21 @@ while IsRunning:
                     attack_titan_sound.play()
 
                 extra_chance, extra_multi = crispy_precision.get_crit_bonus()
-                base_damage = getattr(Equipment_System, "base_damage", Click_Damage_Feature.damage_per_click)
-                final_damage, is_critical = calculate_damage(base_damage, extra_chance, extra_multi)
+                
+                # Match the Stats Panel calculation exactly
+                raw_base = getattr(Equipment_System, "base_damage", Click_Damage_Feature.damage_per_click)
+                eq_multi = float(Equipment_System.total_damage_multiplier)
+                
+                upgrade_lvl = 0
+                if Button_System.panel_manager.player_upgrade_system:
+                    upgrade_lvl = Button_System.panel_manager.player_upgrade_system.level
+                    
+                base_calc = (raw_base * eq_multi) + upgrade_lvl
+                if upgrade_lvl > 0 and upgrade_lvl % 50 == 0:
+                    base_calc *= 1.2
+
+                # Pass the fully calculated base into the crit function
+                final_damage, is_critical = calculate_damage(base_calc, extra_chance, extra_multi)
                 final_damage = int(final_damage * damage_boost.get_multiplier() * Currency_System.get_prestige_multiplier())
                 current_monster.take_damage(final_damage)
 
@@ -921,7 +934,6 @@ while IsRunning:
     
     # --- SECTION 2: BASE BREAKDOWN ---
     stats_y = draw_sleek_header("BASE STATS", stats_y)
-    stats_y = draw_sub_stat("Weapon Base", Currency_System.format_money(raw_base), (200, 200, 200), stats_y)
     stats_y = draw_sub_stat("Weapon Multi", f"x{Currency_System.format_money(eq_multi)}", (200, 200, 200), stats_y)
     stats_y = draw_sub_stat("Upgrade Added", f"+{upgrade_lvl}", (200, 200, 200), stats_y)
     stats_y = draw_sub_stat("Pet Base", Currency_System.format_money(pet_base), (200, 200, 200), stats_y)
@@ -929,7 +941,8 @@ while IsRunning:
     
     # --- SECTION 3: MULTIPLIERS & CRITS ---
     stats_y = draw_sleek_header("MULTIPLIERS", stats_y)
-    stats_y = draw_sub_stat("Prestige Multi", f"x{Currency_System.format_money(prestige_multi)}", (255, 215, 0), stats_y)
+    stats_y = draw_sub_stat("Prestige Multi", f"x{(prestige_multi)}", (255, 215, 0), stats_y)
+    stats_y = draw_sub_stat("  1 Michelin Star =", "+0.1x", (180, 180, 180), stats_y)
     stats_y = draw_sub_stat("Ability Multi", f"x{Currency_System.format_money(ability_multi)}", (255, 150, 50), stats_y)
     stats_y = draw_sub_stat("Crit Chance", f"{int(total_crit_c * 100)}%", (150, 200, 255), stats_y)
     stats_y = draw_sub_stat("Crit Damage", f"x{Currency_System.format_money(total_crit_m)}", (150, 200, 255), stats_y)
